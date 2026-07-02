@@ -1,0 +1,2872 @@
+{
+  "users": [
+    {
+      "id": "u1",
+      "username": "testuser",
+      "email": "test@showtime.com",
+      "passwordHash": "$2a$10$F1nmfGGzUKcToiIgwZOcQO3le561eYvmYC3q6D83OurXZQ5lGBG0.",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testuser",
+      "createdAt": "2026-07-02T02:57:44.305Z"
+    },
+    {
+      "id": "u_7i0l6s5",
+      "username": "testsignup",
+      "email": "signup@test.com",
+      "passwordHash": "$2a$10$uyqjktuSZ4qMRE0SUi6YQ.2hbxakmtkXW3CZo9WXNlgJMcPxaPl9.",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup",
+      "createdAt": "2026-07-02T02:57:44.677Z"
+    },
+    {
+      "id": "u_43awnf2",
+      "username": "Shift",
+      "email": "erickru100@gmail.com",
+      "passwordHash": "$2a$10$KwbaCvwM726y2HUao2YVHOsgVQ4GYEKnofaiLjRLmlajPKRa3De.u",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=Shift",
+      "createdAt": "2026-07-02T03:06:45.441Z"
+    },
+    {
+      "id": "kqMVdOulv7ahtc4ZDZ4kVaMbtD63",
+      "username": "Erick Lucena",
+      "email": "erickru100@gmail.com",
+      "passwordHash": "",
+      "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocL1zamnbloKhhw-QElSH4dgM1uD5z_2E6QaU3hddJYK93Jxt20S=s96-c",
+      "createdAt": "2026-07-02T03:31:13.314Z"
+    },
+    {
+      "id": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "username": "Erick Lucena",
+      "email": "ericklucena2020@gmail.com",
+      "passwordHash": "",
+      "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocL1zamnbloKhhw-QElSH4dgM1uD5z_2E6QaU3hddJYK93Jxt20S=s96-c",
+      "createdAt": "2026-07-02T03:33:37.816Z"
+    }
+  ],
+  "shows": [
+    {
+      "id": "s1",
+      "tmdbId": 1396,
+      "tvdbId": 81189,
+      "title": "Breaking Bad",
+      "overview": "Walter White, um professor de química do ensino médio, descobre que tem câncer de pulmão terminal. Para garantir o futuro financeiro de sua família, ele começa a produzir e vender metanfetamina com um ex-aluno, Jesse Pinkman.",
+      "posterPath": "/ggm5g9tZzff9x5377I41460j6st.jpg",
+      "backdropPath": "/9fa5tmg53Pd94V9xp78gU6zPPi7.jpg",
+      "firstAirDate": "2008-01-20",
+      "genre": [
+        "Drama",
+        "Crime"
+      ],
+      "status": "Ended"
+    },
+    {
+      "id": "s2",
+      "tmdbId": 2288,
+      "tvdbId": 79349,
+      "title": "Prison Break",
+      "overview": "Michael Scofield é um homem desesperado em uma situação desesperadora. Seu irmão, Lincoln Burrows, está no corredor da morte por um assassinato que Michael está convencido de que ele não cometeu. Michael assalta um banco para ser preso na mesma penitenciária e executar um plano de fuga elaborado.",
+      "posterPath": "/ux5D85p86c3S1nN3V2H5zQ2Y37l.jpg",
+      "backdropPath": "/39C7F4e6o1jG1tV8eWqJ0N9y8Z3.jpg",
+      "firstAirDate": "2005-08-29",
+      "genre": [
+        "Action",
+        "Drama",
+        "Crime"
+      ],
+      "status": "Ended"
+    },
+    {
+      "id": "s3",
+      "tmdbId": 1429,
+      "tvdbId": 262980,
+      "title": "Attack on Titan",
+      "overview": "Há várias décadas, a humanidade foi quase exterminada pelo surgimento de seres gigantescos, devoradores de humanos. Os sobreviventes construíram muralhas enormes para se proteger. Um jovem chamado Eren Jaeger jura eliminar todos os Titãs depois que sua mãe é devorada.",
+      "posterPath": "/hgg6Hw4A8U5329v17V39W2E77Vl.jpg",
+      "backdropPath": "/d5N05Z1kHnCjU8O5669L2D09y8Z.jpg",
+      "firstAirDate": "2013-04-07",
+      "genre": [
+        "Animation",
+        "Action",
+        "Sci-Fi & Fantasy"
+      ],
+      "status": "Ended"
+    },
+    {
+      "id": "s_l0nkldl",
+      "tmdbId": 86031,
+      "title": "Dr. Stone",
+      "overview": "Milhares de anos após um misterioso fenômeno transformar a humanidade inteira em pedra, desperta um garoto extraordinariamente inteligente e motivado pela ciência - Senku Ishigami. Diante de um mundo de pedra e do colapso generalizado da civilização, Senku decide usar sua mente para reconstruir o mundo. Ao lado de Taiju Oki, seu amigo de infância absurdamente forte, eles começam a reestabelecer a civilização do zero... Representando os dois milhões de anos da história da ciência, desde a Idade da Pedra até os dias atuais, esta aventura científica sem precedentes está prestes a começar!",
+      "posterPath": "/dLlnzbDCblBXcJqFLXyvN43NIwp.jpg",
+      "backdropPath": "/lN13BPAEnc5iXmoxxBQHOZ1ScfZ.jpg",
+      "firstAirDate": "2019-07-05",
+      "genre": [
+        "Animação",
+        "Action & Adventure",
+        "Comédia",
+        "Sci-Fi & Fantasy"
+      ],
+      "status": "Ended"
+    },
+    {
+      "id": "s_cr0hwht",
+      "tmdbId": 37854,
+      "title": "One Piece",
+      "overview": "Houve um homem que conquistou tudo aquilo que o mundo tinha a oferecer, o lendário Rei dos Piratas, Gold Roger. Capturado e condenado à execução pelo Governo Mundial, suas últimas palavras lançaram legiões aos mares. \"Meu tesouro? Se quiserem, podem pegá-lo. Procurem-no! Ele contém tudo que este mundo pode oferecer!\". Foi a revelação do maior tesouro, o One Piece, cobiçado por homens de todo o mundo, sonhando com fama e riqueza imensuráveis... Assim começou a Grande Era dos Piratas!",
+      "posterPath": "/9ltisibeD4gzqjM1AzmQwCdyirQ.jpg",
+      "backdropPath": "/2rmK7mnchw9Xr3XdiTFSxTTLXqv.jpg",
+      "firstAirDate": "1999-10-20",
+      "genre": [
+        "Action & Adventure",
+        "Comédia",
+        "Animação"
+      ],
+      "status": "Returning Series"
+    }
+  ],
+  "seasons": [
+    {
+      "id": "sea1_1",
+      "showId": "s1",
+      "seasonNumber": 1,
+      "episodeCount": 7
+    },
+    {
+      "id": "sea1_2",
+      "showId": "s1",
+      "seasonNumber": 2,
+      "episodeCount": 3
+    },
+    {
+      "id": "sea2_1",
+      "showId": "s2",
+      "seasonNumber": 1,
+      "episodeCount": 5
+    },
+    {
+      "id": "sea3_1",
+      "showId": "s3",
+      "seasonNumber": 1,
+      "episodeCount": 5
+    },
+    {
+      "id": "sea_vldvwt5",
+      "showId": "s_l0nkldl",
+      "episodeCount": 57
+    },
+    {
+      "id": "sea_xond66q",
+      "showId": "s_cr0hwht",
+      "episodeCount": 91
+    }
+  ],
+  "episodes": [
+    {
+      "id": "ep_s1_1_1",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "title": "Pilot",
+      "overview": "Sinopse detalhada do episódio 1 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-20",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_2",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 2,
+      "title": "Cat's in the Bag...",
+      "overview": "Sinopse detalhada do episódio 2 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-27",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_3",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 3,
+      "title": "...And the Bag's in the River",
+      "overview": "Sinopse detalhada do episódio 3 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-34",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_4",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 4,
+      "title": "Cancer Man",
+      "overview": "Sinopse detalhada do episódio 4 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-41",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_5",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 5,
+      "title": "Gray Matter",
+      "overview": "Sinopse detalhada do episódio 5 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-48",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_6",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 6,
+      "title": "Crazy Handful of Nothin'",
+      "overview": "Sinopse detalhada do episódio 6 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-55",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_1_7",
+      "showId": "s1",
+      "seasonId": "sea1_1",
+      "seasonNumber": 1,
+      "episodeNumber": 7,
+      "title": "A No-Rough-Stuff-Type Deal",
+      "overview": "Sinopse detalhada do episódio 7 de Breaking Bad, onde Walter e Jesse navegam nos perigos iniciais do tráfico de drogas.",
+      "airDate": "2008-01-62",
+      "duration": 48
+    },
+    {
+      "id": "ep_s1_2_1",
+      "showId": "s1",
+      "seasonId": "sea1_2",
+      "seasonNumber": 2,
+      "episodeNumber": 1,
+      "title": "Seven Thirty-Seven",
+      "overview": "Breaking Bad Temporada 2, Episódio 1. Os riscos sobem à medida que a dupla de produtores expande seus horizontes.",
+      "airDate": "2009-03-8",
+      "duration": 47
+    },
+    {
+      "id": "ep_s1_2_2",
+      "showId": "s1",
+      "seasonId": "sea1_2",
+      "seasonNumber": 2,
+      "episodeNumber": 2,
+      "title": "Grilled",
+      "overview": "Breaking Bad Temporada 2, Episódio 2. Os riscos sobem à medida que a dupla de produtores expande seus horizontes.",
+      "airDate": "2009-03-15",
+      "duration": 47
+    },
+    {
+      "id": "ep_s1_2_3",
+      "showId": "s1",
+      "seasonId": "sea1_2",
+      "seasonNumber": 2,
+      "episodeNumber": 3,
+      "title": "Bit by a Dead Bee",
+      "overview": "Breaking Bad Temporada 2, Episódio 3. Os riscos sobem à medida que a dupla de produtores expande seus horizontes.",
+      "airDate": "2009-03-22",
+      "duration": 47
+    },
+    {
+      "id": "ep_s2_1_1",
+      "showId": "s2",
+      "seasonId": "sea2_1",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "title": "Pilot",
+      "overview": "Michael executa as primeiras etapas de seu plano brilhante para sair de Fox River com seu irmão Lincoln.",
+      "airDate": "2005-08-29",
+      "duration": 44
+    },
+    {
+      "id": "ep_s2_1_2",
+      "showId": "s2",
+      "seasonId": "sea2_1",
+      "seasonNumber": 1,
+      "episodeNumber": 2,
+      "title": "Allen",
+      "overview": "Michael executa as primeiras etapas de seu plano brilhante para sair de Fox River com seu irmão Lincoln.",
+      "airDate": "2005-08-36",
+      "duration": 44
+    },
+    {
+      "id": "ep_s2_1_3",
+      "showId": "s2",
+      "seasonId": "sea2_1",
+      "seasonNumber": 1,
+      "episodeNumber": 3,
+      "title": "Cell Test",
+      "overview": "Michael executa as primeiras etapas de seu plano brilhante para sair de Fox River com seu irmão Lincoln.",
+      "airDate": "2005-08-43",
+      "duration": 44
+    },
+    {
+      "id": "ep_s2_1_4",
+      "showId": "s2",
+      "seasonId": "sea2_1",
+      "seasonNumber": 1,
+      "episodeNumber": 4,
+      "title": "Cute Poison",
+      "overview": "Michael executa as primeiras etapas de seu plano brilhante para sair de Fox River com seu irmão Lincoln.",
+      "airDate": "2005-08-50",
+      "duration": 44
+    },
+    {
+      "id": "ep_s2_1_5",
+      "showId": "s2",
+      "seasonId": "sea2_1",
+      "seasonNumber": 1,
+      "episodeNumber": 5,
+      "title": "English, Fitz or Percy",
+      "overview": "Michael executa as primeiras etapas de seu plano brilhante para sair de Fox River com seu irmão Lincoln.",
+      "airDate": "2005-08-57",
+      "duration": 44
+    },
+    {
+      "id": "ep_s3_1_1",
+      "showId": "s3",
+      "seasonId": "sea3_1",
+      "seasonNumber": 1,
+      "episodeNumber": 1,
+      "title": "Para Você, 2000 Anos no Futuro: A Queda de Shiganshina, Parte 1",
+      "overview": "A humanidade vive protegida dentro de muralhas gigantes, até que o surgimento de um Titã Colossal muda tudo.",
+      "airDate": "2013-04-7",
+      "duration": 24
+    },
+    {
+      "id": "ep_s3_1_2",
+      "showId": "s3",
+      "seasonId": "sea3_1",
+      "seasonNumber": 1,
+      "episodeNumber": 2,
+      "title": "Aquele Dia: A Queda de Shiganshina, Parte 2",
+      "overview": "A humanidade vive protegida dentro de muralhas gigantes, até que o surgimento de um Titã Colossal muda tudo.",
+      "airDate": "2013-04-14",
+      "duration": 24
+    },
+    {
+      "id": "ep_s3_1_3",
+      "showId": "s3",
+      "seasonId": "sea3_1",
+      "seasonNumber": 1,
+      "episodeNumber": 3,
+      "title": "Uma Luz Opaca no Meio do Desespero: A Humanidade se Levanta Novamente, Parte 1",
+      "overview": "A humanidade vive protegida dentro de muralhas gigantes, até que o surgimento de um Titã Colossal muda tudo.",
+      "airDate": "2013-04-21",
+      "duration": 24
+    },
+    {
+      "id": "ep_s3_1_4",
+      "showId": "s3",
+      "seasonId": "sea3_1",
+      "seasonNumber": 1,
+      "episodeNumber": 4,
+      "title": "A Noite da Cerimônia de Dissolução: A Humanidade se Levanta Novamente, Parte 2",
+      "overview": "A humanidade vive protegida dentro de muralhas gigantes, até que o surgimento de um Titã Colossal muda tudo.",
+      "airDate": "2013-04-28",
+      "duration": 24
+    },
+    {
+      "id": "ep_s3_1_5",
+      "showId": "s3",
+      "seasonId": "sea3_1",
+      "seasonNumber": 1,
+      "episodeNumber": 5,
+      "title": "Primeira Batalha: A Luta pela Queda de Trost, Parte 1",
+      "overview": "A humanidade vive protegida dentro de muralhas gigantes, até que o surgimento de um Titã Colossal muda tudo.",
+      "airDate": "2013-04-35",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_1",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 1,
+      "title": "Stone World",
+      "overview": "Tudo começa com uma conversa de amigos na escola. Um garoto resolve confessar seus sentimentos à menina que ama, quando de repente se vê petrificado, junto com todos os demais humanos. Até que um dia, ele consegue sair da camada de pedra e encontra um amigo. Estarão eles preparados para tirar todos dos seus casulos de pedra?",
+      "airDate": "2019-07-05",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_2",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 2,
+      "title": "King of the Stone World",
+      "overview": "Enquanto Senku e Taiju tentam salvar Yuzuriha, se encontram cercados por leões. É quando encontram mais alguém que pode ajudá-los...",
+      "airDate": "2019-07-12",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_3",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 3,
+      "title": "Armas da Ciência",
+      "overview": "Após conhecer o verdadeiro Shishio, Senku sabe que não pode confiar nele. Assim, junto de Taiju e Yuzuriha, ele pretende encontrar alguma forma de derrotá-lo.",
+      "airDate": "2019-07-19",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_4",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 4,
+      "title": "Dispare o Sinal de Fumaça",
+      "overview": "Senku decide criar pólvora como forma de controlar Shishio. No entanto, ao tentar criar pólvora, a fumaça gerada tem uma resposta inesperada.",
+      "airDate": "2019-07-26",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_5",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 5,
+      "title": "Stone World The Beginning",
+      "overview": "Shishio dá o golpe fatal em Senku, e tudo parece ter acabado. No entanto, Taiju sabe que seu amigo não é de desistir e que tem sempre um plano em mente",
+      "airDate": "2019-08-02",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_6",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 6,
+      "title": "Duas Nações do Mundo de Pedra",
+      "overview": "Para vencer Tsukasa, Senku decide encontrar as outras pessoas que habitam o mundo de pedra.",
+      "airDate": "2019-08-09",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_7",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 7,
+      "title": "Onde se passaram 2 milhões de anos",
+      "overview": "Após Senku conhecer Kohaku, ela o leva para sua aldeia. Lá ele encontra Chrome, o feiticeiro da aldeia.",
+      "airDate": "2019-08-16",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_8",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 8,
+      "title": "Stone Road",
+      "overview": "Para conquistar o povo da aldeia, Senku planeja usar a ciência em benefício dos moradores.",
+      "airDate": "2019-08-23",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_9",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 9,
+      "title": "Faça-se a luz da ciência",
+      "overview": "Senku faz o que pode para conseguir mão-de-obra para construir seu Reino da Ciência. Enquanto isso, um homem misterioso aparece no vilarejo.",
+      "airDate": "2019-08-30",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_10",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 10,
+      "title": "Tênue Aliança",
+      "overview": "Gen se aproxima cada vez mais do grupo de Senku, mas segue a desconfiança que vá contar tudo para Tsukasa na primeira oportunidade.",
+      "airDate": "2019-09-06",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_11",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 11,
+      "title": "Clear World",
+      "overview": "Suika nunca mostrou o rosto por causa de um problema que poucos entendem. Mas Senku tem a solução.",
+      "airDate": "2019-09-13",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_12",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 12,
+      "title": "Amigos de Costas contra Costas",
+      "overview": "Senku e companhia saem em busca do ingrediente definitivo para produzir o antibiótico a base de sulfa. No entanto, a última matéria prima se mostra um desafio mortal para nossos heróis.",
+      "airDate": "2019-09-20",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_13",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 13,
+      "title": "Guerreiro Mascarado",
+      "overview": "A Grande Luta vai começar, e todos bolam uma estratégia para cansar Magma. No entanto, o sorteio não dá o resultado esperado à nossos heróis.",
+      "airDate": "2019-09-27",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_14",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 14,
+      "title": "Master of Flame",
+      "overview": "Após a série de truques de Magma para chegar à partida final, o Chrome revela um truque próprio! Com uma pequena ajuda extra da Gen, o Chrome pode conseguir!",
+      "airDate": "2019-10-04",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_15",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 15,
+      "title": "O Culminar de 2 Milhões de Anos",
+      "overview": "Após a improvável vitória de Senku, casamento rápido e divórcio ainda mais precipitado, o reino da ciência está de volta ao trabalho para finalmente terminar o remédio de Ruri!",
+      "airDate": "2019-10-11",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_16",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 16,
+      "title": "Um Conto de Milhares de Anos",
+      "overview": "Ruri revela a origem do nome da vila e Senku descobre o destino de seu pai!",
+      "airDate": "2019-10-18",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_17",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 17,
+      "title": "Cem Noites e Mil Céus",
+      "overview": "Byakuya e a história dos astronautas continuam, e a conexão de Senku com a Vila Ishigami e os Cem Contos é finalmente revelada.",
+      "airDate": "2019-10-25",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_18",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 18,
+      "title": "Stone Wars",
+      "overview": "O exército de Tsukasa está chegando! Kinro luta para manter a ponte contra o lanceiro mortal Hyoga e suas tropas de choque, mas Senku e os moradores estão prontos com novas armas da ciência!",
+      "airDate": "2019-11-01",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_19",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 19,
+      "title": "E em Direção à Modernidade",
+      "overview": "Hyoga está desarmado, mas o reino da ciência ainda está em perigo - a vila de Ishigami está em chamas! E Tsukasa logo saberá que Senku ainda está vivo ... Como os moradores combaterão a invasão vindoura?",
+      "airDate": "2019-11-08",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_20",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 20,
+      "title": "A Era da Potência",
+      "overview": "Tsukasa planeja um segundo ataque depois de alguns meses de preparação. Ele não faz ideia o que Senku e seu reino estão pensando, enquanto isso.",
+      "airDate": "2019-11-15",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_21",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 21,
+      "title": "Clube de Artesanato Espartano",
+      "overview": "Com a roda d'água de Chrome e Kaseki terminada, a vila de Ishigami entra na era da eletricidade! Mas com os materiais primitivos disponíveis, Senku será capaz de criar um filamento capaz de suportar o calor intenso da operação de um tubo de vácuo?",
+      "airDate": "2019-11-22",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_22",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 22,
+      "title": "O Tesouro",
+      "overview": "Senku, Chrome e Magma se aventuram em uma caverna em busca de tungstênio, mas há um acidente suspeito que deixa Senku e Chrome presos no fundo de um poço! O que o Magma está fazendo ?!",
+      "airDate": "2019-11-29",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_23",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 23,
+      "title": "Onda de Ciência",
+      "overview": "Senku e o resto da vila começam a trabalhar na fabricação dos componentes para o telefone celular. É um trabalho árduo, mas todo mundo está animado!",
+      "airDate": "2019-12-06",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_1_24",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 24,
+      "title": "Vozes a uma Distância Infinita",
+      "overview": "Senku e o resto do reino descobrem um misterioso disco deixado pelo pai do Senku e os outros astronautas. Eles usam sua recém-encontrada tecnologia para dar vida a ele.",
+      "airDate": "2019-12-13",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_1",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 1,
+      "title": "As Stone Wars começam",
+      "overview": "O inverno está acabando e a hora da batalha final entre o Reino da Ciência e o Império Tsukasa se aproxima. Para se preparar para o combate, Senku tem uma nova invenção que vai permitir que o Reino da Ciência tenha mobilidade no campo de batalha. Enquanto isso, Gen começa a pensar em um plano.",
+      "airDate": "2021-01-14",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_2",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 2,
+      "title": "Hot Line",
+      "overview": "O plano de Senku começa a dar certo e eles conseguem distrair Homura enquanto Chrome, Gen e Magma seguem em direção à base de Tsukasa para levar o celular. No entanto, Homura percebe o plano e vai atrás do grupo de Chrome. Senku precisava agir para que ela não descubra o celular antes de Taiju e Yuzuriha.",
+      "airDate": "2021-01-21",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_3",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 3,
+      "title": "Telefone dos Mortos",
+      "overview": "Taiju e Yuzuriha encontram o celular deixado por Gen, Chrome e Magma. No entanto, eles ainda não conseguiram retornar para o vilarejo. O plano de Senku tem Gen como peça fundamental. Se ele não conseguir voltar, tudo irá por água abaixo. Mas o grupo deles está encurralado por um dos homens de Tsukasa...",
+      "airDate": "2021-01-28",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_4",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 4,
+      "title": "Ataque com Força Total",
+      "overview": "Taiju e Yuzuriha convenceram Nikki a colaborar. No entanto, Chrome e Magma estão sendo atacados por Ukyo. A situação se resolve com Chrome sendo capturado e levado para o Império Tsukasa. Quando Senku fica sabendo disso, toma a decisão de partir para o ataque com todas as forças do Reino da Ciência!",
+      "airDate": "2021-02-04",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_5",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 5,
+      "title": "Steam Gorilla",
+      "overview": "Senku e companhia aperfeiçoam o automóvel e se preparam para avançar em direção ao Império Tsukasa. Enquanto isso, Chrome é aprisionado em uma caverna, preso atrás de grades de bambu. Mas Tsukasa não vai esperar calado, e com certeza preparará uma armadilha para o Reino da Ciência.",
+      "airDate": "2021-02-11",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_6",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 6,
+      "title": "Prison Break",
+      "overview": "Chrome sabe que o Império Tsukasa está tramando uma série de armadilhas para enganar Senku e os outros. Sabendo disso, ele não tem outra escolha a não ser fugir. Mas para fazer isso, ele não pode depender dos outros e precisa usar sua própria ciência. O problema é, como?",
+      "airDate": "2021-02-18",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_7",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 7,
+      "title": "Missão Confidencial",
+      "overview": "Chrome consegue fugir, mas, estranhamente, ninguém sabe quem o ajudou. Enquanto isso, Senku detalha a missão confidencial que deu a Yuzuriha. Logo após, Gen tenta atrair o máximo de pessoas do Império Tsukasa para o Reino da Ciência usando a voz de Lillian.",
+      "airDate": "2021-02-25",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_8",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 8,
+      "title": "Final Battle",
+      "overview": "Senku e companhia se preparam para a batalha final e usam o Steam Gorilla com uma arma secreta para vencer a luta sem feridos. No entanto, enquanto isso, Tsukasa e Hyoga encontram o celular enterrado no cemitério e se preparam para revidar o ataque.",
+      "airDate": "2021-03-04",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_9",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 9,
+      "title": "Para destruir e salvar",
+      "overview": "O Reino da Ciência dominou a caverna milagrosa, mas a batalha ainda não acabou. Tsukasa e Hyoga partem para o combate e o Reino da Ciência se divide em dois grupos, um grupo de batalha e um grupo de cienceiros em busca de uma solução. Conseguirá Senku vencer essa batalha?",
+      "airDate": "2021-03-11",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_10",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 10,
+      "title": "A Dupla Mais Poderosa da Humanidade",
+      "overview": "Em nome de um objetivo comum, Senku e Tsukasa formarão a dupla mais poderosa da humanidade.",
+      "airDate": "2021-03-18",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_2_11",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 11,
+      "title": "Prologue of Dr. Stone",
+      "overview": "Senku e Tsukasa venceram Hyoga, mas Tsukasa foi mortalmente ferido. No entanto, Senku faz o possível para retardar sua morte. Em meio a isso, Senku pensa uma nova forma de salvar Tsukasa enquanto as duas comunidades começam a se integrar.",
+      "airDate": "2021-03-25",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_1",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 1,
+      "title": "Mapa do Novo Mundo",
+      "overview": "Senku e companhia começam os preparativos para partir em uma viagem. Para conseguir petróleo, começam a mapear o terreno. No entanto, uma descoberta pode acelerar tudo.",
+      "airDate": "2023-04-06",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_2",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 2,
+      "title": "Querer = Justiça",
+      "overview": "Senku consegue fazer pão, mas Ryusui exige algo melhor! Então eles partem atrás de François, que fez parte da vida de Ryusui no passado.",
+      "airDate": "2023-04-13",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_3",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 3,
+      "title": "Primeiro Contato",
+      "overview": "Senku e companhia precisam encontrar petróleo e vão usar as recém-descobertas técnicas de fotografia aérea para tentar conseguir. Mas será que eles realmente conseguirão extrair petróleo no Japão?",
+      "airDate": "2023-04-20",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_4",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 4,
+      "title": "Olhos da Ciência",
+      "overview": "Senku e companhia descobrem uma mensagem em código morse e precisam se apressar para sua viagem até o outro lado do mundo. Mas como eles poderão ver um inimigo invisível? Para isso eles precisarão usar os olhos da ciência.",
+      "airDate": "2023-04-27",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_5",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 5,
+      "title": "O Navio Científico Perseu",
+      "overview": "As últimas etapas para a construção do navio se aproximam. No entanto, as peças de Kaseki não encaixam. Será que Senku e companhia conseguiram uma forma de terminar sua maior criação?",
+      "airDate": "2023-05-04",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_6",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 6,
+      "title": "Baú do Tesouro",
+      "overview": "Senku e companhia finalmente partiram a bordo do Navio da Ciência Perseu! O primeiro objetivo é chegar a ilha do tesouro onde caiu a nave Soyuz com importantes materiais para continuar a jornada. Em meio a isso, uma figura misteriosa se apresenta com novas informações.",
+      "airDate": "2023-05-11",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_7",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 7,
+      "title": "Luz do Desespero e da Esperança",
+      "overview": "Senku e companhia finalmente chegam na ilha do tesouro, mas não sabem como lidar com os moradores da ilha. Um grupo parte em busca de pessoas, enquanto outro fica no navio e descobre uma verdade assustadora sobre a ilha.",
+      "airDate": "2023-05-18",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_8",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 8,
+      "title": "Carta na Manga Dentro do Navio da Ciência",
+      "overview": "Amaryllis conta a história de como viu a petrificação em primeira mão e agora Senku e companhia precisam de um plano para descobrir os mistérios por trás dela. No entanto, para cumprir o objetivo, eles vão precisar do laboratório... que está dentro do navio, junto dos inimigos que possuem o poder da petrificação!",
+      "airDate": "2023-05-25",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_9",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 9,
+      "title": "Bela Ciência",
+      "overview": "Senku e companhia precisam do carro laboratório que está dentro do navio, mas precisam da ajuda de Suika e Ginro. O laboratório vai ser um passo necessário para embelezar Kohaku para que ela se infiltre no palácio interior. Mas será que eles vão conseguir?",
+      "airDate": "2023-06-01",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_10",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 10,
+      "title": "Guerras Científicas",
+      "overview": "Kohaku, Ginro e Amaryllis conseguiram entrar e estão a caminho de encontrar o \"Mestre\" no palácio interior. Agora Senku e companhia precisam prestar o apoio necessário para que consigam completar sua missão.",
+      "airDate": "2023-06-08",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_11",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 11,
+      "title": "Com Este Punho, Um Milagre",
+      "overview": "Kohaku encontrou o local onde Byakuya deixou a platina. Mas será que ela conseguirá obter esse material necessário para reviver todos os seus amigos sem ser descoberta? E será que depois disso conseguirá levar o que conseguir até Senku?",
+      "airDate": "2023-06-15",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_12",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 12,
+      "title": "O Reino da Ciência Contra-Ataca",
+      "overview": "Depois que Senku e companhia conseguiram a platina, fazer fluido de reviver se tornou uma tarefa muito mais simples. No entanto, para continuarem eles precisam trazer todos os seus amigos de volta. Mas o povo da ilha está disposto a impedi-los a qualquer custo!",
+      "airDate": "2023-10-12",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_13",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 13,
+      "title": "O Verdadeiro Rosto da Medusa",
+      "overview": "Enquanto o grupo de Senku começa a trazer seus amigos petrificados do fundo do mar para finalmente terminar o drone, Ginro é chamado até os aposentos do mestre. Ginro deve ir sozinho, mas tem uma arma preparada. Enquanto isso, Moz começa a suspeitar de Kohaku.",
+      "airDate": "2023-10-19",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_14",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 14,
+      "title": "Deal Game, Batalha de Cérebros",
+      "overview": "O Reino da Ciência segue na missão de reviver seus membros, e um novo e inesperado aliado se junta à causa.",
+      "airDate": "2023-10-26",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_15",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 15,
+      "title": "Batalha em Três Dimensões",
+      "overview": "Senku e companhia fizeram um trato com Moz. No entanto, agora chegou a hora de botar o plano em ação, e o Reino da Ciência se prepara para uma batalha de três frentes contra o Reino da Petrificação e Moz.",
+      "airDate": "2023-11-02",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_16",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 16,
+      "title": "Guerra Total",
+      "overview": "Senku e companhia se preparam para pegar o dispositivo de petrificação. No entanto, na hora de colocar o drone em ação, algo parece estar errado! Será que eles vão conseguir tirar a poderosa arma do Reino da Petrificação?",
+      "airDate": "2023-11-09",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_17",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 17,
+      "title": "Coringa",
+      "overview": "Senku e companhia se aproximam do navio para atacar Ibara. Mas os planos começam a dar errado. Encurralados contra Ibara e Moz, resta a Senku jogar a única carta que possuem na manga. O problema é que a carta é um coringa...",
+      "airDate": "2023-11-16",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_18",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 18,
+      "title": "Brilho da Destruição",
+      "overview": "Yo consegue roubar a Medusa, mas não consegue evitar que Ibara a ative. Então começa uma corrida de todos tentando sobreviver antes que a arma seja ativada.",
+      "airDate": "2023-11-23",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_19",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 19,
+      "title": "O Último Homem",
+      "overview": "Ibara corre para a ilha depois de passar pelo raio de petrificação. No entanto, chegando lá ele encontra Senku! Mas como será que Senku sobreviveu ao raio de petrificação? Começa uma nova batalha onde apenas um dos dois ficará de pé no final.",
+      "airDate": "2023-11-30",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_20",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 20,
+      "title": "Primeiro Sonho",
+      "overview": "Depois da batalha final entre o Reino da Ciência e o Reino da Petrificação, todos começam a se preparar para o que vem a seguir. Em meio a isso, mais mistérios começam a surgir em torno de Why-Man.",
+      "airDate": "2023-12-07",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_21",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 21,
+      "title": "Ilha do Tesouro",
+      "overview": "Depois de derrotar os inimigos na Ilha do Tesouro, Senku e companhia planejam seu próximo passo: ir para a Lua. No entanto, para isso eles vão precisar construir uma aliança. E esta aliança tem que começar com as pessoas que vão continuar na ilha...",
+      "airDate": "2023-12-14",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_86031_3_22",
+      "showId": "s_l0nkldl",
+      "seasonId": "sea_vldvwt5",
+      "episodeNumber": 22,
+      "title": "Além do Novo Mundo",
+      "overview": "O próximo destino de Senku e companhia já está traçado! Mas antes disso eles precisam voltar e fazer uma última parada para trazer um velho conhecido de volta. No entanto, o dispositivo de petrificação, necessário para isso, talvez não seja tão confiável quanto deveria...",
+      "airDate": "2023-12-21",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1156",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1156,
+      "title": "A Tão Aguardada Elbaph! O Grande Banquete do Reencontro!",
+      "overview": "Após Egghead, Luffy e os Chapéus de Palha seguem para a terra dos Gigantes, Elbaph!",
+      "airDate": "2026-04-05",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1157",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1157,
+      "title": "Nami no Corre! A Aventura do Reino dos Blocos!",
+      "overview": "Nami acorda num local estranho e precisa encontrar seus companheiros.",
+      "airDate": "2026-04-12",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1158",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1158,
+      "title": "Uma Busca na Terra Misteriosa! O Segredo do Deus-Sol!",
+      "overview": "Luffy e os demais descobrem o mistério do local onde estão e partem em busca do bando.",
+      "airDate": "2026-04-19",
+      "duration": 23
+    },
+    {
+      "id": "ep_s_37854_23_1159",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1159,
+      "title": "Destruam o Jardim Miniatura! Fuga do Reino dos Blocos!",
+      "overview": "Luffy e o bando precisam enfrentar a ira de Deus-Sol para fugir do Reino dos Blocos.",
+      "airDate": "2026-04-26",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1160",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1160,
+      "title": "Um Encontro nas Neves! Loki, o Príncipe Amaldiçoado!",
+      "overview": "Enquanto o bando e os Gigantes procuram Luffy e os demais, o Chapéu de Palha tem um encontro predestinado.",
+      "airDate": "2026-05-03",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1161",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1161,
+      "title": "Um Acordo Perigoso! Loki do Mundo Inferior e Luffy!",
+      "overview": "Luffy encontra Loki, o Príncipe Amaldiçoado, que lhe oferece um acordo. Ele insinua uma ligação com Shanks, enquanto feras selvagens o cercam, encarando Luffy. Enquanto isso, Zoro e os outros na ponte suspensa percebem que alguém os está seguindo.",
+      "airDate": "2026-05-10",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1162",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1162,
+      "title": "Uma Pantagruélica Onda de Emoção! A Paisagem Onírica de Elbaph!",
+      "overview": "O Great Erik chega a Elbaph, enquanto Luffy volta de seu encontro com Loki.",
+      "airDate": "2026-05-17",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1163",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1163,
+      "title": "Quero que Você me Elogie! O Reencontro de Robin e Saul!",
+      "overview": "Em Elbaph, Robin enfim poderá reencontrar Saul, que a salvou da tragédia de Ohara.",
+      "airDate": "2026-05-24",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1164",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1164,
+      "title": "A Determinação de Saul! O Propósito Herdado de Ohara!",
+      "overview": "Luffy e os demais conhecem Saul e as instalações da Escola Morsa e da Biblioteca de Elbaph.",
+      "airDate": "2026-05-31",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_23_1165",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1165,
+      "title": "Boas-vindas Brindando com Amigos! Intrusos em Busca de Loki!",
+      "overview": "Luffy e demais se preparam para um banquete em Elbaph, enquanto intrusos perseguem Loki...",
+      "airDate": "2026-06-07",
+      "duration": 23
+    },
+    {
+      "id": "ep_s_37854_23_1166",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1166,
+      "title": "Um Encontro com Loki! Gunko, dos Cavaleiros de Deus!",
+      "overview": "Luffy e os demais descobrem mais sobre Loki, enquanto Gunko, dos Cavaleiros de Deus, adentra o Mundo Inferior.",
+      "airDate": "2026-06-14",
+      "duration": 23
+    },
+    {
+      "id": "ep_s_37854_23_1167",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1167,
+      "title": "Surge Shamrock, O Comandante dos Cavaleiros de Deus!",
+      "overview": "No Castelo Aurust, Luffy descobre segredos sobre Loki, enquanto os Cavaleiros de Deus atacam...",
+      "airDate": "2026-06-21",
+      "duration": 23
+    },
+    {
+      "id": "ep_s_37854_23_1168",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1168,
+      "title": "História Antiga! O Harley Passado de Geração em Geração em Elbaph!",
+      "overview": "Segredos sobre Shanks emergem entre os Cavaleiros de Deus, enquanto o grupo lê a profecia do Harley.",
+      "airDate": "2026-06-28",
+      "duration": 23
+    },
+    {
+      "id": "ep_s_37854_23_1169",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1169,
+      "title": "Episódio 1169",
+      "overview": "",
+      "airDate": "2026-07-05",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1170",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1170,
+      "title": "Episódio 1170",
+      "overview": "",
+      "airDate": "2026-07-12",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1171",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1171,
+      "title": "Episódio 1171",
+      "overview": "",
+      "airDate": "2026-07-19",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1172",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1172,
+      "title": "Episódio 1172",
+      "overview": "",
+      "airDate": "2026-07-26",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1173",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1173,
+      "title": "Episódio 1173",
+      "overview": "",
+      "airDate": "2026-08-02",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1174",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1174,
+      "title": "Episódio 1174",
+      "overview": "",
+      "airDate": "2026-08-09",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1175",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1175,
+      "title": "Episódio 1175",
+      "overview": "",
+      "airDate": "2026-08-16",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1176",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1176,
+      "title": "Episódio 1176",
+      "overview": "",
+      "airDate": "2026-08-23",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1177",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1177,
+      "title": "Episódio 1177",
+      "overview": "",
+      "airDate": "2026-08-30",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1178",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1178,
+      "title": "Episódio 1178",
+      "overview": "",
+      "airDate": "2026-09-06",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1179",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1179,
+      "title": "Episódio 1179",
+      "overview": "",
+      "airDate": "2026-09-13",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1180",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1180,
+      "title": "Episódio 1180",
+      "overview": "",
+      "airDate": "2026-09-20",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_23_1181",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1181,
+      "title": "Episódio 1181",
+      "overview": "",
+      "airDate": "2026-09-27",
+      "duration": 45
+    },
+    {
+      "id": "ep_s_37854_1_1",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 1,
+      "title": "Eu Sou Luffy! Aquele Que Será o Rei dos Piratas!",
+      "overview": "O bando de Alvida saqueia um navio, e acaba encontrando Luffy, que quer conquistar o One Piece e ser o Rei dos Piratas.",
+      "airDate": "1999-10-20",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_2",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 2,
+      "title": "O Grande Espadachim! O Caçador de Piratas, Roronoa Zoro!",
+      "overview": "Luffy e Coby chegam à base da Marinha onde Roronoa Zoro, o Caçador de Piratas, é prisioneiro do Capitão Morgan.",
+      "airDate": "1999-11-17",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_3",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 3,
+      "title": "Morgan vs. Luffy! Quem é a Linda Jovem?",
+      "overview": "Luffy quer que Zoro seja seu companheiro a todo custo, e propõe libertá-lo para juntos enfrentarem o Capitão Morgan.",
+      "airDate": "1999-11-24",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_4",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 4,
+      "title": "O Passado de Luffy! Shanks, o Ruivo!",
+      "overview": "Navegando ao lado de Zoro, Luffy relembra seu passado e conhece Nami e o bando do pirata Buggy, o Palhaço.",
+      "airDate": "1999-12-08",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_5",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 5,
+      "title": "Medo, Poder Misterioso! Palhaço-Pirata, Capitão Buggy ",
+      "overview": "Para se salvar e roubar um mapa da Grand Line, Nami engana Luffy e entrega ele para o Buggy.",
+      "airDate": "1999-12-15",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_6",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 6,
+      "title": "Situação Desesperadora! Moji, o Domador, Contra Luffy!",
+      "overview": "Mohji e Richie aparecem para se vingar da humilhação sofrida na derrota do Buggy. Luffy conhece um pequeno cachorro que guarda a loja do seu dono mesmo sabendo que ele morreu.",
+      "airDate": "1999-12-29",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_7",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 7,
+      "title": "Grande Duelo! Zoro, o Espadachim, Contra Cabaji, o Acrobata!",
+      "overview": "Enraivecido pelas ações do bando do Buggy o prefeito da cidade decide lutar pessoalmente, entretanto os Chapéu de Palha vem em seu auxílio. Apesar de ainda machucado Zoro luta contra Cabaji. Luffy luta contra o palhaço Buggy e a Nami procura o mapa da Grand Line.",
+      "airDate": "1999-12-29",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_8",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 8,
+      "title": "Quem será o vencedor? Confronto de habilidades da Akuma no Mi!",
+      "overview": "A conexão entre Buggy e Shanx é revelada e ao cortar o Chapéu de Palha que Luffy ganhou de Shanx, isso faz com que Luffy exploda de raiva. Quem ganhará a batalha Luffy ou Buggy?",
+      "airDate": "1999-12-29",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_9",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 9,
+      "title": "Honorável Mentiroso? Capitão Usopp",
+      "overview": "Nami forma uma aliança se tornando a navegadora da tripulação, mas não membro efetivo ainda. Eles chegam a Vila Syrup procurando um navio apropriado. Nessa ilha eles conhecem o mentiroso Usopp, que também tem laços com o Shanx.",
+      "airDate": "2000-01-12",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_10",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 10,
+      "title": "O Homem Mais Estranho do Mundo! Jango, o Hipnotizador!",
+      "overview": "Enquanto conta histórias para Kaya, uma pessoa rica da vila, Usopp é mandado embora e pra ficar longe dela por seu mordomo Kurahadol. Entretanto, mais tarde, Usopp e Luffy depois vêem o mordomo conversando com um homem estranho e ficam sabendo de um plano para matar Kaya.",
+      "airDate": "2000-01-19",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_11",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 11,
+      "title": "Revelando a Conspiração! O Pirata Mordomo, Capitão Kuro",
+      "overview": "Após saber o plano maléfico do Capitão Kuro, Usopp volta a vila correndo para avisar Kaya e descobre que, após anos mentindo, ninguém acredita mais nele.",
+      "airDate": "2000-01-26",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_12",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 12,
+      "title": " Impacto violento! Grupo de piratas Kuroneko. Grandes ataques e defesas na ladeira!",
+      "overview": "Usopp decide manter como mentira a história do ataque pirata para garantir que nenhum chegue à vila. Luffy, Zoro, Nami e Usopp tentam, então, parar os piratas do Gato Negro na praia.",
+      "airDate": "2000-02-02",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_13",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 13,
+      "title": "A Dupla Terrível! Os Irmãos Nyaban vs. Zoro!",
+      "overview": "Luffy e Zoro obliteram os homens de Jango, que fica sem alternativas a não ser seu trunfo: Os Irmãos Nyaban, que atacarão o espadachim sem piedade!",
+      "airDate": "2000-02-09",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_14",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 14,
+      "title": "O Retorno de Luffy! A Vida de Kaya e o Combate Final!",
+      "overview": "O Capitão Kuro mostra sua verdadeira identidade, e Kaya entra em cena para tentar detê-lo. Para que o bando tenha chance, Luffy precisa acordar!",
+      "airDate": "2000-02-16",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_15",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 15,
+      "title": "Derrotem Kuro! A Determinação Inabalável de Usopp!",
+      "overview": "Os amigos de Usopp fogem com Kaya e Jango segue atrás deles, enquanto Luffy encara Kuro.",
+      "airDate": "2000-02-23",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_16",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 16,
+      "title": "Protejam Kaya! Os Piratas de Usopp em Ação!",
+      "overview": "Luffy enfrenta Kuro na praia e Kaya e os meninos fogem de Jango, o Hipnotizador!",
+      "airDate": "2000-03-01",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_17",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 17,
+      "title": "Explosão de Fúria! Kuro vs. Luffy - A Batalha Final!",
+      "overview": "Kaya recompensa os esforços dos Chapéus de Palha com um navio! O Going Merry!",
+      "airDate": "2000-03-08",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_18",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 18,
+      "title": "Você é um Animal Especial! Gaimon e Seus Incríveis Amigos!",
+      "overview": "Na lendária Ilha dos Tesouros, Luffy e o bando encontram estranhos animais e um homem ainda mais estranho chamado Gaimon.",
+      "airDate": "2000-03-15",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_19",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 19,
+      "title": "O Passado das Três Espadas! A Promessa de Zoro e Kuina!",
+      "overview": "No passado, Zoro treinava constantemente contra Kuina, mas nunca conseguiu vencê-la. Eles juraram que, um dia, um deles seria o melhor espadachim do mundo. Mas o destino quis diferente.",
+      "airDate": "2000-03-22",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_20",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 20,
+      "title": "O Famoso Cozinheiro! Sanji, do Restaurante Flutuante!",
+      "overview": "Os Chapéus de Palha precisam de um cozinheiro, e seguem para um restaurante próximo onde encontram um apaixonado Chef chamado Sanji.",
+      "airDate": "2000-04-12",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_21",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 21,
+      "title": "Um Cliente Inesperado! A Comida de Sanji e a Graça de Gin!",
+      "overview": "Luffy testemunha o poder do Sous Chef, Sanji: O Going Merry já tem seu cozinheiro... Mas ele não quer se unir ao bando!",
+      "airDate": "2000-04-12",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_22",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 22,
+      "title": "A Maior Frota de Piratas! O Capitão Don Krieg!",
+      "overview": "A equipe e os clientes do Baratie entram em pânico com a chegada do temível Don Krieg! O pirata faminto implora por comida, e apenas Sanji, incapaz de ver alguém passando fome, se dispõe a ajudar.",
+      "airDate": "2000-04-26",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_23",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 23,
+      "title": "Protejam o Baratie! O Grande Pirata, Zeff Perna Rubra!",
+      "overview": "Don Krieg retorna ao seu navio, mas a ameaça ao Baratie não cessa, com a chegada de uma ameaça ainda maior!",
+      "airDate": "2000-05-03",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_24",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 24,
+      "title": "Mihawk Olhos de Gavião! O Espadachim Zoro à Deriva!",
+      "overview": "O Going Merry é roubado por Nami, e o confronto pelo Baratie tem um intervalo. Mas a ação continua em alto mar, quando Zoro desafia Mihawk, Olhos de Gavião, em um duelo!",
+      "airDate": "2000-05-10",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_25",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 25,
+      "title": "O Despertar dos Chutes Implacáveis! Sanji vs. Pearl, a Muralha de Ferro!",
+      "overview": "A batalha pelo Baratie continua, com Zeff e os cozinheiros contra o bando de Krieg. Luffy e seus companheiros se unem à luta, mas as coisas não estão fáceis!",
+      "airDate": "2000-05-17",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_26",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 26,
+      "title": "O Sonho de Zeff e Sanji! O Mar dos Sonhos, All Blue!",
+      "overview": "Sanji recorda sua infância, como aprendiz de chef a bordo de um navio atacado por Zeff Perna Rubra! Quando o jovem Sanji fica à deriva, é o próprio terrível capitão que o resgata.",
+      "airDate": "2000-05-24",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_27",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 27,
+      "title": "Um Homem Demoníaco e Sem Coração! Gin, o Comandante de Batalha da Frota Pirata!",
+      "overview": "Enquanto a batalha pelo Baratie segue fulminante, Luffy se vê forçado a tomar ações drásticas, e Gin reflete sobre sua lealdade.",
+      "airDate": "2000-05-31",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_28",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 28,
+      "title": "Não Morrerei! Luffy vs. Krieg - A Conclusão!",
+      "overview": "O temível Don Krieg parece ter vantagem em seu combate com Luffy. Para tentar evitar o prancha, o homem de borracha muda sua estratégia.",
+      "airDate": "2000-06-07",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_29",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 29,
+      "title": "O Resultado de Uma Batalha Mortal! Uma Lança Feita de Determinação!",
+      "overview": "O confronto de Luffy e Don Krieg sofre uma reviravolta a favor do bando do pirata de chapéu de palha, quando seu capitão decide se concentrar em destruir o armamento do inimigo.",
+      "airDate": "2000-06-21",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_30",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 30,
+      "title": "A Partida! O Cozinheiro do Mar e Luffy Viajam Juntos!",
+      "overview": "Com Don Krieg derrotado, Luffy tenta convencer Sanji a juntar-se ao seu bando. O habilidoso cozinheiro tem interesse no convite, mas tem algo a provar antes de seguir em frente.",
+      "airDate": "2000-06-28",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_31",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 31,
+      "title": "O Homem Mais Perigoso de East Blue! Arlong, o Homem-Peixe!",
+      "overview": "Com seu novo integrante e de estômago cheio, Luffy e seu bando seguem em busca de Nami, que está indo ao encontro de um inimigo mortal!",
+      "airDate": "2000-07-12",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_32",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 32,
+      "title": "A Bruxa da Vila Cocoyasi! A Oficial de Arlong!",
+      "overview": "Zoro é capturado pelo Homem-Peixe Arlong e descobre o chocante segredo de Nami. Incapaz de acreditar no que ouviu, ele decide colocar a navegadora à prova.",
+      "airDate": "2000-07-19",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_33",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 33,
+      "title": "A Morte de Usopp?! Luffy Ainda Não Chegou?",
+      "overview": "Luffy e os demais seguem ao Arlong Park para o confronto com seu proprietário. No caminho, descobrem um mapa do tesouro que levanta questões sobre Nami.",
+      "airDate": "2000-07-19",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_34",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 34,
+      "title": "Reunidos! Usopp Conta a Verdadeira História de Nami!",
+      "overview": "Uma calorosa discussão sobre a lealdade de Nami divide o bando e só uma coisa é certa - ninguém quer arriscar a vida por traidores.",
+      "airDate": "2000-07-26",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_35",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 35,
+      "title": "O Passado Secreto! A Lutadora Bell-mère!",
+      "overview": "A irmã de Nami, Nojiko, revela detalhes da infância da habilidosa cartógrafa.",
+      "airDate": "2000-08-02",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_36",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 36,
+      "title": "Sobreviva! Bell-mère, a mãe e família de Nami!",
+      "overview": "Nojiko continua a história da infância de Nami. No presente, a ladra tenta alcançar um objetivo iniciado há muitos anos, mas a traição a espreita no horizonte.",
+      "airDate": "2000-08-09",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_37",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 37,
+      "title": "A Intervenção de Luffy! Uma Promessa Quebrada!",
+      "overview": "Nezumi confisca o tesouro de Nami, mas a mando de quem? E Nami, a quem está aliada, e o que fará nesta situação?",
+      "airDate": "2000-08-16",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_38",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 38,
+      "title": "Luffy em Problemas! Os Homens-Peixe vs. Os Piratas de Luffy!",
+      "overview": "A confiança do bando em Nami é restaurada, e agora é hora para o confronto final! Luffy e os demais estão decididos a fazer Arlong pagar!",
+      "airDate": "2000-08-23",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_39",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 39,
+      "title": "Luffy Afoga! Zoro vs. Hatchan, O Polvo!",
+      "overview": "O bando de Luffy e os Homens-Peixe de Arlong estão engajados no combate, e a situação desanda quando Luffy cai em uma armadilha nas águas.",
+      "airDate": "2000-08-30",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_40",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 40,
+      "title": "Bravos e Orgulhosos Guerreiros! A Dramática Batalha de Sanji e Usopp!",
+      "overview": "Enquanto Zoro e Sanji tentam livrar seu capitão, Usopp, covardemente, se vê fugindo de sua luta!",
+      "airDate": "2000-09-06",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_41",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 41,
+      "title": "O Melhor de Luffy! A Coragem de Nami e o Chapéu de Palha!",
+      "overview": "Nami deve decidir entre permitir que Arlong continue a dominá-la ou juntar-se a Luffy para livrar os habitantes de Cocoyasi do tirano Homem-Peixe.",
+      "airDate": "2000-09-13",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_42",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 42,
+      "title": "Implacável! O Temível Ataque do Homem-Peixe Arlong!",
+      "overview": "Arlong precisa manter olhos bem abertos, pois Luffy está com o sangue fervendo e pronto para descontar toda a sua cólera, após descobrir todos os horrores pelos quais Nami passou!",
+      "airDate": "2000-09-27",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_43",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 43,
+      "title": "O Fim do Império dos Homens-Peixe! Nami é Minha Companheira!",
+      "overview": "Ciente do terrível passado de Nami, Luffy torna-se ainda mais forte, e sua fúria é tamanha que seus golpes desmoronam todo o legado tirânico do Arlong Park.",
+      "airDate": "2000-09-27",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_44",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 44,
+      "title": "Partindo Com Um Sorriso! Adeus, Minha Querida Vila Cocoyasi!",
+      "overview": "Após uma batalha excruciante, Luffy derrota Arlong e destrói seu QG. Agora, o bando festeja a vitória e Nami faz as pazes com seu turbulento passado.",
+      "airDate": "2000-10-11",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_45",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 45,
+      "title": "Recompensa! Luffy Chapéu de Palha Torna-se Famoso!",
+      "overview": "Finalmente, Luffy torna-se oficialmente um procurado! Agora ele terá inimigos à sua espreita, quando o bando se aproxima de Loguetown - onde o Rei dos Piratas, Gold Roger, conheceu seu destino!",
+      "airDate": "2000-10-25",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_46",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 46,
+      "title": "Atrás do Chapéu de Palha! A Grande Aventura do Pequeno Buggy!",
+      "overview": "Buggy vai parar em uma ilha habitada por estranhas criaturas e dá de cara com o cuidador do local, Gaimon. Se deseja destruir Luffy, o Palhaço precisará se aliar a uma misteriosa mulher.",
+      "airDate": "2000-11-01",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_47",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 47,
+      "title": "A Espera Acabou! O Retorno do Capitão Buggy, o Palhaço!",
+      "overview": "Os Piratas de Buggy se enfrentam pelo posto de capitão. Enquanto estão ocupados se estapeando, uma tribo de canibais faz planos especiais para o jantar.",
+      "airDate": "2000-11-08",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_48",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 48,
+      "title": "A Cidade do Começo e do Fim! A Chegada a Loguetown!",
+      "overview": "O bando de Luffy chega a Loguetown, e cada um dos piratas parte em missão pessoal. Enquanto seus companheiros vão às compras, Luffy busca um solo sagrado.",
+      "airDate": "2000-11-22",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_49",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 49,
+      "title": "Kitetsu III e Yubashiri! As Novas Espadas de Zoro e a Superintendente da Marinha!",
+      "overview": "Luffy dá de cara com o Capitão Smoker e não consegue manter a discrição. Assim, Buggy consegue marcá-lo. Em outra parte da cidade, Zoro se arrisca contra uma terrível maldição.",
+      "airDate": "2000-11-22",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_50",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 50,
+      "title": "Duelo à Luz do Dia! Usopp vs. Daddy Papai!",
+      "overview": "Usopp encontra um incrível par de óculos de atirador, mas eles o levam de encontro a Daddy Papai, o maior pistoleiro vivo! Agora, o artilheiro do bando de Luffy está a caminho do mais mortal dos duelos.",
+      "airDate": "2000-11-29",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_51",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 51,
+      "title": "Uma Batalha Culinária?! Sanji vs. a Linda Chef!",
+      "overview": "Uma competição culinária com a caliente Carmen relembra Sanji do seu sonho, o All Blue.",
+      "airDate": "2000-12-06",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_1_52",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 52,
+      "title": "A Vingança de Buggy! O Homem que Sorri à Beira da Morte!",
+      "overview": "Buggy e sua misteriosa aliada estão no encalço de Luffy e o aprisionam na mesma plataforma onde Gold Roger teve sua última visão!",
+      "airDate": "2000-12-13",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_53",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 53,
+      "title": "O começo a Lenda! Rumo a Grand Line!",
+      "overview": "Uma tempestade cai sobre Loguetown, e Buggy, Alvida e Smoker cercam Luffy para o combate decisivo!",
+      "airDate": "2001-01-10",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_54",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 54,
+      "title": "Uma nova aventura! Apis, a garota misteriosa!",
+      "overview": "A descoberta de uma pequena menina à deriva em um bote abandonado interrompe a viagem de Luffy e seu bando à Grand Line.",
+      "airDate": "2001-01-17",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_55",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 55,
+      "title": "A criatura milagrosa! O segredo de Apis e a Ilha Lendária!",
+      "overview": "Após fugir da Marinha, os Chapéus de Palha se veem em um desafio de igual tamanho: Estão à deriva, parados, no Calm Belt!",
+      "airDate": "2001-01-24",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_56",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 56,
+      "title": "Eric Ataca! A Grande Fuga da Ilha Belonave!",
+      "overview": "O bando quer devolver o dragão de Apis ao ninho, mas a Marinha os cerca!",
+      "airDate": "2001-01-31",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_57",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 57,
+      "title": "A Ilha Solitária no Mar Distante! A Lendária Lost Island!",
+      "overview": "Achar a ilha perdida dos dragões é como achar uma agulha no palheiro, no meio do oceano, para Nami e os Chapéus de Palha!",
+      "airDate": "2001-02-07",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_58",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 58,
+      "title": "Batalha nas ruínas! Um Zoro nervoso vs. Eric!",
+      "overview": "Nami descobre um mapa com a verdadeira localização do ninho dos dragões, e Zoro enfrenta Eric Tufão.",
+      "airDate": "2001-02-21",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_59",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 59,
+      "title": "Luffy encurralado! O plano secreto do Almirante Nelson!",
+      "overview": "O bando dá de cara com Nelson e seu navio. Enquanto Luffy, Zoro e Sanji desviam das balas dos canhões, Eric prepara um furtivo contra-ataque!",
+      "airDate": "2001-02-21",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_60",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 60,
+      "title": "Voe Pelos Céus! O Renascer de uma Lenda Milenar!",
+      "overview": "Com a missão de resgate rolando na água, os Chapéus de Palha ganham uma surpresa vinda do céu azul.",
+      "airDate": "2001-02-28",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_1_61",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 61,
+      "title": "Decisão furiosa! Atravessem a Red Line!",
+      "overview": "Luffy e os Chapéus de Palha confrontam Eric pela última vez, se despedem de Apis e seguem rumo à Grand Line!",
+      "airDate": "2001-03-07",
+      "duration": 25
+    },
+    {
+      "id": "ep_s_37854_3_78",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 78,
+      "title": "Nami Doente - Do Outro Lado da Neve Que Cai no Oceano!",
+      "overview": "Após partirem da ilha dos gigantes, os Chapéus de Palha agora precisam lidar com uma súbita doença que acomete Nami, e pode ser letal caso não achem um médico!",
+      "airDate": "2001-08-26",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_3_79",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 79,
+      "title": "Emboscada! O Bliking e Wapol, o Blik",
+      "overview": "Luffy e os Chapéus de Palha são atacados por Wapol de Latão, e precisam deter a ameaça e seguir em busca de um médico que cure Nami!",
+      "airDate": "2001-09-02",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_3_80",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 80,
+      "title": "Uma Ilha Sem Médico? Aventura em um País Sem Nome!",
+      "overview": "Luffy e os Chapéus de Palha não têm recepção calorosa na próxima ilha da Grand Line, mas precisam convencer os habitantes de que precisam de um médico para Nami. O que a nova ilha, porém, possui, é uma bruxa!",
+      "airDate": "2001-09-09",
+      "duration": 24
+    },
+    {
+      "id": "ep_s_37854_3_81",
+      "showId": "s_cr0hwht",
+      "seasonId": "sea_xond66q",
+      "episodeNumber": 81,
+      "title": "Está Feliz? Uma Médica que foi Chamada de Bruxa!",
+      "overview": "Luffy e Sanji seguem com Nami ao encontro da médica de Big Horn, mas Dalton, Vivi e Usopp descobrem que eles seguiram em vão, pois a médica está em outra vila!",
+      "airDate": "2001-09-16",
+      "duration": 24
+    }
+  ],
+  "movies": [
+    {
+      "id": "m1",
+      "tmdbId": 157336,
+      "title": "Interstellar",
+      "overview": "As reservas naturais da Terra estão se esgotando e um grupo de astronautas recebe a missão de verificar possíveis planetas habitáveis para receber a população mundial, possibilitando a continuação da espécie.",
+      "posterPath": "/gEU2QvHwZJ7fvvevkgjHGnAsjYd.jpg",
+      "backdropPath": "/rAiw0Av5nH7ee5u84gL46hNu869.jpg",
+      "releaseDate": "2014-11-05",
+      "duration": 169,
+      "genre": [
+        "Sci-Fi",
+        "Drama",
+        "Adventure"
+      ]
+    },
+    {
+      "id": "m2",
+      "tmdbId": 27205,
+      "title": "Inception",
+      "overview": "Dom Cobb é um ladrão talentoso cuja especialidade é extrair segredos valiosos do fundo do subconsciente durante o estado de sono. Sua habilidade única fez dele um jogador cobiçado no mundo da espionagem, mas também o tornou um fugitivo internacional.",
+      "posterPath": "/9gk7adHYeHCwb0mfsEStm0gziFC.jpg",
+      "backdropPath": "/s3TBrRGB1q7jWjLflmgQQYgWESY.jpg",
+      "releaseDate": "2010-07-15",
+      "duration": 148,
+      "genre": [
+        "Action",
+        "Sci-Fi",
+        "Adventure"
+      ]
+    }
+  ],
+  "watch_episodes": [
+    {
+      "id": "w_ep1",
+      "userId": "u1",
+      "showId": "s1",
+      "episodeId": "ep_s1_1_1",
+      "watchedAt": "2026-06-29T02:57:44.306Z"
+    },
+    {
+      "id": "w_ep2",
+      "userId": "u1",
+      "showId": "s1",
+      "episodeId": "ep_s1_1_2",
+      "watchedAt": "2026-06-30T02:57:44.306Z"
+    },
+    {
+      "id": "w_ep3",
+      "userId": "u1",
+      "showId": "s1",
+      "episodeId": "ep_s1_1_3",
+      "watchedAt": "2026-07-01T02:57:44.306Z"
+    },
+    {
+      "id": "we_a471bw7",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_1",
+      "watchedAt": "2026-07-02T03:38:23.009Z"
+    },
+    {
+      "id": "we_nua4fdo",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_2",
+      "watchedAt": "2026-07-02T03:38:23.012Z"
+    },
+    {
+      "id": "we_rml8uq7",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_3",
+      "watchedAt": "2026-07-02T03:38:23.016Z"
+    },
+    {
+      "id": "we_079ybk3",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_4",
+      "watchedAt": "2026-07-02T03:38:23.018Z"
+    },
+    {
+      "id": "we_uhdrhxq",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_5",
+      "watchedAt": "2026-07-02T03:38:23.022Z"
+    },
+    {
+      "id": "we_o4a6hdo",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_6",
+      "watchedAt": "2026-07-02T03:38:23.035Z"
+    },
+    {
+      "id": "we_ogpmqhg",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_7",
+      "watchedAt": "2026-07-02T03:38:23.042Z"
+    },
+    {
+      "id": "we_7yhaelg",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_8",
+      "watchedAt": "2026-07-02T03:38:23.048Z"
+    },
+    {
+      "id": "we_r6wecns",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_9",
+      "watchedAt": "2026-07-02T03:38:23.050Z"
+    },
+    {
+      "id": "we_qp3nblo",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_10",
+      "watchedAt": "2026-07-02T03:38:23.053Z"
+    },
+    {
+      "id": "we_cvbk2vo",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_11",
+      "watchedAt": "2026-07-02T03:38:23.055Z"
+    },
+    {
+      "id": "we_cuqfjfa",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_12",
+      "watchedAt": "2026-07-02T03:38:23.072Z"
+    },
+    {
+      "id": "we_ffxn3z9",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_13",
+      "watchedAt": "2026-07-02T03:38:23.096Z"
+    },
+    {
+      "id": "we_tanzez1",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_14",
+      "watchedAt": "2026-07-02T03:38:23.114Z"
+    },
+    {
+      "id": "we_7b6stlb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_15",
+      "watchedAt": "2026-07-02T03:38:23.124Z"
+    },
+    {
+      "id": "we_5x5lqea",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_16",
+      "watchedAt": "2026-07-02T03:38:23.127Z"
+    },
+    {
+      "id": "we_jc2aroz",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_17",
+      "watchedAt": "2026-07-02T03:38:23.129Z"
+    },
+    {
+      "id": "we_a5rqn2m",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_18",
+      "watchedAt": "2026-07-02T03:38:23.138Z"
+    },
+    {
+      "id": "we_mhdpkhi",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_19",
+      "watchedAt": "2026-07-02T03:38:23.151Z"
+    },
+    {
+      "id": "we_0m5pcs6",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_20",
+      "watchedAt": "2026-07-02T03:38:23.155Z"
+    },
+    {
+      "id": "we_fwmhls5",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_21",
+      "watchedAt": "2026-07-02T03:38:23.197Z"
+    },
+    {
+      "id": "we_s4zinqe",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_22",
+      "watchedAt": "2026-07-02T03:38:23.199Z"
+    },
+    {
+      "id": "we_nigv4p8",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_23",
+      "watchedAt": "2026-07-02T03:38:23.201Z"
+    },
+    {
+      "id": "we_td16ufb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_1_24",
+      "watchedAt": "2026-07-02T03:38:23.203Z"
+    },
+    {
+      "id": "we_zdfcww0",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_1",
+      "watchedAt": "2026-07-02T03:38:25.217Z"
+    },
+    {
+      "id": "we_rjv77z1",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_2",
+      "watchedAt": "2026-07-02T03:38:25.219Z"
+    },
+    {
+      "id": "we_30gmrz9",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_3",
+      "watchedAt": "2026-07-02T03:38:25.221Z"
+    },
+    {
+      "id": "we_23t2dn3",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_4",
+      "watchedAt": "2026-07-02T03:38:25.223Z"
+    },
+    {
+      "id": "we_6swh0iw",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_5",
+      "watchedAt": "2026-07-02T03:38:25.229Z"
+    },
+    {
+      "id": "we_yzyggxd",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_6",
+      "watchedAt": "2026-07-02T03:38:25.244Z"
+    },
+    {
+      "id": "we_8fk0i8h",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_7",
+      "watchedAt": "2026-07-02T03:38:25.255Z"
+    },
+    {
+      "id": "we_kaxpp1s",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_8",
+      "watchedAt": "2026-07-02T03:38:25.263Z"
+    },
+    {
+      "id": "we_abkj41d",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_9",
+      "watchedAt": "2026-07-02T03:38:25.265Z"
+    },
+    {
+      "id": "we_5ircj4k",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_10",
+      "watchedAt": "2026-07-02T03:38:25.268Z"
+    },
+    {
+      "id": "we_koewq8w",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_2_11",
+      "watchedAt": "2026-07-02T03:38:25.275Z"
+    },
+    {
+      "id": "we_da6icq4",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_1",
+      "watchedAt": "2026-07-02T03:38:27.197Z"
+    },
+    {
+      "id": "we_cm4s4v2",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_2",
+      "watchedAt": "2026-07-02T03:38:27.200Z"
+    },
+    {
+      "id": "we_hv8wy49",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_3",
+      "watchedAt": "2026-07-02T03:38:27.206Z"
+    },
+    {
+      "id": "we_w3r6jvs",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_4",
+      "watchedAt": "2026-07-02T03:38:27.215Z"
+    },
+    {
+      "id": "we_pcrc1jn",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_5",
+      "watchedAt": "2026-07-02T03:38:27.218Z"
+    },
+    {
+      "id": "we_ibmaqyb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_6",
+      "watchedAt": "2026-07-02T03:38:27.238Z"
+    },
+    {
+      "id": "we_1z6wpgc",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_7",
+      "watchedAt": "2026-07-02T03:38:27.269Z"
+    },
+    {
+      "id": "we_6y506lc",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_8",
+      "watchedAt": "2026-07-02T03:38:27.272Z"
+    },
+    {
+      "id": "we_74e16l9",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_9",
+      "watchedAt": "2026-07-02T03:38:27.277Z"
+    },
+    {
+      "id": "we_pvwz5ko",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_10",
+      "watchedAt": "2026-07-02T03:38:27.297Z"
+    },
+    {
+      "id": "we_z87uvma",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_11",
+      "watchedAt": "2026-07-02T03:38:27.313Z"
+    },
+    {
+      "id": "we_tculqpt",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_12",
+      "watchedAt": "2026-07-02T03:38:27.315Z"
+    },
+    {
+      "id": "we_sdqkvqp",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_13",
+      "watchedAt": "2026-07-02T03:38:27.349Z"
+    },
+    {
+      "id": "we_wis4k9l",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_14",
+      "watchedAt": "2026-07-02T03:38:27.351Z"
+    },
+    {
+      "id": "we_o6qxp9c",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_15",
+      "watchedAt": "2026-07-02T03:38:27.352Z"
+    },
+    {
+      "id": "we_8id2i9d",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_16",
+      "watchedAt": "2026-07-02T03:38:27.366Z"
+    },
+    {
+      "id": "we_jxau4bs",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_17",
+      "watchedAt": "2026-07-02T03:38:27.386Z"
+    },
+    {
+      "id": "we_ksw5azr",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_18",
+      "watchedAt": "2026-07-02T03:38:27.396Z"
+    },
+    {
+      "id": "we_wlae0vg",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_19",
+      "watchedAt": "2026-07-02T03:38:27.443Z"
+    },
+    {
+      "id": "we_6opmq6c",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_20",
+      "watchedAt": "2026-07-02T03:38:27.446Z"
+    },
+    {
+      "id": "we_hqz2qzc",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_21",
+      "watchedAt": "2026-07-02T03:38:27.447Z"
+    },
+    {
+      "id": "we_qxjgute",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_l0nkldl",
+      "episodeId": "ep_s_86031_3_22",
+      "watchedAt": "2026-07-02T03:38:27.491Z"
+    },
+    {
+      "id": "we_4xdylyp",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1156",
+      "watchedAt": "2026-07-02T03:45:22.559Z"
+    },
+    {
+      "id": "we_o1ynvsx",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1157",
+      "watchedAt": "2026-07-02T03:45:22.562Z"
+    },
+    {
+      "id": "we_90bf7xa",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1158",
+      "watchedAt": "2026-07-02T03:45:22.565Z"
+    },
+    {
+      "id": "we_zxjf7wj",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1159",
+      "watchedAt": "2026-07-02T03:45:22.582Z"
+    },
+    {
+      "id": "we_dqaxiek",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1160",
+      "watchedAt": "2026-07-02T03:45:22.585Z"
+    },
+    {
+      "id": "we_n1erf54",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_23_1161",
+      "watchedAt": "2026-07-02T03:45:22.587Z"
+    },
+    {
+      "id": "we_ol7sur6",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_1",
+      "watchedAt": "2026-07-02T03:46:17.480Z"
+    },
+    {
+      "id": "we_uy5jmkm",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_2",
+      "watchedAt": "2026-07-02T03:46:17.482Z"
+    },
+    {
+      "id": "we_cr6q1d6",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_3",
+      "watchedAt": "2026-07-02T03:46:17.489Z"
+    },
+    {
+      "id": "we_dbovy3w",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_4",
+      "watchedAt": "2026-07-02T03:46:17.497Z"
+    },
+    {
+      "id": "we_qrbnv33",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_5",
+      "watchedAt": "2026-07-02T03:46:17.499Z"
+    },
+    {
+      "id": "we_80ehj9j",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_6",
+      "watchedAt": "2026-07-02T03:46:17.501Z"
+    },
+    {
+      "id": "we_d4cx15n",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_7",
+      "watchedAt": "2026-07-02T03:46:17.524Z"
+    },
+    {
+      "id": "we_2h1onia",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_8",
+      "watchedAt": "2026-07-02T03:46:17.529Z"
+    },
+    {
+      "id": "we_oimaiye",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_9",
+      "watchedAt": "2026-07-02T03:46:17.533Z"
+    },
+    {
+      "id": "we_nrpxg54",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_10",
+      "watchedAt": "2026-07-02T03:46:17.536Z"
+    },
+    {
+      "id": "we_6085ast",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_11",
+      "watchedAt": "2026-07-02T03:46:17.538Z"
+    },
+    {
+      "id": "we_fjnzgr5",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_12",
+      "watchedAt": "2026-07-02T03:46:17.562Z"
+    },
+    {
+      "id": "we_21n0p65",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_13",
+      "watchedAt": "2026-07-02T03:46:17.592Z"
+    },
+    {
+      "id": "we_4tth4lf",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_14",
+      "watchedAt": "2026-07-02T03:46:17.594Z"
+    },
+    {
+      "id": "we_vakucay",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_15",
+      "watchedAt": "2026-07-02T03:46:17.596Z"
+    },
+    {
+      "id": "we_tiecdfl",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_16",
+      "watchedAt": "2026-07-02T03:46:17.598Z"
+    },
+    {
+      "id": "we_5f5cabg",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_17",
+      "watchedAt": "2026-07-02T03:46:17.601Z"
+    },
+    {
+      "id": "we_8fwjs8a",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_18",
+      "watchedAt": "2026-07-02T03:46:17.603Z"
+    },
+    {
+      "id": "we_8thwq1i",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_19",
+      "watchedAt": "2026-07-02T03:46:17.643Z"
+    },
+    {
+      "id": "we_zven30v",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_20",
+      "watchedAt": "2026-07-02T03:46:17.645Z"
+    },
+    {
+      "id": "we_qdm0ki8",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_21",
+      "watchedAt": "2026-07-02T03:46:17.648Z"
+    },
+    {
+      "id": "we_5zjk5gq",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_22",
+      "watchedAt": "2026-07-02T03:46:17.651Z"
+    },
+    {
+      "id": "we_qfcbmyc",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_23",
+      "watchedAt": "2026-07-02T03:46:17.652Z"
+    },
+    {
+      "id": "we_gldyedj",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_24",
+      "watchedAt": "2026-07-02T03:46:17.654Z"
+    },
+    {
+      "id": "we_ps6mg5l",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_25",
+      "watchedAt": "2026-07-02T03:46:17.703Z"
+    },
+    {
+      "id": "we_hexcqpn",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_26",
+      "watchedAt": "2026-07-02T03:46:17.705Z"
+    },
+    {
+      "id": "we_0nf1dx8",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_27",
+      "watchedAt": "2026-07-02T03:46:17.708Z"
+    },
+    {
+      "id": "we_igdcbr5",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_28",
+      "watchedAt": "2026-07-02T03:46:17.709Z"
+    },
+    {
+      "id": "we_pre3fkl",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_29",
+      "watchedAt": "2026-07-02T03:46:17.711Z"
+    },
+    {
+      "id": "we_kuakg7y",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_30",
+      "watchedAt": "2026-07-02T03:46:17.713Z"
+    },
+    {
+      "id": "we_ge01oub",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_31",
+      "watchedAt": "2026-07-02T03:46:17.766Z"
+    },
+    {
+      "id": "we_vr8dp38",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_32",
+      "watchedAt": "2026-07-02T03:46:17.768Z"
+    },
+    {
+      "id": "we_9mp7jmb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_33",
+      "watchedAt": "2026-07-02T03:46:17.770Z"
+    },
+    {
+      "id": "we_tkizjkl",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_34",
+      "watchedAt": "2026-07-02T03:46:17.773Z"
+    },
+    {
+      "id": "we_ypjrdkd",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_35",
+      "watchedAt": "2026-07-02T03:46:17.775Z"
+    },
+    {
+      "id": "we_4hkazl0",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_36",
+      "watchedAt": "2026-07-02T03:46:17.777Z"
+    },
+    {
+      "id": "we_fbbmabt",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_37",
+      "watchedAt": "2026-07-02T03:46:17.887Z"
+    },
+    {
+      "id": "we_mkdqn9y",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_38",
+      "watchedAt": "2026-07-02T03:46:17.890Z"
+    },
+    {
+      "id": "we_gdotpkr",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_39",
+      "watchedAt": "2026-07-02T03:46:17.892Z"
+    },
+    {
+      "id": "we_g0eo2wm",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_40",
+      "watchedAt": "2026-07-02T03:46:17.908Z"
+    },
+    {
+      "id": "we_dayhdlb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_41",
+      "watchedAt": "2026-07-02T03:46:17.911Z"
+    },
+    {
+      "id": "we_wts6stm",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_42",
+      "watchedAt": "2026-07-02T03:46:17.912Z"
+    },
+    {
+      "id": "we_4m3jwqe",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_43",
+      "watchedAt": "2026-07-02T03:46:17.956Z"
+    },
+    {
+      "id": "we_h9tcgqq",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_44",
+      "watchedAt": "2026-07-02T03:46:17.958Z"
+    },
+    {
+      "id": "we_nntlx7h",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_45",
+      "watchedAt": "2026-07-02T03:46:17.960Z"
+    },
+    {
+      "id": "we_2c5hk59",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_46",
+      "watchedAt": "2026-07-02T03:46:17.962Z"
+    },
+    {
+      "id": "we_143pda5",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_47",
+      "watchedAt": "2026-07-02T03:46:17.964Z"
+    },
+    {
+      "id": "we_p0hfldb",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_48",
+      "watchedAt": "2026-07-02T03:46:17.966Z"
+    },
+    {
+      "id": "we_pr6twex",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_49",
+      "watchedAt": "2026-07-02T03:46:18.112Z"
+    },
+    {
+      "id": "we_vuaqjzo",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_50",
+      "watchedAt": "2026-07-02T03:46:18.114Z"
+    },
+    {
+      "id": "we_0m4sm6e",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_51",
+      "watchedAt": "2026-07-02T03:46:18.116Z"
+    },
+    {
+      "id": "we_1pp2rlf",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_52",
+      "watchedAt": "2026-07-02T03:46:18.130Z"
+    },
+    {
+      "id": "we_yrn6yol",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_53",
+      "watchedAt": "2026-07-02T03:46:18.133Z"
+    },
+    {
+      "id": "we_5dfdpla",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_54",
+      "watchedAt": "2026-07-02T03:46:18.135Z"
+    },
+    {
+      "id": "we_jlvegpk",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_55",
+      "watchedAt": "2026-07-02T03:46:18.218Z"
+    },
+    {
+      "id": "we_tc5kb4x",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_56",
+      "watchedAt": "2026-07-02T03:46:18.220Z"
+    },
+    {
+      "id": "we_5hv1pvg",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_57",
+      "watchedAt": "2026-07-02T03:46:18.222Z"
+    },
+    {
+      "id": "we_13vivia",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_58",
+      "watchedAt": "2026-07-02T03:46:18.224Z"
+    },
+    {
+      "id": "we_ntlgha1",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_59",
+      "watchedAt": "2026-07-02T03:46:18.227Z"
+    },
+    {
+      "id": "we_9z62sed",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_60",
+      "watchedAt": "2026-07-02T03:46:18.229Z"
+    },
+    {
+      "id": "we_vrf9zj6",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_1_61",
+      "watchedAt": "2026-07-02T03:46:18.304Z"
+    },
+    {
+      "id": "we_mohiq84",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_3_78",
+      "watchedAt": "2026-07-02T03:47:07.931Z"
+    },
+    {
+      "id": "we_a9pbiqv",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_3_79",
+      "watchedAt": "2026-07-02T03:47:08.451Z"
+    },
+    {
+      "id": "we_ifbpoo7",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_3_80",
+      "watchedAt": "2026-07-02T03:47:09.030Z"
+    },
+    {
+      "id": "we_0raeuni",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "showId": "s_cr0hwht",
+      "episodeId": "ep_s_37854_3_81",
+      "watchedAt": "2026-07-02T03:47:10.871Z"
+    }
+  ],
+  "watch_movies": [],
+  "lists": [
+    {
+      "id": "l1",
+      "userId": "u1",
+      "name": "Minha Lista de Favoritos",
+      "description": "Séries e filmes que mais me marcaram.",
+      "type": "mixed",
+      "createdAt": "2026-07-02T02:57:44.306Z"
+    },
+    {
+      "id": "l_k5swys2",
+      "userId": "UPSD84ckchc70doVKjGMgbGV2ME2",
+      "name": "Animes",
+      "description": "",
+      "type": "mixed",
+      "createdAt": "2026-07-02T03:36:31.267Z"
+    }
+  ],
+  "list_items": [
+    {
+      "id": "li1",
+      "listId": "l1",
+      "mediaType": "show",
+      "mediaId": "s1"
+    },
+    {
+      "id": "li2",
+      "listId": "l1",
+      "mediaType": "movie",
+      "mediaId": "m1"
+    },
+    {
+      "id": "li_1uect1h",
+      "listId": "l_k5swys2",
+      "mediaType": "show",
+      "mediaId": "s_86031"
+    }
+  ],
+  "comments": [
+    {
+      "id": "c1",
+      "userId": "u1",
+      "username": "testuser",
+      "episodeId": "ep_s1_1_1",
+      "showId": "s1",
+      "content": "Que episódio piloto sensacional! A cena do trailer no deserto é fantástica e dita muito bem o tom da série inteira.",
+      "createdAt": "2026-06-29T03:27:44.306Z"
+    }
+  ],
+  "reactions": [
+    {
+      "id": "r1",
+      "userId": "u1",
+      "episodeId": "ep_s1_1_1",
+      "type": "love",
+      "createdAt": "2026-06-29T03:28:44.306Z"
+    }
+  ]
+}
