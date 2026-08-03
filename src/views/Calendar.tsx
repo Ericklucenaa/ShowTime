@@ -348,19 +348,19 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             </div>
 
             <div className="calendar-day-strip-shell">
-              <div ref={dayStripRef} className="calendar-day-strip">
-                {rangeStartOffset > 0 && (
-                  <button
-                    type="button"
-                    className="calendar-range-nav prev"
-                    onClick={() => moveDateRange(-1)}
-                    aria-label="Ver bloco de datas anterior"
-                  >
-                    <ChevronLeft size={14} />
-                    Voltar
-                  </button>
-                )}
+              {rangeStartOffset > 0 && (
+                <button
+                  type="button"
+                  className="calendar-strip-edge-btn left"
+                  onClick={() => moveDateRange(-1)}
+                  aria-label="Ver bloco de datas anterior"
+                >
+                  <ChevronLeft size={14} />
+                  Voltar
+                </button>
+              )}
 
+              <div ref={dayStripRef} className="calendar-day-strip">
                 {visibleDateKeys.map((key) => {
                   const date = parseDateKey(key);
                   const isActive = key === selectedDateKey;
@@ -381,17 +381,17 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                     </button>
                   );
                 })}
-
-                <button
-                  type="button"
-                  className="calendar-range-nav next"
-                  onClick={() => moveDateRange(1)}
-                  aria-label="Ver proximo bloco de datas"
-                >
-                  Avancar
-                  <ChevronRight size={14} />
-                </button>
               </div>
+
+              <button
+                type="button"
+                className="calendar-strip-edge-btn right"
+                onClick={() => moveDateRange(1)}
+                aria-label="Ver proximo bloco de datas"
+              >
+                Avancar
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
 
@@ -606,7 +606,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           gap: 8px;
           overflow-x: auto;
           overflow-y: hidden;
-          padding-bottom: 6px;
+          padding: 6px 110px;
           width: 100%;
           max-width: 100%;
           -webkit-overflow-scrolling: touch;
@@ -616,34 +616,44 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-strip-shell {
+          position: relative;
           width: 100%;
         }
 
-        .calendar-range-nav {
-          flex: 0 0 auto;
-          min-width: 90px;
-          height: 74px;
+        .calendar-strip-edge-btn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 3;
+          min-width: 92px;
+          height: 40px;
           border-radius: 12px;
           border: 1px solid rgba(245, 197, 24, 0.45);
-          background: linear-gradient(135deg, rgba(245, 197, 24, 0.18) 0%, rgba(212, 169, 18, 0.18) 100%);
-          color: var(--primary);
-          font-size: 11px;
+          background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
+          color: #171717;
+          box-shadow: 0 8px 18px rgba(245, 197, 24, 0.28);
+          padding: 0 10px;
+          font-size: 12px;
           font-weight: 800;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 6px;
           cursor: pointer;
-          transition: transform 0.18s ease, border-color 0.18s ease;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
 
-        .calendar-range-nav:hover {
-          transform: translateY(-1px);
-          border-color: var(--primary);
+        .calendar-strip-edge-btn.left {
+          left: 4px;
         }
 
-        .calendar-range-nav.next {
-          margin-right: 2px;
+        .calendar-strip-edge-btn.right {
+          right: 4px;
+        }
+
+        .calendar-strip-edge-btn:hover {
+          transform: translateY(calc(-50% - 1px));
+          box-shadow: 0 10px 20px rgba(245, 197, 24, 0.38);
         }
 
         .calendar-day-strip::-webkit-scrollbar {
@@ -906,9 +916,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             font-size: 22px;
           }
 
-          .calendar-range-nav {
+          .calendar-day-strip {
+            padding-left: 96px;
+            padding-right: 96px;
+          }
+
+          .calendar-strip-edge-btn {
             min-width: 84px;
-            height: 68px;
+            height: 36px;
+            font-size: 11px;
+            padding: 0 8px;
           }
         }
 
