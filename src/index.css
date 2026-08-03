@@ -321,47 +321,19 @@ button, input, select, textarea {
   scrollbar-width: none;
 }
 
+.bottom-nav::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(to left, rgba(12, 12, 18, 0.92) 18%, rgba(12, 12, 18, 0));
+}
+
 .bottom-nav::-webkit-scrollbar {
   display: none;
-}
-
-.mobile-nav-hint {
-  display: none;
-  position: fixed;
-  right: 10px;
-  bottom: calc(22px + env(safe-area-inset-bottom));
-  z-index: 10000;
-  width: 44px;
-  height: 28px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.mobile-nav-hint-bar {
-  width: 16px;
-  height: 3px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
-}
-
-.mobile-nav-hint-arrow {
-  width: 7px;
-  height: 7px;
-  border-top: 2px solid rgba(255, 255, 255, 0.86);
-  border-right: 2px solid rgba(255, 255, 255, 0.86);
-  transform: rotate(45deg);
-  margin-left: 4px;
-  animation: navHintPulse 1.4s ease-in-out infinite;
-}
-
-@keyframes navHintPulse {
-  0%, 100% { transform: translateX(0) rotate(45deg); opacity: 0.7; }
-  50% { transform: translateX(2px) rotate(45deg); opacity: 1; }
 }
 
 .grid-media {
@@ -382,7 +354,6 @@ button, input, select, textarea {
     display: flex;
     align-items: stretch;
   }
-  .mobile-nav-hint { display: block; }
   .app-container {
     padding-bottom: 96px; /* Space for 1-row bottom nav */
   }
@@ -447,23 +418,6 @@ button, input, select, textarea {
   .app-container {
     padding-bottom: 94px;
   }
-
-  .mobile-nav-hint {
-    right: 8px;
-    bottom: calc(20px + env(safe-area-inset-bottom));
-    width: 40px;
-    height: 26px;
-  }
-}
-
-.light-theme .mobile-nav-hint {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.05) 100%);
-  border-color: rgba(15, 23, 42, 0.16);
-}
-
-.light-theme .mobile-nav-hint-bar,
-.light-theme .mobile-nav-hint-arrow {
-  filter: brightness(0.35);
 }
 
 @media (max-width: 420px) {
@@ -549,6 +503,10 @@ button, input, select, textarea {
 .light-theme .bottom-nav {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.98) 100%);
   border-top-color: rgba(15, 23, 42, 0.12);
+}
+
+.light-theme .bottom-nav::after {
+  background: linear-gradient(to left, rgba(248, 250, 252, 0.98) 18%, rgba(248, 250, 252, 0));
 }
 
 .light-theme .nav-item {

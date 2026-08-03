@@ -293,10 +293,6 @@ const AppContent: React.FC = () => {
         </div>
 
         {/* Mobile Bottom Navigation Bar */}
-        <div className="mobile-nav-hint" aria-hidden="true">
-          <span className="mobile-nav-hint-bar" />
-          <span className="mobile-nav-hint-arrow" />
-        </div>
         <nav className="bottom-nav">
           {[
             { id: 'dashboard', label: 'Painel', icon: <LayoutGrid size={18} /> },
