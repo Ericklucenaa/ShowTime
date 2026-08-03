@@ -54,12 +54,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [selectedDateKey, setSelectedDateKey] = useState<string>('');
   const [reminders, setReminders] = useState<string[]>([]);
   const dayStripRef = useRef<HTMLDivElement | null>(null);
-  const dragStateRef = useRef({
-    isDown: false,
-    pointerId: -1,
-    startX: 0,
-    startScrollLeft: 0
-  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -190,12 +184,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const todayStr = formatDateKeyFromDate(today);
 
   const visibleDates = useMemo(() => {
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    const days: string[] = [];
-    const cursor = new Date(monthStart);
+    const start = new Date(today);
+    start.setDate(start.getDate() - 15);
 
-    while (cursor <= monthEnd) {
+    const end = new Date(today);
+    end.setDate(end.getDate() + 120);
+
+    const days: string[] = [];
+    const cursor = new Date(start);
+
+    while (cursor <= end) {
       days.push(formatDateKeyFromDate(cursor));
       cursor.setDate(cursor.getDate() + 1);
     }
@@ -222,37 +220,22 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const selectedDateObj = selectedDateKey ? dateFromKey(selectedDateKey) : null;
   const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
 
-  const handleDayStripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  useEffect(() => {
     const strip = dayStripRef.current;
-    if (!strip) return;
-    dragStateRef.current = {
-      isDown: true,
-      pointerId: e.pointerId,
-      startX: e.clientX,
-      startScrollLeft: strip.scrollLeft
-    };
-    strip.setPointerCapture(e.pointerId);
-  };
+    if (!strip || !selectedDateKey) return;
+    const selectedEl = strip.querySelector<HTMLButtonElement>(`button[data-date="${selectedDateKey}"]`);
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [selectedDateKey]);
 
-  const handleDayStripPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const strip = dayStripRef.current;
-    if (!strip) return;
-    const drag = dragStateRef.current;
-    if (!drag.isDown || drag.pointerId !== e.pointerId) return;
-
-    const delta = e.clientX - drag.startX;
-    strip.scrollLeft = drag.startScrollLeft - delta;
-  };
-
-  const handleDayStripPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const strip = dayStripRef.current;
-    if (!strip) return;
-    const drag = dragStateRef.current;
-    if (drag.pointerId !== e.pointerId) return;
-
-    dragStateRef.current.isDown = false;
-    dragStateRef.current.pointerId = -1;
-    strip.releasePointerCapture(e.pointerId);
+  const handleSelectNearbyDate = (direction: -1 | 1) => {
+    if (!selectedDateKey) return;
+    const index = visibleDates.indexOf(selectedDateKey);
+    if (index < 0) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= visibleDates.length) return;
+    setSelectedDateKey(visibleDates[nextIndex]);
   };
 
   return (
@@ -289,14 +272,30 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       {!loading && activeTab === 'personal' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div className="st-panel" style={{ padding: '14px' }}>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>Arraste para o lado para navegar pelos dias do mes</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '8px' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: 0 }}>Arraste para o lado para navegar pelos dias</p>
+              <div style={{ display: 'inline-flex', gap: '6px' }}>
+                <button
+                  type="button"
+                  className="calendar-mini-nav-btn"
+                  onClick={() => handleSelectNearbyDate(-1)}
+                  aria-label="Dia anterior"
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  className="calendar-mini-nav-btn"
+                  onClick={() => handleSelectNearbyDate(1)}
+                  aria-label="Próximo dia"
+                >
+                  ▶
+                </button>
+              </div>
+            </div>
             <div
               ref={dayStripRef}
               className="calendar-day-strip"
-              onPointerDown={handleDayStripPointerDown}
-              onPointerMove={handleDayStripPointerMove}
-              onPointerUp={handleDayStripPointerUp}
-              onPointerCancel={handleDayStripPointerUp}
               style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', width: '100%', maxWidth: '100%', touchAction: 'pan-x' }}
             >
               {visibleDates.map((dateKey) => {
@@ -307,6 +306,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 return (
                   <button
                     key={dateKey}
+                    data-date={dateKey}
                     onClick={() => setSelectedDateKey(dateKey)}
                     className={`calendar-day-btn ${isActive ? 'active' : ''}`}
                     style={{
@@ -418,12 +418,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               overscroll-behavior-x: contain;
               overflow-y: hidden;
               scroll-snap-type: x proximity;
-              cursor: grab;
-              user-select: none;
-            }
-
-            .calendar-day-strip:active {
-              cursor: grabbing;
+              scrollbar-width: none;
             }
 
             .calendar-day-btn {
@@ -433,6 +428,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               color: var(--text-primary);
               cursor: pointer;
               scroll-snap-align: start;
+              -webkit-tap-highlight-color: transparent;
             }
 
             .calendar-day-btn.active {
@@ -464,6 +460,25 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               border-color: transparent;
               background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
               color: #000;
+            }
+
+            .calendar-mini-nav-btn {
+              border: 1px solid var(--border-color);
+              background: rgba(255, 255, 255, 0.03);
+              color: var(--text-secondary);
+              border-radius: 999px;
+              width: 30px;
+              height: 30px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              font-size: 11px;
+            }
+
+            .calendar-mini-nav-btn:hover {
+              border-color: var(--primary);
+              color: var(--primary);
             }
 
             @media (max-width: 760px) {
