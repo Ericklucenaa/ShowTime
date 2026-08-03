@@ -5,7 +5,7 @@ import { BarChart3, LogOut, Camera, Upload } from 'lucide-react';
 import { pushToast } from '../services/toast.js';
 
 export const Profile: React.FC = () => {
-  const { user, logout, updateAvatar } = useAuth();
+  const { user, logout, updateAvatar, error: authError } = useAuth();
   const { watchedEpisodes, watchedMovies, genreCounts, totalGenresCount } = useTracking();
 
   // Avatar Picker State
@@ -31,7 +31,7 @@ export const Profile: React.FC = () => {
       setShowAvatarPicker(false);
       pushToast('success', 'Foto de perfil atualizada.');
     } else {
-      pushToast('error', 'Nao foi possivel atualizar a foto de perfil.');
+      pushToast('error', authError || 'Não foi possível atualizar a foto de perfil.');
     }
     setAvatarLoading(false);
   };
@@ -67,7 +67,7 @@ export const Profile: React.FC = () => {
         setShowAvatarPicker(false);
         pushToast('success', 'Foto enviada do dispositivo com sucesso.');
       } else {
-        pushToast('error', 'Nao foi possivel atualizar a foto de perfil.');
+        pushToast('error', authError || 'Não foi possível atualizar a foto de perfil.');
       }
       setAvatarLoading(false);
     };

@@ -289,9 +289,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       } catch (err: any) {
         console.error('Firebase avatar update error:', err);
-        const errMsg = err?.code === 'storage/unauthorized'
-          ? 'Sem permissão para enviar imagem. Verifique as regras do Storage.'
-          : 'Erro ao atualizar foto de perfil no Firebase.';
+        let errMsg = 'Erro ao atualizar foto de perfil no Firebase.';
+        if (err?.code === 'storage/unauthorized') {
+          errMsg = 'Sem permissão para enviar imagem. Verifique as regras do Firebase Storage.';
+        } else if (
+          err?.code === 'storage/retry-limit-exceeded' || 
+          err?.code === 'storage/canceled' || 
+          (err?.message && (err.message.includes('CORS') || err.message.includes('retry-limit-exceeded')))
+        ) {
+          errMsg = 'Erro de CORS no Firebase Storage. Aplique a configuração cors.json no seu bucket do Google Cloud.';
+        }
         setError(errMsg);
         setLoading(false);
         return false;
