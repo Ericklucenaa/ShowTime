@@ -235,6 +235,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       const targetCenter = target.offsetLeft + target.offsetWidth / 2;
       const nextScrollLeft = Math.max(0, targetCenter - strip.clientWidth / 2);
       strip.scrollTo({ left: nextScrollLeft, behavior: 'smooth' });
+      window.setTimeout(() => refreshDateStripControls(), 120);
     }
   }, [selectedDateKey]);
 
@@ -249,6 +250,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   };
 
   useEffect(() => {
+    if (loading || activeTab !== 'personal') return;
+
     const strip = dayStripRef.current;
     if (!strip) return;
 
@@ -265,7 +268,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       strip.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onResize);
     };
-  }, [visibleDateKeys.length]);
+  }, [loading, activeTab, visibleDateKeys.length]);
 
   const stepDateStrip = (direction: 'left' | 'right') => {
     const strip = dayStripRef.current;
@@ -648,11 +651,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-strip-fab.left {
-          left: -6px;
+          left: 6px;
         }
 
         .calendar-strip-fab.right {
-          right: -6px;
+          right: 6px;
         }
 
         .calendar-strip-fab:hover {
@@ -926,11 +929,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           }
 
           .calendar-strip-fab.left {
-            left: -2px;
+            left: 4px;
           }
 
           .calendar-strip-fab.right {
-            right: -2px;
+            right: 4px;
           }
         }
 
