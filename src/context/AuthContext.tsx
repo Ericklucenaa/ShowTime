@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth as firebaseAuth, db, isFirebaseEnabled } from '../services/firebase.js';
+import { auth as firebaseAuth, db, storage, isFirebaseEnabled } from '../services/firebase.js';
 import { doc, setDoc } from 'firebase/firestore/lite';
+import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -263,13 +264,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     if (isFirebaseEnabled && firebaseAuth && firebaseAuth.currentUser) {
       try {
-        await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
+        let finalAvatarUrl = avatarUrl;
+
+        // Firebase Auth enforces a short limit for photoURL; upload data URLs to Storage first.
+        if (avatarUrl.startsWith('data:image/')) {
+          if (!storage) {
+            setError('Upload de imagem indisponível no momento.');
+            setLoading(false);
+            return false;
+          }
+
+          const uid = firebaseAuth.currentUser.uid;
+          const path = `avatars/${uid}/${Date.now()}.jpg`;
+          const avatarRef = storageRef(storage, path);
+          const metadata = { contentType: 'image/jpeg' };
+
+          await uploadString(avatarRef, avatarUrl, 'data_url', metadata);
+          finalAvatarUrl = await getDownloadURL(avatarRef);
+        }
+
+        await updateProfile(firebaseAuth.currentUser, { photoURL: finalAvatarUrl });
         await handleAuthStateChange(firebaseAuth.currentUser);
         setLoading(false);
         return true;
       } catch (err: any) {
         console.error('Firebase avatar update error:', err);
-        setError('Erro ao atualizar foto de perfil no Firebase.');
+        const errMsg = err?.code === 'storage/unauthorized'
+          ? 'Sem permissão para enviar imagem. Verifique as regras do Storage.'
+          : 'Erro ao atualizar foto de perfil no Firebase.';
+        setError(errMsg);
         setLoading(false);
         return false;
       }
