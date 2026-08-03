@@ -25,7 +25,7 @@ interface PersonalEvent {
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MONTH_FULL = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-const DATE_PAGE_SIZE = 21;
+const DATE_PAGE_SIZE = 5;
 
 function formatDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -602,19 +602,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-strip {
-          display: flex;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           flex: 1;
           min-width: 0;
           gap: 8px;
-          overflow-x: auto;
+          overflow-x: hidden;
           overflow-y: hidden;
           padding: 6px 0;
           width: 100%;
           max-width: 100%;
-          -webkit-overflow-scrolling: touch;
-          touch-action: pan-x;
-          overscroll-behavior-x: contain;
-          scrollbar-width: none;
         }
 
         .calendar-day-strip-shell {
@@ -658,8 +655,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-pill {
-          flex: 0 0 auto;
-          width: 74px;
+          width: 100%;
+          min-width: 0;
           border: 1px solid var(--border-color);
           border-radius: 12px;
           background: rgba(255, 255, 255, 0.03);
@@ -914,6 +911,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           }
 
           .calendar-day-strip {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
             gap: 6px;
           }
 
@@ -929,10 +927,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           .calendar-tab {
             font-size: 11px;
             padding: 8px 7px;
-          }
-
-          .calendar-day-pill {
-            width: 68px;
           }
 
           .calendar-day-pill .dom {
