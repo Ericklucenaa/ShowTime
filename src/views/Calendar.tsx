@@ -448,6 +448,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           gap: 14px;
           flex-wrap: wrap;
           margin-bottom: 18px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .calendar-head > div:first-child {
+          flex: 1 1 260px;
+          min-width: 0;
         }
 
         .calendar-title {
@@ -465,13 +472,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 6px;
-          width: min(100%, 460px);
-          max-width: 100%;
+          width: 100%;
+          max-width: 460px;
+          margin-left: auto;
+          flex: 1 1 320px;
+          min-width: 0;
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid var(--border-color);
           border-radius: 12px;
           padding: 5px;
-          overflow: hidden;
         }
 
         .calendar-tab {
@@ -805,7 +814,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         @media (max-width: 760px) {
           .calendar-head {
-            align-items: stretch;
+            display: block;
           }
 
           .calendar-title {
@@ -814,6 +823,10 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
           .calendar-tabs {
             width: 100%;
+            max-width: none;
+            margin-left: 0;
+            margin-top: 10px;
+            flex: none;
           }
 
           .calendar-grid {
