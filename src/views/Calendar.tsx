@@ -216,14 +216,14 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
 
   return (
-    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px' }}>
+    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <div className="calendar-top-block" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '8px' }}>Calendario de Lancamentos</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Arraste os dias para o lado e veja o que estreia em cada data.</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+        <div className="calendar-tab-switch" style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
           <button
             onClick={() => setActiveTab('personal')}
             className={activeTab === 'personal' ? 'st-btn-primary' : 'st-btn-secondary'}
@@ -252,7 +252,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div className="st-panel" style={{ padding: '14px' }}>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>Arraste para o lado para navegar pelos dias do mes</p>
-            <div className="calendar-day-strip" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+            <div className="calendar-day-strip" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', width: '100%', maxWidth: '100%', touchAction: 'pan-x' }}>
               {visibleDates.map((dateKey) => {
                 const dateObj = dateFromKey(dateKey);
                 const isActive = dateKey === selectedDateKey;
@@ -347,6 +347,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               display: none;
             }
 
+            .calendar-day-strip {
+              -webkit-overflow-scrolling: touch;
+              overscroll-behavior-x: contain;
+            }
+
             @media (max-width: 760px) {
               .calendar-top-block {
                 position: sticky;
@@ -354,6 +359,18 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 z-index: 5;
                 padding-bottom: 10px;
                 background: var(--bg-dark);
+                align-items: stretch;
+              }
+
+              .calendar-tab-switch {
+                width: 100%;
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+              }
+
+              .calendar-tab-switch button {
+                width: 100%;
+                justify-content: center;
               }
 
               .calendar-episode-grid {
