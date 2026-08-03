@@ -348,18 +348,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             </div>
 
             <div className="calendar-day-strip-shell">
-              {rangeStartOffset > 0 && (
-                <button
-                  type="button"
-                  className="calendar-strip-edge-btn left"
-                  onClick={() => moveDateRange(-1)}
-                  aria-label="Ver bloco de datas anterior"
-                >
-                  <ChevronLeft size={14} />
-                  Voltar
-                </button>
-              )}
-
               <div ref={dayStripRef} className="calendar-day-strip">
                 {visibleDateKeys.map((key) => {
                   const date = parseDateKey(key);
@@ -382,15 +370,26 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                   );
                 })}
               </div>
+            </div>
+
+            <div className="calendar-range-controls" aria-label="Navegacao de blocos de data">
+              <button
+                type="button"
+                className="calendar-range-icon"
+                onClick={() => moveDateRange(-1)}
+                aria-label="Ver bloco de datas anterior"
+                disabled={rangeStartOffset === 0}
+              >
+                <ChevronLeft size={16} />
+              </button>
 
               <button
                 type="button"
-                className="calendar-strip-edge-btn right"
+                className="calendar-range-icon"
                 onClick={() => moveDateRange(1)}
                 aria-label="Ver proximo bloco de datas"
               >
-                Avancar
-                <ChevronRight size={14} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </div>
@@ -615,39 +614,47 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-strip-shell {
-          display: flex;
-          align-items: center;
-          gap: 8px;
           width: 100%;
         }
 
-        .calendar-strip-edge-btn {
-          flex: 0 0 auto;
-          min-width: 92px;
-          height: 40px;
-          border-radius: 12px;
-          border: 1px solid rgba(245, 197, 24, 0.45);
-          background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
-          color: #171717;
-          box-shadow: 0 8px 18px rgba(245, 197, 24, 0.28);
-          padding: 0 10px;
-          font-size: 12px;
-          font-weight: 800;
+        .calendar-range-controls {
+          margin-top: 10px;
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+
+        .calendar-range-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-primary);
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+          transition: all 0.18s ease;
         }
 
-        .calendar-strip-edge-btn:active {
-          transform: scale(0.98);
+        .calendar-range-icon:hover {
+          border-color: rgba(245, 197, 24, 0.5);
+          color: var(--primary);
+          background: rgba(245, 197, 24, 0.1);
         }
 
-        .calendar-strip-edge-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 10px 20px rgba(245, 197, 24, 0.38);
+        .calendar-range-icon:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          color: var(--text-muted);
+          border-color: var(--border-color);
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .calendar-range-icon:disabled:hover {
+          color: var(--text-muted);
+          background: rgba(255, 255, 255, 0.02);
         }
 
         .calendar-day-strip::-webkit-scrollbar {
@@ -915,11 +922,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             gap: 6px;
           }
 
-          .calendar-strip-edge-btn {
-            min-width: 82px;
-            height: 36px;
-            font-size: 11px;
-            padding: 0 7px;
+          .calendar-range-controls {
+            margin-top: 8px;
+          }
+
+          .calendar-range-icon {
+            width: 32px;
+            height: 32px;
           }
         }
 
