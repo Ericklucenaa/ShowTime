@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Tv } from 'lucide-react';
 import { useTracking } from '../context/TrackingContext.js';
 import { fetchMediaDetails, fetchSeasonEpisodes, fetchTVMazeSchedule, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
@@ -245,46 +245,26 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     trackEvent('calendar_reminder_toggled', { id, enabled });
   };
 
-  const navigateDay = (direction: -1 | 1) => {
-    if (!selectedDateKey) return;
-
-    const nextDate = parseDateKey(selectedDateKey);
-    nextDate.setDate(nextDate.getDate() + direction);
-    const nextKey = formatDateKey(nextDate);
-    if (nextKey < todayKey) return;
-
-    if (!visibleDateKeys.includes(nextKey)) {
-      if (direction === 1) {
-        setRangeStartOffset((prev) => prev + DATE_PAGE_SIZE);
-      } else {
-        setRangeStartOffset((prev) => Math.max(0, prev - DATE_PAGE_SIZE));
-      }
-    }
-
-    setSelectedDateKey(nextKey);
-  };
-
   const moveDateRange = (direction: -1 | 1) => {
     if (direction === -1 && rangeStartOffset === 0) return;
 
     setRangeStartOffset((prev) => {
-      const next = direction === 1 ? prev + DATE_PAGE_SIZE : Math.max(0, prev - DATE_PAGE_SIZE);
+      const next = Math.max(0, prev + direction);
 
       const nextStart = new Date(today);
       nextStart.setDate(nextStart.getDate() + next);
-      setSelectedDateKey(formatDateKey(nextStart));
+      const nextStartKey = formatDateKey(nextStart);
+
+      const nextEnd = new Date(nextStart);
+      nextEnd.setDate(nextEnd.getDate() + (DATE_PAGE_SIZE - 1));
+      const nextEndKey = formatDateKey(nextEnd);
+
+      if (!selectedDateKey || selectedDateKey < nextStartKey || selectedDateKey > nextEndKey) {
+        setSelectedDateKey(nextStartKey);
+      }
+
       return next;
     });
-  };
-
-  const handleDateInputChange = (value: string) => {
-    if (!value) return;
-    const normalized = value < todayKey ? todayKey : value;
-    const diffMs = parseDateKey(normalized).getTime() - today.getTime();
-    const diffDays = Math.max(0, Math.floor(diffMs / 86400000));
-    const offset = Math.floor(diffDays / DATE_PAGE_SIZE) * DATE_PAGE_SIZE;
-    setRangeStartOffset(offset);
-    setSelectedDateKey(normalized);
   };
 
   const jumpToNextRelease = () => {
@@ -303,7 +283,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       <div className="calendar-head">
         <div>
           <h2 className="calendar-title">Calendario de Lancamentos</h2>
-          <p className="calendar-subtitle">Use os controles da fileira para carregar blocos de datas futuras e voltar ao bloco anterior.</p>
+          <p className="calendar-subtitle">Navegue dia por dia usando as setas da fileira de datas.</p>
         </div>
 
         <div className="calendar-tabs" role="tablist" aria-label="Modo do calendario">
@@ -325,28 +305,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       {!loading && activeTab === 'personal' && (
         <>
           <div className="st-panel calendar-strip-panel">
-            <div className="calendar-strip-top">
-              <div className="calendar-month-label">
-                <CalendarIcon size={15} />
-                <span>
-                  {selectedDate ? `${MONTH_FULL[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : 'Selecionar data'}
-                </span>
-              </div>
-
-              <div className="calendar-strip-actions">
-                <button type="button" className="calendar-nav-btn" onClick={() => setSelectedDateKey(todayKey)}>
-                  Hoje
-                </button>
-                <input type="date" className="calendar-date-input" value={selectedDateKey} onChange={(e) => handleDateInputChange(e.target.value)} />
-                <button type="button" className="calendar-nav-btn icon" onClick={() => navigateDay(-1)} aria-label="Dia anterior">
-                  <ChevronLeft size={16} />
-                </button>
-                <button type="button" className="calendar-nav-btn icon" onClick={() => navigateDay(1)} aria-label="Proximo dia">
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            </div>
-
             <div className="calendar-day-strip-shell">
               <div ref={dayStripRef} className="calendar-day-strip">
                 {visibleDateKeys.map((key) => {
@@ -522,16 +480,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           color: var(--text-secondary);
           font-size: 12px;
           font-weight: 700;
-          padding: 9px 10px;
+          padding: 9px 8px;
           min-height: 38px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           text-align: center;
           cursor: pointer;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          line-height: 1.15;
         }
 
         .calendar-tab.active {
@@ -543,61 +500,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         .calendar-strip-panel {
           padding: 14px;
           margin-bottom: 16px;
-        }
-
-        .calendar-strip-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 12px;
-          flex-wrap: wrap;
-        }
-
-        .calendar-month-label {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 700;
-          font-size: 13px;
-        }
-
-        .calendar-strip-actions {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-
-        .calendar-nav-btn {
-          border: 1px solid var(--border-color);
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.04);
-          color: var(--text-primary);
-          height: 32px;
-          padding: 0 12px;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .calendar-nav-btn.icon {
-          width: 32px;
-          padding: 0;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .calendar-date-input {
-          border: 1px solid var(--border-color);
-          border-radius: 8px;
-          background: rgba(255, 255, 255, 0.04);
-          color: var(--text-primary);
-          height: 32px;
-          padding: 0 8px;
-          font-size: 12px;
-          color-scheme: dark;
         }
 
         .calendar-day-strip {
