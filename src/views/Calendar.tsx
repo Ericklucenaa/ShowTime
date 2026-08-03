@@ -26,6 +26,14 @@ function formatDateLabel(d: Date) {
   return `${DAY_LABELS[d.getDay()]}, ${d.getDate()} de ${MONTH_LABELS[d.getMonth()]}`;
 }
 
+function formatEpisodeBadge(airDate: string) {
+  if (!airDate) return 'Sem horário';
+  if (!airDate.includes('T')) return 'Lança hoje';
+  const dt = new Date(airDate);
+  if (Number.isNaN(dt.getTime())) return 'Sem horário';
+  return dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const { watchedEpisodes, followedShows, lists, fetchListItems } = useTracking();
   const [personalCalendar, setPersonalCalendar] = useState<any[]>([]);
@@ -33,6 +41,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'next7'>('all');
+  const [selectedDateKey, setSelectedDateKey] = useState<string>('');
   const [reminders, setReminders] = useState<string[]>([]);
 
   useEffect(() => {
@@ -187,6 +196,25 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     return dateKey >= todayStr && dateKey <= next7Str;
   });
 
+  useEffect(() => {
+    if (filteredDates.length === 0) {
+      setSelectedDateKey('');
+      return;
+    }
+
+    if (selectedDateKey && filteredDates.includes(selectedDateKey)) return;
+
+    if (filteredDates.includes(todayStr)) {
+      setSelectedDateKey(todayStr);
+      return;
+    }
+
+    setSelectedDateKey(filteredDates[0]);
+  }, [selectedDateKey, filteredDates, todayStr]);
+
+  const selectedDateObj = selectedDateKey ? new Date(`${selectedDateKey}T12:00:00`) : null;
+  const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
+
   return (
     <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px' }}>
       <div style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '16px' }}>
@@ -243,84 +271,109 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             <button onClick={() => setActiveTab('global')} className="st-btn-primary" style={{ marginTop: '20px' }}>Ver Estreias Globais</button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {filteredDates.map(dateKey => {
-              const items = groupedPersonal[dateKey];
-              const dateObj = new Date(dateKey + 'T12:00:00');
-              const isPast = dateKey < todayStr;
-              const isToday = dateKey === todayStr;
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div className="st-panel" style={{ padding: '14px' }}>
+              <div className="calendar-day-strip" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                {filteredDates.map((dateKey) => {
+                  const dateObj = new Date(`${dateKey}T12:00:00`);
+                  const isActive = dateKey === selectedDateKey;
+                  const count = groupedPersonal[dateKey]?.length || 0;
+                  return (
+                    <button
+                      key={dateKey}
+                      onClick={() => setSelectedDateKey(dateKey)}
+                      className={isActive ? 'st-btn-primary' : 'st-btn-secondary'}
+                      style={{
+                        minWidth: '86px',
+                        borderRadius: '12px',
+                        padding: '8px 10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '2px',
+                        fontSize: '12px',
+                        background: isActive ? undefined : 'transparent',
+                        border: isActive ? 'none' : '1px solid var(--border-color)'
+                      }}
+                    >
+                      <span style={{ fontWeight: 700 }}>{DAY_LABELS[dateObj.getDay()]}</span>
+                      <span style={{ fontSize: '18px', fontWeight: 800, lineHeight: 1 }}>{dateObj.getDate()}</span>
+                      <span style={{ fontSize: '11px', opacity: 0.85 }}>{MONTH_LABELS[dateObj.getMonth()]}</span>
+                      <span style={{ fontSize: '10px', opacity: 0.8 }}>{count} ep</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-              return (
-                <div key={dateKey}>
-                  {/* Day Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                    <div style={{
-                      background: isToday ? 'var(--primary)' : isPast ? 'rgba(255,255,255,0.05)' : 'rgba(99,102,241,0.12)',
-                      color: isToday ? 'white' : isPast ? 'var(--text-muted)' : 'var(--primary)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '6px 14px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      display: 'flex', alignItems: 'center', gap: '6px'
-                    }}>
-                      <CalendarIcon size={13} />
-                      {formatDateLabel(dateObj)}
-                    </div>
-                    <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
-                  </div>
+            {selectedDateObj && (
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '32px', lineHeight: 1.1 }}>
+                {formatDateLabel(selectedDateObj)}
+              </h3>
+            )}
 
-                  {/* Episodes for this day */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {items.map(item => (
-                      <div
-                        key={item.id}
-                        className="st-card glow-hover calendar-card"
-                        onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}
-                        style={{
-                          display: 'flex', padding: '14px', gap: '14px', alignItems: 'center',
-                          cursor: 'pointer', opacity: isPast ? 0.7 : 1,
-                          borderLeft: isToday ? '3px solid var(--primary)' : isPast ? '3px solid rgba(255,255,255,0.05)' : '3px solid rgba(99,102,241,0.3)'
-                        }}
-                      >
-                        <img
-                          src={getImageUrl(item.showPoster)}
-                          alt={item.showTitle}
-                          style={{ width: '45px', height: '67px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                        />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <h4 style={{ fontSize: '15px', marginBottom: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.showTitle}
-                          </h4>
-                          <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 700, marginBottom: '2px' }}>
-                            T{item.seasonNumber.toString().padStart(2, '0')}E{item.episodeNumber.toString().padStart(2, '0')}
-                            {item.title ? ` - ${item.title}` : ''}
-                          </div>
-                          {item.overview && (
-                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                              {item.overview}
-                            </p>
-                          )}
-                        </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', flexShrink: 0 }}>
-                          {DAY_LABELS[dateObj.getDay()]}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
-                            }}
-                            className={reminders.includes(item.id) ? 'st-btn-primary' : 'st-btn-secondary'}
-                            style={{ display: 'block', marginTop: '8px', padding: '4px 8px', fontSize: '10px' }}
-                          >
-                            {reminders.includes(item.id) ? 'Lembrete ativo' : 'Lembrar'}
-                          </button>
-                        </div>
+            {selectedItems.length === 0 ? (
+              <div className="st-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                Sem lançamentos nesse dia.
+              </div>
+            ) : (
+              <div className="calendar-episode-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '14px' }}>
+                {selectedItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="st-card glow-hover calendar-episode-card"
+                    onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}
+                    style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                  >
+                    <div style={{ position: 'relative', width: '100%', height: '142px' }}>
+                      <img
+                        src={getImageUrl(item.showPoster)}
+                        alt={item.showTitle}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      <div style={{ position: 'absolute', left: '8px', bottom: '8px', background: 'rgba(0,0,0,0.65)', borderRadius: '999px', padding: '4px 8px', fontSize: '11px', fontWeight: 700 }}>
+                        {formatEpisodeBadge(item.airDate)}
                       </div>
-                    ))}
+                    </div>
+                    <div style={{ padding: '10px 12px' }}>
+                      <h4 style={{ fontSize: '17px', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.showTitle}</h4>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                        T{item.seasonNumber} • E{item.episodeNumber} • {item.title || 'Novo episódio'}
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
+                        }}
+                        className={reminders.includes(item.id) ? 'st-btn-primary' : 'st-btn-secondary'}
+                        style={{ width: '100%', fontSize: '12px', padding: '8px 10px' }}
+                      >
+                        {reminders.includes(item.id) ? 'Lembrete ativo' : 'Adicionar lembrete'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                ))}
+              </div>
+            )}
+
+            <style>{`
+              .calendar-day-strip::-webkit-scrollbar {
+                display: none;
+              }
+
+              @media (max-width: 760px) {
+                .calendar-episode-grid {
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+              }
+
+              @media (max-width: 520px) {
+                .calendar-episode-grid {
+                  grid-template-columns: 1fr !important;
+                }
+              }
+            `}</style>
           </div>
         )
       )}
