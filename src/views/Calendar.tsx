@@ -12,6 +12,21 @@ interface CalendarProps {
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
+function formatDateKeyFromDate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function normalizeAirDateToKey(airDate: string): string {
+  if (!airDate) return '';
+  if (!airDate.includes('T')) return airDate.slice(0, 10);
+  const dt = new Date(airDate);
+  if (Number.isNaN(dt.getTime())) return airDate.slice(0, 10);
+  return formatDateKeyFromDate(dt);
+}
+
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -183,34 +198,49 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   // Group calendar events by date string (YYYY-MM-DD)
   const groupedPersonal: Record<string, any[]> = {};
   for (const item of personalCalendar) {
-    const key = item.airDate.slice(0, 10);
+    const key = normalizeAirDateToKey(item.airDate);
+    if (!key) continue;
     if (!groupedPersonal[key]) groupedPersonal[key] = [];
     groupedPersonal[key].push(item);
   }
-  const sortedDates = Object.keys(groupedPersonal).sort();
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const next7Str = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const filteredDates = sortedDates.filter((dateKey) => {
-    if (dateFilter === 'all') return true;
-    if (dateFilter === 'today') return dateKey === todayStr;
-    return dateKey >= todayStr && dateKey <= next7Str;
-  });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = formatDateKeyFromDate(today);
+
+  const visibleDates: string[] = [];
+  if (dateFilter === 'today') {
+    visibleDates.push(todayStr);
+  } else if (dateFilter === 'next7') {
+    for (let i = 0; i < 7; i += 1) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      visibleDates.push(formatDateKeyFromDate(d));
+    }
+  } else {
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const cursor = new Date(monthStart);
+    while (cursor <= monthEnd) {
+      visibleDates.push(formatDateKeyFromDate(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
 
   useEffect(() => {
-    if (filteredDates.length === 0) {
+    if (visibleDates.length === 0) {
       setSelectedDateKey('');
       return;
     }
 
-    if (selectedDateKey && filteredDates.includes(selectedDateKey)) return;
+    if (selectedDateKey && visibleDates.includes(selectedDateKey)) return;
 
-    if (filteredDates.includes(todayStr)) {
+    if (visibleDates.includes(todayStr)) {
       setSelectedDateKey(todayStr);
       return;
     }
 
-    setSelectedDateKey(filteredDates[0]);
-  }, [selectedDateKey, filteredDates, todayStr]);
+    setSelectedDateKey(visibleDates[0]);
+  }, [selectedDateKey, visibleDates, todayStr]);
 
   const selectedDateObj = selectedDateKey ? new Date(`${selectedDateKey}T12:00:00`) : null;
   const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
@@ -274,7 +304,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             <div className="st-panel" style={{ padding: '14px' }}>
               <div className="calendar-day-strip" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {filteredDates.map((dateKey) => {
+                {visibleDates.map((dateKey) => {
                   const dateObj = new Date(`${dateKey}T12:00:00`);
                   const isActive = dateKey === selectedDateKey;
                   const count = groupedPersonal[dateKey]?.length || 0;
@@ -317,7 +347,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 Sem lançamentos nesse dia.
               </div>
             ) : (
-              <div className="calendar-episode-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '14px' }}>
+              <div className="calendar-episode-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '14px' }}>
                 {selectedItems.map((item) => (
                   <div
                     key={item.id}
@@ -325,7 +355,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                     onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}
                     style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
                   >
-                    <div style={{ position: 'relative', width: '100%', height: '142px' }}>
+                    <div className="calendar-episode-image" style={{ position: 'relative', width: '100%', height: '142px' }}>
                       <img
                         src={getImageUrl(item.showPoster)}
                         alt={item.showTitle}
@@ -366,11 +396,19 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 .calendar-episode-grid {
                   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
                 }
+
+                .calendar-episode-image {
+                  height: 118px !important;
+                }
               }
 
               @media (max-width: 520px) {
                 .calendar-episode-grid {
-                  grid-template-columns: 1fr !important;
+                  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                }
+
+                .calendar-episode-image {
+                  height: 102px !important;
                 }
               }
             `}</style>
