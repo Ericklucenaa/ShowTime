@@ -462,17 +462,20 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-tabs {
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
           gap: 6px;
           width: min(100%, 460px);
+          max-width: 100%;
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid var(--border-color);
           border-radius: 12px;
           padding: 5px;
+          overflow: hidden;
         }
 
         .calendar-tab {
-          flex: 1;
+          width: 100%;
           min-width: 0;
           border: 1px solid transparent;
           border-radius: 8px;
@@ -487,8 +490,10 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           justify-content: center;
           text-align: center;
           cursor: pointer;
-          white-space: normal;
-          line-height: 1.15;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1;
         }
 
         .calendar-tab.active {
