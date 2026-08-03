@@ -293,6 +293,7 @@ const AppContent: React.FC = () => {
         </div>
 
         {/* Mobile Bottom Navigation Bar */}
+        <div className="mobile-nav-hint" aria-hidden="true">Arraste para o lado para ver mais abas →</div>
         <nav className="bottom-nav">
           {[
             { id: 'dashboard', label: 'Painel', icon: <LayoutGrid size={18} /> },

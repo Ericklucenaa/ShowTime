@@ -313,6 +313,29 @@ button, input, select, textarea {
   z-index: 9999;
   padding: 10px 10px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: none;
+  gap: 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.bottom-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.mobile-nav-hint {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  z-index: 9998;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 .grid-media {
@@ -330,13 +353,12 @@ button, input, select, textarea {
 @media (max-width: 768px) {
   .desktop-sidebar { display: none; }
   .bottom-nav { 
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
+    display: flex;
     align-items: stretch;
   }
+  .mobile-nav-hint { display: block; }
   .app-container {
-    padding-bottom: 140px; /* Space for 2-row bottom nav */
+    padding-bottom: 96px; /* Space for 1-row bottom nav */
   }
 
   .viewport {
@@ -376,6 +398,9 @@ button, input, select, textarea {
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: rgba(255, 255, 255, 0.02);
+  flex: 0 0 auto;
+  min-width: 86px;
+  scroll-snap-align: start;
 }
 .nav-item.active {
   color: var(--text-primary);
@@ -393,12 +418,13 @@ button, input, select, textarea {
     display: none;
   }
 
-  .bottom-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .app-container {
+    padding-bottom: 94px;
   }
 
-  .app-container {
-    padding-bottom: 192px;
+  .mobile-nav-hint {
+    font-size: 10px;
+    bottom: calc(66px + env(safe-area-inset-bottom));
   }
 }
 
