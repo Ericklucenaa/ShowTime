@@ -181,7 +181,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     return () => {
       disposed = true;
     };
-  }, [followedShows.join('|'), watchedEpisodes.length, lists.length, today, fetchListItems]);
+  }, [followedShows.join('|'), watchedEpisodes.length, lists.length, today]);
 
   const groupedByDate = useMemo(() => {
     const map: Record<string, PersonalEvent[]> = {};

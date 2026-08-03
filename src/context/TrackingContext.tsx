@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { useAuth } from './AuthContext.js';
 import { fetchSeasonEpisodes } from '../services/api.js';
@@ -103,6 +103,10 @@ function isEpisodeReleased(airDateValue?: string): boolean {
   return releaseDay <= today;
 }
 
+const REFRESH_MIN_INTERVAL_MS = 8000;
+const QUOTA_COOLDOWN_MS = 90000;
+const LIST_ITEMS_CACHE_TTL_MS = 60000;
+
 export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [watchedEpisodes, setWatchedEpisodes] = useState<WatchEpisodeEvent[]>([]);
@@ -117,6 +121,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [lastWatchedAt, setLastWatchedAt] = useState<string | null>(null);
   const [totalWatchEvents, setTotalWatchEvents] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
+  const lastRefreshAtRef = useRef<number>(0);
+  const quotaCooldownUntilRef = useRef<number>(0);
+  const quotaWarnedAtRef = useRef<number>(0);
+  const listItemsCacheRef = useRef<Record<string, { at: number; data: any }>>({});
 
   const calculateEngagementStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
     const events = [...eps, ...movs].sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
@@ -195,77 +204,109 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setTotalGenresCount(total);
   };
 
-  const refreshData = async () => {
+  const refreshData = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
+
+    const now = Date.now();
+    if (refreshInFlightRef.current) {
+      await refreshInFlightRef.current;
+      return;
+    }
+
+    if (now < quotaCooldownUntilRef.current) {
+      if (now - quotaWarnedAtRef.current > 20000) {
+        quotaWarnedAtRef.current = now;
+        pushToast('info', 'Limite temporario do Firestore atingido. Tentando novamente em instantes.');
+      }
+      return;
+    }
+
+    if (now - lastRefreshAtRef.current < REFRESH_MIN_INTERVAL_MS) {
+      return;
+    }
+
+    const runRefresh = async () => {
+      setLoading(true);
     
-    if (isFirebaseEnabled && db) {
-      try {
-        // 1. Fetch watched episodes
-        const qEp = query(collection(db, 'watch_episodes'), where('userId', '==', user.id));
-        const snapEp = await getDocs(qEp);
-        const eps = snapEp.docs.map(d => d.data() as WatchEpisodeEvent);
+      if (isFirebaseEnabled && db) {
+        try {
+          // 1. Fetch watched episodes
+          const qEp = query(collection(db, 'watch_episodes'), where('userId', '==', user.id));
+          const snapEp = await getDocs(qEp);
+          const eps = snapEp.docs.map(d => d.data() as WatchEpisodeEvent);
+          setWatchedEpisodes(eps);
+
+          // 2. Fetch watched movies
+          const qMov = query(collection(db, 'watch_movies'), where('userId', '==', user.id));
+          const snapMov = await getDocs(qMov);
+          const movs = snapMov.docs.map(d => d.data() as WatchMovieEvent);
+          setWatchedMovies(movs);
+
+          // 3. Fetch custom lists (avoid N+1 reads for list items count)
+          const qLists = query(collection(db, 'custom_lists'), where('userId', '==', user.id));
+          const snapLists = await getDocs(qLists);
+          const loadedLists = snapLists.docs.map((d) => {
+            const listData = d.data();
+            return {
+              id: d.id,
+              name: listData.name,
+              description: listData.description || '',
+              type: listData.type || 'mixed',
+              itemCount: Number.isFinite(listData.itemCount) ? listData.itemCount : 0
+            } as CustomList;
+          });
+          setLists(loadedLists);
+
+          // 4. Fetch followed shows
+          const qFollow = query(collection(db, 'followed_shows'), where('userId', '==', user.id));
+          const snapFollow = await getDocs(qFollow);
+          const follows = snapFollow.docs.map(d => d.data().showId as string);
+          setFollowedShows(follows);
+
+          // 5. Fetch followed profiles
+          const qFollowUsers = query(collection(db, 'profile_follows'), where('followerId', '==', user.id));
+          const snapFollowUsers = await getDocs(qFollowUsers);
+          const followsUsers = snapFollowUsers.docs.map(d => d.data().followedId as string);
+          setFollowedUsers(followsUsers);
+
+          // 6. Calculate genre stats
+          calculateGenreStats(eps, movs);
+          calculateEngagementStats(eps, movs);
+          lastRefreshAtRef.current = Date.now();
+        } catch (e: any) {
+          console.error('Error fetching Firestore tracking data:', e);
+          const code = String(e?.code || '').toLowerCase();
+          const msg = String(e?.message || '').toLowerCase();
+          if (code.includes('resource-exhausted') || msg.includes('quota exceeded')) {
+            quotaCooldownUntilRef.current = Date.now() + QUOTA_COOLDOWN_MS;
+          }
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Offline fallback
+        const eps = getLocalData(`showtime_watch_episodes_${user.id}`, []);
+        const movs = getLocalData(`showtime_watch_movies_${user.id}`, []);
+        const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
+        const follows = getLocalData(`showtime_followed_shows_${user.id}`, []);
+        const followsUsers = getLocalData(`showtime_followed_users_${user.id}`, []);
         setWatchedEpisodes(eps);
-
-        // 2. Fetch watched movies
-        const qMov = query(collection(db, 'watch_movies'), where('userId', '==', user.id));
-        const snapMov = await getDocs(qMov);
-        const movs = snapMov.docs.map(d => d.data() as WatchMovieEvent);
         setWatchedMovies(movs);
-
-        // 3. Fetch custom lists
-        const qLists = query(collection(db, 'custom_lists'), where('userId', '==', user.id));
-        const snapLists = await getDocs(qLists);
-        const loadedLists = await Promise.all(snapLists.docs.map(async d => {
-          const listData = d.data();
-          const snapItems = await getDocs(collection(db, 'custom_lists', d.id, 'items'));
-          return {
-            id: d.id,
-            name: listData.name,
-            description: listData.description || '',
-            type: listData.type || 'mixed',
-            itemCount: snapItems.size
-          } as CustomList;
-        }));
-        setLists(loadedLists);
-
-        // 4. Fetch followed shows
-        const qFollow = query(collection(db, 'followed_shows'), where('userId', '==', user.id));
-        const snapFollow = await getDocs(qFollow);
-        const follows = snapFollow.docs.map(d => d.data().showId as string);
+        setLists(customLists);
         setFollowedShows(follows);
-
-        // 5. Fetch followed profiles
-        const qFollowUsers = query(collection(db, 'profile_follows'), where('followerId', '==', user.id));
-        const snapFollowUsers = await getDocs(qFollowUsers);
-        const followsUsers = snapFollowUsers.docs.map(d => d.data().followedId as string);
         setFollowedUsers(followsUsers);
-
-        // 6. Calculate genre stats
         calculateGenreStats(eps, movs);
         calculateEngagementStats(eps, movs);
-      } catch (e) {
-        console.error('Error fetching Firestore tracking data:', e);
-      } finally {
+        lastRefreshAtRef.current = Date.now();
         setLoading(false);
       }
-    } else {
-      // Offline fallback
-      const eps = getLocalData(`showtime_watch_episodes_${user.id}`, []);
-      const movs = getLocalData(`showtime_watch_movies_${user.id}`, []);
-      const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
-      const follows = getLocalData(`showtime_followed_shows_${user.id}`, []);
-      const followsUsers = getLocalData(`showtime_followed_users_${user.id}`, []);
-      setWatchedEpisodes(eps);
-      setWatchedMovies(movs);
-      setLists(customLists);
-      setFollowedShows(follows);
-      setFollowedUsers(followsUsers);
-      calculateGenreStats(eps, movs);
-      calculateEngagementStats(eps, movs);
-      setLoading(false);
-    }
-  };
+    };
+
+    refreshInFlightRef.current = runRefresh().finally(() => {
+      refreshInFlightRef.current = null;
+    });
+    await refreshInFlightRef.current;
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -542,8 +583,10 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           name,
           description,
           type,
+          itemCount: 0,
           createdAt: new Date().toISOString()
         });
+        listItemsCacheRef.current = {};
         await refreshData();
         trackEvent('list_created', { listId, type });
         pushToast('success', 'Lista criada com sucesso.');
@@ -582,6 +625,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           batch.delete(doc(db, 'custom_lists', listId, 'items', d.id));
         });
         await batch.commit();
+        delete listItemsCacheRef.current[listId];
         await refreshData();
         trackEvent('list_deleted', { listId });
         pushToast('success', 'Lista removida.');
@@ -624,7 +668,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             rating: mediaMetadata?.rating || mediaMetadata?.vote_average || 0
           }
         });
-        await refreshData();
+
+        const current = lists.find((l) => l.id === listId)?.itemCount || 0;
+        const nextCount = current + 1;
+        await setDoc(doc(db, 'custom_lists', listId), { itemCount: nextCount }, { merge: true });
+        setLists((prev) => prev.map((l) => (l.id === listId ? { ...l, itemCount: nextCount } : l)));
+        delete listItemsCacheRef.current[listId];
         trackEvent('list_item_added', { listId, mediaType, mediaId });
         return true;
       } catch (e) {
@@ -650,6 +699,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       });
       setLocalData(`showtime_list_items_${user.id}_${listId}`, items);
+      delete listItemsCacheRef.current[listId];
 
       // Update itemCount in lists state
       const customLists = [...lists];
@@ -671,7 +721,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       try {
         const itemRef = doc(db, 'custom_lists', listId, 'items', mediaId);
         await deleteDoc(itemRef);
-        await refreshData();
+
+        const current = lists.find((l) => l.id === listId)?.itemCount || 0;
+        const nextCount = Math.max(0, current - 1);
+        await setDoc(doc(db, 'custom_lists', listId), { itemCount: nextCount }, { merge: true });
+        setLists((prev) => prev.map((l) => (l.id === listId ? { ...l, itemCount: nextCount } : l)));
+        delete listItemsCacheRef.current[listId];
         trackEvent('list_item_removed', { listId, mediaId });
         return true;
       } catch (e) {
@@ -684,6 +739,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const items = getLocalData(`showtime_list_items_${user.id}_${listId}`, []);
       const filtered = items.filter((i: any) => i.mediaId !== mediaId);
       setLocalData(`showtime_list_items_${user.id}_${listId}`, filtered);
+      delete listItemsCacheRef.current[listId];
 
       const customLists = [...lists];
       const lIndex = customLists.findIndex(l => l.id === listId);
@@ -699,6 +755,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const fetchListItems = async (listId: string): Promise<any> => {
     if (!user) return null;
+
+    const cacheEntry = listItemsCacheRef.current[listId];
+    if (cacheEntry && Date.now() - cacheEntry.at < LIST_ITEMS_CACHE_TTL_MS) {
+      return cacheEntry.data;
+    }
     
     if (isFirebaseEnabled && db) {
       try {
@@ -708,7 +769,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const listData = listDoc.data();
         const snapItems = await getDocs(collection(db, 'custom_lists', listId, 'items'));
         const items = snapItems.docs.map(d => d.data());
-        return {
+        const payload = {
           list: {
             id: listId,
             name: listData.name,
@@ -717,6 +778,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           },
           items
         };
+        listItemsCacheRef.current[listId] = { at: Date.now(), data: payload };
+        return payload;
       } catch (e) {
         console.error('Error fetching list items from Firestore:', e);
         return null;
@@ -728,10 +791,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!list) return null;
       
       const items = getLocalData(`showtime_list_items_${user.id}_${listId}`, []);
-      return {
+      const payload = {
         list,
         items
       };
+      listItemsCacheRef.current[listId] = { at: Date.now(), data: payload };
+      return payload;
     }
   };
 
