@@ -466,6 +466,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         .calendar-subtitle {
           color: var(--text-secondary);
           font-size: 14px;
+          line-height: 1.35;
+          word-break: break-word;
         }
 
         .calendar-tabs {
@@ -849,6 +851,17 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           .calendar-range-icon {
             width: 32px;
             height: 32px;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .calendar-tabs {
+            grid-template-columns: 1fr;
+          }
+
+          .calendar-tab {
+            min-height: 40px;
+            font-size: 12px;
           }
         }
 
