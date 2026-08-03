@@ -79,6 +79,22 @@
       "passwordHash": "$2a$10$D.qjtADZ2eDrbAs6Ox.XXO/342JrfozuyalqXkr.4ie5Rq3FqstlW",
       "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdm308k",
       "createdAt": "2026-08-03T19:17:47.758Z"
+    },
+    {
+      "id": "u_d405d2c20c7b4d0f",
+      "username": "testsignup_msdn5dlu",
+      "email": "signup_msdn5dlu@test.com",
+      "passwordHash": "$2a$10$jzpaxpCAWK3B5LMq87ezb.O07Tk94CXiR5eGV2BGvjfFCK.ljWzdq",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdn5dlu",
+      "createdAt": "2026-08-03T19:47:38.036Z"
+    },
+    {
+      "id": "u_8eb2e2ace34d4b9b",
+      "username": "testsignup_msdn63sp",
+      "email": "signup_msdn63sp@test.com",
+      "passwordHash": "$2a$10$57YBdR4Qf.6Pc2Ux0trVDuc6SmybMHXAmJ.QRKDB6j76NckdMmPOO",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdn63sp",
+      "createdAt": "2026-08-03T19:48:11.958Z"
     }
   ],
   "shows": [
@@ -2884,6 +2900,20 @@
       "userId": "u_927903d7d2144f45",
       "movieId": "m1",
       "watchedAt": "2026-08-03T19:17:47.956Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_c790d9a3e33b4a2a",
+      "userId": "u_d405d2c20c7b4d0f",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:47:38.257Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_bd4a695917264483",
+      "userId": "u_8eb2e2ace34d4b9b",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:48:12.163Z",
       "isFavorite": false
     }
   ],

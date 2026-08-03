@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchTVMazeSchedule, getImageUrl, fetchMediaDetails, fetchSeasonEpisodes } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { Calendar as CalendarIcon, Clock, Tv } from 'lucide-react';
+import { pushToast } from '../services/toast.js';
+import { trackEvent } from '../services/telemetry.js';
 
 interface CalendarProps {
   onViewMedia: (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => void;
@@ -30,6 +32,30 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [globalCalendar, setGlobalCalendar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'next7'>('all');
+  const [reminders, setReminders] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('showtime_calendar_reminders');
+      if (raw) setReminders(JSON.parse(raw));
+    } catch {
+      setReminders([]);
+    }
+  }, []);
+
+  const persistReminders = (next: string[]) => {
+    setReminders(next);
+    localStorage.setItem('showtime_calendar_reminders', JSON.stringify(next));
+  };
+
+  const toggleReminder = (id: string, label: string) => {
+    const exists = reminders.includes(id);
+    const next = exists ? reminders.filter((x) => x !== id) : [...reminders, id];
+    persistReminders(next);
+    pushToast('info', exists ? 'Lembrete removido.' : `Lembrete salvo: ${label}`);
+    trackEvent('calendar_reminder_toggled', { id, enabled: !exists });
+  };
 
   const followedShowsRef = useRef(followedShows);
   const watchedEpisodesRef = useRef(watchedEpisodes);
@@ -154,6 +180,12 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   }
   const sortedDates = Object.keys(groupedPersonal).sort();
   const todayStr = new Date().toISOString().slice(0, 10);
+  const next7Str = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const filteredDates = sortedDates.filter((dateKey) => {
+    if (dateFilter === 'all') return true;
+    if (dateFilter === 'today') return dateKey === todayStr;
+    return dateKey >= todayStr && dateKey <= next7Str;
+  });
 
   return (
     <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px' }}>
@@ -179,6 +211,20 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             Estreias Globais
           </button>
         </div>
+
+        {activeTab === 'personal' && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button onClick={() => setDateFilter('all')} className={dateFilter === 'all' ? 'st-btn-primary' : 'st-btn-secondary'} style={{ padding: '6px 12px', fontSize: '12px' }}>
+              Tudo
+            </button>
+            <button onClick={() => setDateFilter('today')} className={dateFilter === 'today' ? 'st-btn-primary' : 'st-btn-secondary'} style={{ padding: '6px 12px', fontSize: '12px' }}>
+              Hoje
+            </button>
+            <button onClick={() => setDateFilter('next7')} className={dateFilter === 'next7' ? 'st-btn-primary' : 'st-btn-secondary'} style={{ padding: '6px 12px', fontSize: '12px' }}>
+              Próx. 7 dias
+            </button>
+          </div>
+        )}
       </div>
 
       {loading && (
@@ -198,7 +244,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-            {sortedDates.map(dateKey => {
+            {filteredDates.map(dateKey => {
               const items = groupedPersonal[dateKey];
               const dateObj = new Date(dateKey + 'T12:00:00');
               const isPast = dateKey < todayStr;
@@ -258,6 +304,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', flexShrink: 0 }}>
                           {DAY_LABELS[dateObj.getDay()]}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
+                            }}
+                            className={reminders.includes(item.id) ? 'st-btn-primary' : 'st-btn-secondary'}
+                            style={{ display: 'block', marginTop: '8px', padding: '4px 8px', fontSize: '10px' }}
+                          >
+                            {reminders.includes(item.id) ? 'Lembrete ativo' : 'Lembrar'}
+                          </button>
                         </div>
                       </div>
                     ))}

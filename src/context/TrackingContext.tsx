@@ -2,6 +2,8 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { useAuth } from './AuthContext.js';
 import { fetchSeasonEpisodes } from '../services/api.js';
+import { pushToast } from '../services/toast.js';
+import { trackEvent } from '../services/telemetry.js';
 import { 
   collection, 
   doc, 
@@ -52,6 +54,10 @@ interface TrackingContextType {
   loading: boolean;
   genreCounts: Record<string, number>;
   totalGenresCount: number;
+  favoriteGenres: string[];
+  streakDays: number;
+  lastWatchedAt: string | null;
+  totalWatchEvents: number;
   refreshData: () => Promise<void>;
   toggleWatchEpisode: (episodeId: string, showMetadata?: any, episodeMetadata?: any) => Promise<boolean>;
   toggleWatchMovie: (movieId: string, movieMetadata?: any) => Promise<boolean>;
@@ -93,7 +99,57 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
   const [genreCounts, setGenreCounts] = useState<Record<string, number>>({});
   const [totalGenresCount, setTotalGenresCount] = useState<number>(0);
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  const [streakDays, setStreakDays] = useState<number>(0);
+  const [lastWatchedAt, setLastWatchedAt] = useState<string | null>(null);
+  const [totalWatchEvents, setTotalWatchEvents] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const calculateEngagementStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
+    const events = [...eps, ...movs].sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
+    setTotalWatchEvents(events.length);
+    setLastWatchedAt(events.length > 0 ? events[0].watchedAt : null);
+
+    if (events.length === 0) {
+      setStreakDays(0);
+      setFavoriteGenres([]);
+      return;
+    }
+
+    const daySet = new Set<string>();
+    events.forEach((ev) => {
+      daySet.add(new Date(ev.watchedAt).toISOString().slice(0, 10));
+    });
+
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    for (;;) {
+      const dayKey = cursor.toISOString().slice(0, 10);
+      if (!daySet.has(dayKey)) break;
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    setStreakDays(streak);
+
+    const genreCounter: Record<string, number> = {};
+    eps.forEach((ev) => {
+      (ev.genres || []).forEach((g) => {
+        genreCounter[g] = (genreCounter[g] || 0) + 1;
+      });
+    });
+    movs.forEach((ev) => {
+      (ev.genres || []).forEach((g) => {
+        genreCounter[g] = (genreCounter[g] || 0) + 1;
+      });
+    });
+
+    const topGenres = Object.entries(genreCounter)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([genre]) => genre);
+    setFavoriteGenres(topGenres);
+  };
 
   // Compute genre statistics on the client-side
   const calculateGenreStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
@@ -174,6 +230,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         // 6. Calculate genre stats
         calculateGenreStats(eps, movs);
+        calculateEngagementStats(eps, movs);
       } catch (e) {
         console.error('Error fetching Firestore tracking data:', e);
       } finally {
@@ -192,6 +249,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setFollowedShows(follows);
       setFollowedUsers(followsUsers);
       calculateGenreStats(eps, movs);
+      calculateEngagementStats(eps, movs);
       setLoading(false);
     }
   };
@@ -207,6 +265,10 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setFollowedUsers([]);
       setGenreCounts({});
       setTotalGenresCount(0);
+      setFavoriteGenres([]);
+      setStreakDays(0);
+      setLastWatchedAt(null);
+      setTotalWatchEvents(0);
     }
   }, [user]);
 
@@ -235,6 +297,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     setWatchedEpisodes(newEps);
     calculateGenreStats(newEps, watchedMovies);
+    calculateEngagementStats(newEps, watchedMovies);
+    trackEvent('watch_episode_toggled', { episodeId, watched: !isWatched, mediaType: 'show' });
 
     if (isFirebaseEnabled && db) {
       try {
@@ -260,6 +324,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Rollback
         setWatchedEpisodes(watchedEpisodes);
         calculateGenreStats(watchedEpisodes, watchedMovies);
+        calculateEngagementStats(watchedEpisodes, watchedMovies);
+        pushToast('error', 'Não foi possível atualizar episódio agora.');
         return false;
       }
     } else {
@@ -361,6 +427,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
     setWatchedMovies(newMovs);
     calculateGenreStats(watchedEpisodes, newMovs);
+    calculateEngagementStats(watchedEpisodes, newMovs);
+    trackEvent('watch_movie_toggled', { movieId, watched: !isWatched, mediaType: 'movie' });
 
     if (isFirebaseEnabled && db) {
       try {
@@ -385,6 +453,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Rollback
         setWatchedMovies(watchedMovies);
         calculateGenreStats(watchedEpisodes, watchedMovies);
+        calculateEngagementStats(watchedEpisodes, watchedMovies);
+        pushToast('error', 'Falha ao atualizar filme assistido.');
         return false;
       }
     } else {
@@ -418,6 +488,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
     }
     setWatchedMovies(newMovs);
+    trackEvent('movie_favorite_toggled', { movieId, favorite: newFavoriteStatus });
 
     if (isFirebaseEnabled && db) {
       try {
@@ -441,6 +512,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Error toggling Firestore favorite movie:', e);
         // Rollback
         setWatchedMovies(watchedMovies);
+        pushToast('error', 'Falha ao atualizar favorito.');
         return false;
       }
     } else {
@@ -467,9 +539,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           createdAt: new Date().toISOString()
         });
         await refreshData();
+        trackEvent('list_created', { listId, type });
+        pushToast('success', 'Lista criada com sucesso.');
       } catch (e: any) {
         console.error('Error creating custom list in Firestore:', e);
-        alert(`Erro ao criar a lista no Firebase!\nCódigo do erro: ${e.code || e.message}\n\nIsso geralmente acontece porque as Regras de Segurança (Security Rules) do seu Firestore Database no Console do Firebase estão configuradas no modo bloqueado por padrão.\n\nPara corrigir:\n1. Vá no Console do Firebase -> Firestore Database -> aba "Rules" (Regras).\n2. Altere a regra principal para permitir leitura e escrita, por exemplo:\n   allow read, write: if request.auth != null;\n3. Clique em "Publicar" (Publish).`);
+        pushToast('error', 'Não foi possível criar a lista no Firebase.');
       }
     } else {
       // Offline fallback
@@ -483,6 +557,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       });
       setLocalData(`showtime_custom_lists_${user.id}`, customLists);
       setLists(customLists);
+      trackEvent('list_created_offline', { listId, type });
+      pushToast('success', 'Lista criada localmente.');
     }
   };
 
@@ -501,8 +577,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         await batch.commit();
         await refreshData();
+        trackEvent('list_deleted', { listId });
+        pushToast('success', 'Lista removida.');
       } catch (e) {
         console.error('Error deleting list from Firestore:', e);
+        pushToast('error', 'Erro ao remover lista.');
       }
     } else {
       // Offline fallback
@@ -511,6 +590,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       localStorage.removeItem(`showtime_list_items_${user.id}_${listId}`);
       setLocalData(`showtime_custom_lists_${user.id}`, updated);
       setLists(updated);
+      trackEvent('list_deleted_offline', { listId });
+      pushToast('success', 'Lista removida localmente.');
     }
   };
 
@@ -538,9 +619,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         });
         await refreshData();
+        trackEvent('list_item_added', { listId, mediaType, mediaId });
         return true;
       } catch (e) {
         console.error('Error adding list item to Firestore:', e);
+        pushToast('error', 'Erro ao adicionar item na lista.');
         return false;
       }
     } else {
@@ -570,6 +653,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLocalData(`showtime_custom_lists_${user.id}`, customLists);
         setLists(customLists);
       }
+      trackEvent('list_item_added_offline', { listId, mediaType, mediaId });
       return true;
     }
   };
@@ -582,9 +666,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const itemRef = doc(db, 'custom_lists', listId, 'items', mediaId);
         await deleteDoc(itemRef);
         await refreshData();
+        trackEvent('list_item_removed', { listId, mediaId });
         return true;
       } catch (e) {
         console.error('Error removing list item from Firestore:', e);
+        pushToast('error', 'Erro ao remover item da lista.');
         return false;
       }
     } else {
@@ -600,6 +686,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLocalData(`showtime_custom_lists_${user.id}`, customLists);
         setLists(customLists);
       }
+      trackEvent('list_item_removed_offline', { listId, mediaId });
       return true;
     }
   };
@@ -671,17 +758,19 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             posterPath: showMetadata?.posterPath || showMetadata?.poster_path || ''
           });
         }
+        trackEvent('show_follow_toggled', { showId, followed: !isFollowed });
         return !isFollowed;
       } catch (e: any) {
         console.error('Error toggling follow show in Firestore:', e);
         // Rollback
         setFollowedShows(followedShows);
-        alert('Erro ao seguir série. Verifique se o Firestore está configurado corretamente.');
+        pushToast('error', 'Erro ao seguir série.');
         return false;
       }
     } else {
       // Offline fallback
       setLocalData(`showtime_followed_shows_${user.id}`, newFollows);
+      trackEvent('show_follow_toggled_offline', { showId, followed: !isFollowed });
       return !isFollowed;
     }
   };
@@ -738,6 +827,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         await batch.commit();
         await refreshData();
+        trackEvent('show_mark_all_watched', { showId: showMetadata.id, totalEpisodes: episodesToMark.length });
+        pushToast('success', `${episodesToMark.length} episódios marcados como assistidos.`);
       } else {
         const eps = [...watchedEpisodes];
         episodesToMark.forEach(ep => {
@@ -758,10 +849,13 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setLocalData(`showtime_watch_episodes_${user.id}`, eps);
         setWatchedEpisodes(eps);
         calculateGenreStats(eps, watchedMovies);
+        calculateEngagementStats(eps, watchedMovies);
+        trackEvent('show_mark_all_watched_offline', { showId: showMetadata.id, totalEpisodes: episodesToMark.length });
+        pushToast('success', `${episodesToMark.length} episódios marcados no modo local.`);
       }
     } catch (e: any) {
       console.error('Error marking all episodes as watched:', e);
-      alert('Erro ao marcar todos os episódios como assistidos. Verifique se o Firestore está configurado corretamente.');
+      pushToast('error', 'Erro ao marcar episódios como assistidos.');
     } finally {
       setLoading(false);
     }
@@ -827,8 +921,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         await batch.commit();
         await refreshData();
+        trackEvent('bulk_import_completed', { importedEpisodes: epCount, importedMovies: movCount, mode: 'firebase' });
+        pushToast('success', 'Importação concluída com sucesso.');
       } catch (e) {
         console.error('Error importing data to Firestore:', e);
+        pushToast('error', 'Erro ao importar dados para Firebase.');
       } finally {
         setLoading(false);
       }
@@ -883,6 +980,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setWatchedEpisodes(eps);
       setWatchedMovies(movs);
       calculateGenreStats(eps, movs);
+      calculateEngagementStats(eps, movs);
+      trackEvent('bulk_import_completed', { importedEpisodes: epCount, importedMovies: movCount, mode: 'offline' });
+      pushToast('success', 'Importação local concluída.');
       setLoading(false);
     }
 
@@ -910,14 +1010,17 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             followedAt: new Date().toISOString()
           });
         }
+        trackEvent('user_follow_toggled', { targetUserId, followed: !isFollowed });
         return !isFollowed;
       } catch (e) {
         console.error('Error toggling user follow in Firestore:', e);
         setFollowedUsers(followedUsers);
+        pushToast('error', 'Erro ao seguir usuário.');
         return false;
       }
     } else {
       setLocalData(`showtime_followed_users_${user.id}`, newFollows);
+      trackEvent('user_follow_toggled_offline', { targetUserId, followed: !isFollowed });
       return !isFollowed;
     }
   };
@@ -931,6 +1034,10 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       followedUsers,
       genreCounts,
       totalGenresCount,
+      favoriteGenres,
+      streakDays,
+      lastWatchedAt,
+      totalWatchEvents,
       loading,
       refreshData,
       toggleWatchEpisode,

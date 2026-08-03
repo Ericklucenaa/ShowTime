@@ -224,6 +224,20 @@ export const searchMedia = async (query: string): Promise<any[]> => {
   return [...matchedShows, ...matchedMovies];
 };
 
+export const rankMediaResults = (results: any[], preferredGenres: string[] = []): any[] => {
+  const genreSet = new Set(preferredGenres.map((g) => g.toLowerCase()));
+
+  return [...results]
+    .map((item) => {
+      const itemGenres = (item.genres || []).map((g: string) => g.toLowerCase());
+      const affinity = itemGenres.reduce((acc: number, g: string) => acc + (genreSet.has(g) ? 1 : 0), 0);
+      const recency = item.releaseDate || item.firstAirDate ? new Date(item.releaseDate || item.firstAirDate).getFullYear() : 0;
+      const score = (item.rating || 0) * 1.8 + affinity * 2.4 + recency * 0.01;
+      return { ...item, _rankScore: score };
+    })
+    .sort((a, b) => b._rankScore - a._rankScore);
+};
+
 // Fetch Full Details with Season Episodes
 export const fetchMediaDetails = async (id: string, mediaType: 'show' | 'movie'): Promise<any> => {
   const key = getTmdbKey();
@@ -390,6 +404,40 @@ export const fetchTVMazeSchedule = async (): Promise<any[]> => {
     }));
   } catch (e) {
     console.warn("TVMaze schedule call failed, returning empty mock calendar", e);
+    return [];
+  }
+};
+
+export const fetchWatchProviders = async (mediaType: 'show' | 'movie', tmdbId: number): Promise<any[]> => {
+  const key = getTmdbKey();
+  if (!key || !tmdbId) return [];
+
+  try {
+    const endpoint = mediaType === 'show' ? 'tv' : 'movie';
+    const res = await axios.get(`https://api.themoviedb.org/3/${endpoint}/${tmdbId}/watch/providers`, {
+      params: { api_key: key }
+    });
+
+    const region = 'BR';
+    const entry = res.data?.results?.[region];
+    if (!entry) return [];
+
+    const normalized = [
+      ...(entry.flatrate || []).map((p: any) => ({ ...p, accessType: 'Assinatura' })),
+      ...(entry.rent || []).map((p: any) => ({ ...p, accessType: 'Aluguel' })),
+      ...(entry.buy || []).map((p: any) => ({ ...p, accessType: 'Compra' }))
+    ];
+
+    const dedup = new Map<number, any>();
+    normalized.forEach((provider: any) => {
+      if (!dedup.has(provider.provider_id)) {
+        dedup.set(provider.provider_id, provider);
+      }
+    });
+
+    return Array.from(dedup.values());
+  } catch (e) {
+    console.warn('Failed to fetch watch providers:', e);
     return [];
   }
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes } from '../services/api.js';
+import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes, fetchWatchProviders } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
@@ -16,6 +16,8 @@ import {
   limit
 } from 'firebase/firestore/lite';
 import { ChevronLeft, CheckCircle, Heart, Calendar, Clock, Plus, Send, Bell } from 'lucide-react';
+import { pushToast } from '../services/toast.js';
+import { trackEvent } from '../services/telemetry.js';
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
@@ -65,6 +67,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   const [activeChatTab, setActiveChatTab] = useState<'discussion' | 'livechat'>('discussion');
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [newChatMessageText, setNewChatMessageText] = useState('');
+  const [watchProviders, setWatchProviders] = useState<any[]>([]);
   
   const handleTabChange = (tab: 'episodes' | 'community') => {
     setActiveSubTab(tab);
@@ -90,6 +93,12 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         return;
       }
       setMedia(data);
+      if (data.tmdbId) {
+        const providers = await fetchWatchProviders(mediaType, data.tmdbId);
+        setWatchProviders(providers);
+      } else {
+        setWatchProviders([]);
+      }
       if (data.seasons && data.seasons.length > 0) {
         const hasInitialSeason = data.seasons.some((s: any) => s.seasonNumber === initialSeasonNum);
         setSelectedSeasonNum(hasInitialSeason && initialSeasonNum !== undefined ? initialSeasonNum : data.seasons[0].seasonNumber);
@@ -267,9 +276,10 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   // Toggle list membership
 
   const handleQuickCreateList = async () => {
-    const listName = prompt("Digite o nome da nova lista:");
+    const listName = window.prompt("Digite o nome da nova lista:");
     if (!listName || !listName.trim()) return;
     await createList(listName, "Lista criada rapidamente", 'mixed');
+    trackEvent('quick_list_created', { listNameLength: listName.trim().length });
   };
 
   const handleListToggle = async (listId: string) => {
@@ -278,11 +288,13 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
     // If it fails (already in list), we can offer a way to remove it in the backend lists view.
     const success = await addToList(listId, mediaType, media.id, media);
     if (success) {
-      alert(`Adicionado com sucesso à lista!`);
+      pushToast('success', 'Adicionado com sucesso à lista.');
+      trackEvent('detail_list_item_added', { listId, mediaType, mediaId: media.id });
     } else {
       // Toggle remove
       await removeFromList(listId, media.id);
-      alert(`Removido da lista!`);
+      pushToast('info', 'Removido da lista.');
+      trackEvent('detail_list_item_removed', { listId, mediaType, mediaId: media.id });
     }
     setShowListDropdown(false);
   };
@@ -313,8 +325,11 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         setNewCommentText('');
         setIsCommentSpoiler(false);
         await loadCommentsAndReactions();
+        pushToast('success', 'Comentário publicado.');
+        trackEvent('comment_posted', { mediaType, hasSpoiler: isCommentSpoiler, isEpisodeComment: Boolean(epId) });
       } catch (err) {
         console.error('Error posting Firestore comment:', err);
+        pushToast('error', 'Erro ao publicar comentário.');
       }
     } else {
       const storageKey = isEp ? `comments_${epId}` : (mediaType === 'show' ? `comments_show_${media.id}` : `comments_movie_${media.id}`);
@@ -326,6 +341,8 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
       setNewCommentText('');
       setIsCommentSpoiler(false);
       loadCommentsAndReactions();
+      pushToast('success', 'Comentário salvo localmente.');
+      trackEvent('comment_posted_offline', { mediaType, hasSpoiler: isCommentSpoiler, isEpisodeComment: Boolean(epId) });
     }
   };
 
@@ -631,19 +648,22 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
       <div 
         className="backdrop-banner" 
         style={{ 
-          height: '400px', 
-          width: '100vw',
-          marginLeft: 'calc(-50vw + 50%)',
-          marginRight: 'calc(-50vw + 50%)',
-          marginTop: '-30px',
+          height: 'clamp(320px, 42vw, 500px)', 
+          width: '100%',
+          marginLeft: '0',
+          marginRight: '0',
+          marginTop: '0',
           backgroundImage: `linear-gradient(to top, var(--bg-dark) 0%, rgba(7, 7, 10, 0.6) 50%, rgba(0, 0, 0, 0.2) 100%), url(${getImageUrl(media.backdropPath, 'original')})`,
           backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundPosition: 'center top',
+          backgroundRepeat: 'no-repeat',
           display: 'flex',
           alignItems: 'end',
           padding: '40px 4%',
           marginBottom: '30px',
-          position: 'relative'
+          position: 'relative',
+          borderRadius: 'var(--radius-md)',
+          overflow: 'hidden'
         }}
       >
         {/* Poster & Main Header info overlap */}
@@ -651,10 +671,11 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
           <img 
             src={getImageUrl(media.posterPath)} 
             alt={media.title}
-            style={{ width: '140px', height: '210px', objectFit: 'cover', borderRadius: 'var(--radius-md)', boxShadow: '0 12px 30px rgba(0,0,0,0.6)', border: '2px solid rgba(255,255,255,0.1)' }}
+            className="show-poster-image"
+            style={{ width: 'clamp(120px, 14vw, 180px)', aspectRatio: '2 / 3', height: 'auto', objectFit: 'contain', background: 'rgba(0,0,0,0.22)', borderRadius: 'var(--radius-md)', boxShadow: '0 12px 30px rgba(0,0,0,0.6)', border: '2px solid rgba(255,255,255,0.1)' }}
           />
           <div style={{ flex: 1, minWidth: '240px' }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '42px', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{media.title}</h1>
+            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{media.title}</h1>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
               {media.genres?.map((g: string) => (
                 <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600', backdropFilter: 'blur(4px)' }}>
@@ -662,7 +683,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                 </span>
               ))}
             </div>
-            <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+            <p className="detail-overview" style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
               {media.overview || "Sem sinopse disponível."}
             </p>
           </div>
@@ -675,7 +696,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
           
           {/* Action Row */}
-          <div className="st-panel" style={{ padding: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="st-panel detail-action-panel" style={{ padding: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
             {mediaType === 'movie' ? (
               <>
                 <button 
@@ -806,9 +827,9 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <button 
                     onClick={() => {
-                      if (confirm("Marcar todas as temporadas desta série como assistidas (excluindo Especiais/OVAs)?")) {
-                        watchAllEpisodesOfShow(media);
-                      }
+                      watchAllEpisodesOfShow(media);
+                      pushToast('info', 'Marcando episódios da série...');
+                      trackEvent('mark_show_as_watched_clicked', { showId: media.id });
                     }}
                     className="st-btn-secondary"
                     style={{ fontSize: '12px', padding: '8px 12px', whiteSpace: 'nowrap' }}
@@ -1319,8 +1340,8 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
               </div>
 
               {/* Comment Input */}
-              <form onSubmit={handlePostComment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                              <form onSubmit={handlePostComment} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div className="comment-input-row" style={{ display: 'flex', gap: '10px' }}>
                   <input 
                     type="text" 
                     placeholder="Escreva sua opinião..."
@@ -1354,31 +1375,25 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
           <section className="st-panel" style={{ padding: '20px' }}>
             <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '16px', marginBottom: '14px' }}>Onde Assistir</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              
-              {/* Mocking watch availability providers */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#e50914', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>N</div>
-                  <span>Netflix</span>
+              {watchProviders.length === 0 ? (
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', background: 'rgba(255,255,255,0.02)', padding: '10px 12px', borderRadius: 'var(--radius-sm)' }}>
+                  Sem provedores disponíveis para região BR no momento.
                 </div>
-                <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '11px' }}>Assinatura</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#00a8e1', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>a</div>
-                  <span>Prime Video</span>
-                </div>
-                <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '11px' }}>Assinatura</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: '#f59e0b', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>TM</div>
-                  <span>Watchmode</span>
-                </div>
-                <span style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>Consultar Aluguel</span>
-              </div>
+              ) : (
+                watchProviders.map((provider: any) => (
+                  <div key={provider.provider_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', background: 'rgba(255,255,255,0.02)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <img
+                        src={provider.logo_path ? `https://image.tmdb.org/t/p/w92${provider.logo_path}` : getImageUrl(null)}
+                        alt={provider.provider_name}
+                        style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }}
+                      />
+                      <span>{provider.provider_name}</span>
+                    </div>
+                    <span style={{ color: 'var(--accent)', fontWeight: 'bold', fontSize: '11px' }}>{provider.accessType}</span>
+                  </div>
+                ))
+              )}
 
             </div>
           </section>
@@ -1399,9 +1414,111 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
       </div>
 
       <style>{`
+        @media (max-width: 1080px) {
+          .detail-grid {
+            grid-template-columns: 1fr !important;
+            gap: 22px !important;
+          }
+
+          .detail-action-panel {
+            gap: 12px !important;
+          }
+        }
+
+        @media (max-width: 900px) {
+          .backdrop-banner {
+            height: clamp(300px, 52vw, 430px) !important;
+            padding: 24px 18px !important;
+            margin-bottom: 20px !important;
+          }
+
+          .header-details {
+            gap: 14px !important;
+          }
+
+          .detail-overview {
+            -webkit-line-clamp: 4 !important;
+          }
+        }
+
         @media (max-width: 800px) {
           .detail-grid {
             grid-template-columns: 1fr !important;
+          }
+
+          .header-details {
+            align-items: flex-start !important;
+          }
+
+          .detail-title {
+            line-height: 1.15 !important;
+          }
+
+          .episode-expand-body {
+            padding: 0 14px 14px 14px !important;
+          }
+
+          .detail-action-panel > button,
+          .detail-action-panel > div > button {
+            width: 100%;
+          }
+
+          .detail-action-panel > div {
+            width: 100%;
+          }
+
+          .detail-action-panel .st-panel {
+            width: 100% !important;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .backdrop-banner {
+            height: auto !important;
+            min-height: 290px !important;
+            align-items: flex-end !important;
+            padding: 18px 14px !important;
+            background-size: contain !important;
+            background-color: rgba(255, 255, 255, 0.02);
+          }
+
+          .header-details {
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center;
+          }
+
+          .show-poster-image {
+            width: min(56vw, 200px) !important;
+          }
+
+          .detail-overview {
+            max-width: 100% !important;
+            font-size: 13px !important;
+            -webkit-line-clamp: 5 !important;
+          }
+
+          .episode-header-info {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+          }
+
+          .comment-input-row {
+            flex-direction: column !important;
+          }
+
+          .comment-input-row button {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .backdrop-banner {
+            min-height: 260px !important;
+          }
+
+          .detail-title {
+            font-size: 24px !important;
           }
         }
       `}</style>

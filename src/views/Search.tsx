@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { searchMedia, getImageUrl, hasRealTmdbKey } from '../services/api.js';
+import { searchMedia, getImageUrl, hasRealTmdbKey, rankMediaResults } from '../services/api.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { collection, getDocs, query as fsQuery, orderBy, startAt, endAt, limit } from 'firebase/firestore/lite';
 import { useTracking } from '../context/TrackingContext.js';
 import { Search as SearchIcon, Film, Tv, Star, AlertCircle, Users, UserPlus, UserCheck } from 'lucide-react';
+import { trackEvent } from '../services/telemetry.js';
 
 interface SearchProps {
   onViewMedia: (id: string, type: 'show' | 'movie') => void;
@@ -17,7 +18,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
   const [loading, setLoading] = useState(false);
   const [searchTab, setSearchTab] = useState<'media' | 'users'>('media');
   const [isDemoMode, setIsDemoMode] = useState(!hasRealTmdbKey());
-  const { followedUsers, toggleFollowUser } = useTracking();
+  const { followedUsers, toggleFollowUser, favoriteGenres } = useTracking();
 
   // Search media when typing
   useEffect(() => {
@@ -27,7 +28,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
       const loadDefaults = async () => {
         setLoading(true);
         const popular = await searchMedia('');
-        setResults(popular);
+        setResults(rankMediaResults(popular, favoriteGenres));
         setLoading(false);
       };
       loadDefaults();
@@ -38,7 +39,9 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
       setLoading(true);
       try {
         const data = await searchMedia(query);
-        setResults(data);
+        const ranked = rankMediaResults(data, favoriteGenres);
+        setResults(ranked);
+        trackEvent('search_media_query', { queryLength: query.trim().length, results: ranked.length });
       } catch (err) {
         console.error(err);
       } finally {
@@ -47,7 +50,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
     }, 450);
 
     return () => clearTimeout(timer);
-  }, [query, searchTab]);
+  }, [query, searchTab, favoriteGenres.join('|')]);
 
   // Search users
   useEffect(() => {
@@ -92,6 +95,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
           });
 
           setUserResults(Array.from(merged.values()).slice(0, 20));
+          trackEvent('search_user_query', { queryLength: q.length, results: merged.size });
         } else {
           setUserResults([]);
         }

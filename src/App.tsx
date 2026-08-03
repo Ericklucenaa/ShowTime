@@ -1,6 +1,9 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { TrackingProvider } from './context/TrackingContext.js';
+import { ToastHost } from './components/ToastHost.js';
+import { pushToast } from './services/toast.js';
+import { trackEvent } from './services/telemetry.js';
 import { 
   Tv, 
   Search as SearchIcon, 
@@ -105,10 +108,18 @@ const AppContent: React.FC = () => {
 
     if (isRegisterMode) {
       const success = await register(authUsername, authEmail, authPassword);
-      if (success) resetAuthForm();
+      if (success) {
+        trackEvent('auth_register_success', { emailDomain: authEmail.split('@')[1] || 'unknown' });
+        pushToast('success', 'Conta criada com sucesso.');
+        resetAuthForm();
+      }
     } else {
       const success = await login(authEmail, authPassword);
-      if (success) resetAuthForm();
+      if (success) {
+        trackEvent('auth_login_success', { emailDomain: authEmail.split('@')[1] || 'unknown' });
+        pushToast('success', 'Login realizado com sucesso.');
+        resetAuthForm();
+      }
     }
   };
 
@@ -121,33 +132,31 @@ const AppContent: React.FC = () => {
   };
 
   const handleForgotPassword = async () => {
-    let email = authEmail.trim();
+    const email = authEmail.trim();
     if (!email) {
-      email = prompt("Digite seu e-mail para recuperar a senha:") || "";
-    } else {
-      const confirmEmail = confirm(`Enviar e-mail de recuperação para: ${email}?`);
-      if (!confirmEmail) {
-        email = prompt("Digite seu e-mail para recuperar a senha:") || "";
-      }
+      setValidationError('Informe seu e-mail no campo acima para recuperar a senha.');
+      pushToast('info', 'Preencha o e-mail para enviar recuperação.');
+      return;
     }
-    
-    if (!email || !email.trim()) return;
     
     const success = await resetPassword(email);
     if (success) {
-      alert(`E-mail de recuperação enviado com sucesso para ${email}! Verifique sua caixa de entrada (e pasta de spam).`);
+      trackEvent('auth_password_reset_requested', { emailDomain: email.split('@')[1] || 'unknown' });
+      pushToast('success', `E-mail de recuperação enviado para ${email}.`);
     }
   };
 
   const [viewingProfile, setViewingProfile] = useState<{ userId: string; username: string } | null>(null);
 
   const handleViewMedia = (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => {
+    trackEvent('media_opened', { id, type, initialSeasonNum, initialEpisodeNum });
     setViewingProfile(null);
     setPreviousTab(activeTab as any);
     setSelectedMedia({ id, type, initialSeasonNum, initialEpisodeNum });
   };
 
   const handleViewProfile = (userId: string, username: string) => {
+    trackEvent('profile_opened', { userId, username });
     setSelectedMedia(null);
     setViewingProfile({ userId, username });
   };
@@ -452,6 +461,7 @@ export default function App() {
     <AuthProvider>
       <TrackingProvider>
         <AppContent />
+        <ToastHost />
       </TrackingProvider>
     </AuthProvider>
   );

@@ -17,7 +17,7 @@ interface ContinueWatchingItem {
 }
 
 export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie') => void }> = ({ onViewMedia }) => {
-  const { watchedEpisodes, watchedMovies, toggleWatchEpisode } = useTracking();
+  const { watchedEpisodes, watchedMovies, toggleWatchEpisode, streakDays, lastWatchedAt, favoriteGenres, totalWatchEvents } = useTracking();
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +26,9 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
   // Look up actual movie durations if available, otherwise assume 120 mins
   const totalMovTime = watchedMovies.length * 120;
   const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
+  const daysWithoutWatching = lastWatchedAt
+    ? Math.max(0, Math.floor((Date.now() - new Date(lastWatchedAt).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   useEffect(() => {
     const calculateContinueWatching = async () => {
@@ -141,6 +144,11 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '6px' }}>Olá, Bem-vindo ao ShowTime!</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Acompanhe suas séries e filmes preferidos em um só lugar.</p>
+          {lastWatchedAt && (
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>
+              Última atividade: {new Date(lastWatchedAt).toLocaleDateString('pt-BR')} {daysWithoutWatching > 0 ? `• ${daysWithoutWatching} dia(s) sem assistir` : '• em dia'}
+            </p>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -162,6 +170,13 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
             <div>
               <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{watchedMovies.length}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
+            </div>
+          </div>
+          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Trophy size={24} style={{ color: 'var(--primary)' }} />
+            <div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{streakDays}</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Streak Atual</div>
             </div>
           </div>
         </div>
@@ -231,6 +246,26 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
                 })}
               </div>
             )}
+          </section>
+
+          <section className="glass-panel" style={{ padding: '20px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '14px' }}>
+              Linha do Tempo Inteligente
+            </h3>
+            <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Eventos de Watch</div>
+                <div style={{ fontSize: '22px', fontWeight: 700 }}>{totalWatchEvents}</div>
+              </div>
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Dias Sem Assistir</div>
+                <div style={{ fontSize: '22px', fontWeight: 700 }}>{daysWithoutWatching}</div>
+              </div>
+              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Gêneros em Alta</div>
+                <div style={{ fontSize: '14px', fontWeight: 700 }}>{favoriteGenres.length > 0 ? favoriteGenres.join(' • ') : 'Sem dados ainda'}</div>
+              </div>
+            </div>
           </section>
 
         </div>

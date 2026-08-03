@@ -11,6 +11,7 @@ import {
   signInWithPopup,
   sendPasswordResetEmail
 } from 'firebase/auth';
+import { pushToast } from '../services/toast.js';
 
 interface User {
   id: string;
@@ -251,7 +252,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     } else {
-      alert(`[Offline Mode] Link de redefinição simulado enviado para: ${email}`);
+      pushToast('info', `[Offline] Link de redefinição simulado enviado para: ${email}`);
       setLoading(false);
       return true;
     }

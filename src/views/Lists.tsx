@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTracking } from '../context/TrackingContext.js';
 import { getImageUrl } from '../services/api.js';
 import { Plus, List, Trash2, ArrowLeft, Tv, Film, Star } from 'lucide-react';
+import { pushToast } from '../services/toast.js';
 
 export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie') => void }> = ({ onViewMedia }) => {
   const { lists, createList, deleteList, removeFromList, fetchListItems } = useTracking();
@@ -50,11 +51,10 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
 
   const handleDeleteList = async (listId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // prevent opening list
-    if (confirm("Tem certeza que deseja excluir esta lista? Todos os itens associados serão removidos.")) {
-      await deleteList(listId);
-      if (selectedListId === listId) {
-        setSelectedListId(null);
-      }
+    await deleteList(listId);
+    pushToast('info', 'Lista excluída.');
+    if (selectedListId === listId) {
+      setSelectedListId(null);
     }
   };
 

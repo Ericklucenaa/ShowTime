@@ -333,6 +333,17 @@ button, input, select, textarea {
   .app-container {
     padding-bottom: 85px; /* Space for bottom nav */
   }
+
+  .toast-host {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast-item {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 .nav-item {
@@ -355,6 +366,47 @@ button, input, select, textarea {
 .nav-item:hover {
   color: var(--text-primary);
   background: rgba(255,255,255,0.05);
+}
+
+.toast-host {
+  position: fixed;
+  top: 84px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10001;
+  pointer-events: none;
+}
+
+.toast-item {
+  min-width: 220px;
+  max-width: 360px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.toast-success {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #d1fae5;
+}
+
+.toast-error {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fee2e2;
+}
+
+.toast-info {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.35);
+  color: #dbeafe;
 }
 
 /* Light Theme Variables Overrides */
