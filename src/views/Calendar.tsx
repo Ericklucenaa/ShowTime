@@ -276,6 +276,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     const amount = Math.max(180, Math.floor(strip.clientWidth * 0.68));
     const delta = direction === 'right' ? amount : -amount;
     strip.scrollBy({ left: delta, behavior: 'smooth' });
+    window.setTimeout(() => refreshDateStripControls(), 240);
   };
 
   const selectedDate = selectedDateKey ? parseDateKey(selectedDateKey) : null;
@@ -360,16 +361,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             </div>
 
             <div className="calendar-day-strip-shell">
-              {canScrollDatesLeft && (
-                <button
-                  type="button"
-                  className="calendar-strip-fab left"
-                  onClick={() => stepDateStrip('left')}
-                  aria-label="Ver datas anteriores"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-              )}
+              <button
+                type="button"
+                className={`calendar-strip-fab left ${canScrollDatesLeft ? '' : 'disabled'}`}
+                onClick={() => stepDateStrip('left')}
+                aria-label="Ver datas anteriores"
+                disabled={!canScrollDatesLeft}
+              >
+                <ChevronLeft size={16} />
+              </button>
 
               <div ref={dayStripRef} className="calendar-day-strip">
                 {visibleDateKeys.map((key) => {
@@ -394,16 +394,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 })}
               </div>
 
-              {canScrollDatesRight && (
-                <button
-                  type="button"
-                  className="calendar-strip-fab right"
-                  onClick={() => stepDateStrip('right')}
-                  aria-label="Ver datas futuras"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              )}
+              <button
+                type="button"
+                className={`calendar-strip-fab right ${canScrollDatesRight ? '' : 'disabled'}`}
+                onClick={() => stepDateStrip('right')}
+                aria-label="Ver datas futuras"
+                disabled={!canScrollDatesRight}
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
           </div>
 
@@ -661,6 +660,14 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         .calendar-strip-fab:hover {
           border-color: var(--primary);
           color: var(--primary);
+        }
+
+        .calendar-strip-fab.disabled {
+          opacity: 0.42;
+          cursor: not-allowed;
+          border-color: rgba(255, 255, 255, 0.14);
+          color: var(--text-muted);
+          box-shadow: none;
         }
 
         .calendar-day-strip::-webkit-scrollbar {
