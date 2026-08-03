@@ -106,6 +106,7 @@ function isEpisodeReleased(airDateValue?: string): boolean {
 const REFRESH_MIN_INTERVAL_MS = 8000;
 const QUOTA_COOLDOWN_MS = 90000;
 const LIST_ITEMS_CACHE_TTL_MS = 60000;
+const QUOTA_COOLDOWN_STORAGE_KEY = 'showtime_firestore_quota_cooldown_until';
 
 export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -121,11 +122,30 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [lastWatchedAt, setLastWatchedAt] = useState<string | null>(null);
   const [totalWatchEvents, setTotalWatchEvents] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
+  const initialQuotaCooldown = typeof window !== 'undefined'
+    ? Number(localStorage.getItem(QUOTA_COOLDOWN_STORAGE_KEY) || 0)
+    : 0;
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
   const lastRefreshAtRef = useRef<number>(0);
-  const quotaCooldownUntilRef = useRef<number>(0);
+  const quotaCooldownUntilRef = useRef<number>(initialQuotaCooldown);
   const quotaWarnedAtRef = useRef<number>(0);
   const listItemsCacheRef = useRef<Record<string, { at: number; data: any }>>({});
+
+  const hydrateTrackingSnapshot = useCallback((uid: string) => {
+    const eps = getLocalData(`showtime_watch_episodes_${uid}`, []);
+    const movs = getLocalData(`showtime_watch_movies_${uid}`, []);
+    const customLists = getLocalData(`showtime_custom_lists_${uid}`, []);
+    const follows = getLocalData(`showtime_followed_shows_${uid}`, []);
+    const followsUsers = getLocalData(`showtime_followed_users_${uid}`, []);
+
+    setWatchedEpisodes(eps);
+    setWatchedMovies(movs);
+    setLists(customLists);
+    setFollowedShows(follows);
+    setFollowedUsers(followsUsers);
+    calculateGenreStats(eps, movs);
+    calculateEngagementStats(eps, movs);
+  }, []);
 
   const calculateEngagementStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
     const events = [...eps, ...movs].sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
@@ -214,6 +234,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     if (now < quotaCooldownUntilRef.current) {
+      hydrateTrackingSnapshot(user.id);
       if (now - quotaWarnedAtRef.current > 20000) {
         quotaWarnedAtRef.current = now;
         pushToast('info', 'Limite temporario do Firestore atingido. Tentando novamente em instantes.');
@@ -272,31 +293,36 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           // 6. Calculate genre stats
           calculateGenreStats(eps, movs);
           calculateEngagementStats(eps, movs);
+
+          // Keep local snapshot updated for quota fallback mode.
+          setLocalData(`showtime_watch_episodes_${user.id}`, eps);
+          setLocalData(`showtime_watch_movies_${user.id}`, movs);
+          setLocalData(`showtime_custom_lists_${user.id}`, loadedLists);
+          setLocalData(`showtime_followed_shows_${user.id}`, follows);
+          setLocalData(`showtime_followed_users_${user.id}`, followsUsers);
+
+          if (quotaCooldownUntilRef.current > 0) {
+            quotaCooldownUntilRef.current = 0;
+            localStorage.removeItem(QUOTA_COOLDOWN_STORAGE_KEY);
+          }
+
           lastRefreshAtRef.current = Date.now();
         } catch (e: any) {
           console.error('Error fetching Firestore tracking data:', e);
           const code = String(e?.code || '').toLowerCase();
           const msg = String(e?.message || '').toLowerCase();
           if (code.includes('resource-exhausted') || msg.includes('quota exceeded')) {
-            quotaCooldownUntilRef.current = Date.now() + QUOTA_COOLDOWN_MS;
+            const cooldownUntil = Date.now() + QUOTA_COOLDOWN_MS;
+            quotaCooldownUntilRef.current = cooldownUntil;
+            localStorage.setItem(QUOTA_COOLDOWN_STORAGE_KEY, String(cooldownUntil));
+            hydrateTrackingSnapshot(user.id);
           }
         } finally {
           setLoading(false);
         }
       } else {
         // Offline fallback
-        const eps = getLocalData(`showtime_watch_episodes_${user.id}`, []);
-        const movs = getLocalData(`showtime_watch_movies_${user.id}`, []);
-        const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
-        const follows = getLocalData(`showtime_followed_shows_${user.id}`, []);
-        const followsUsers = getLocalData(`showtime_followed_users_${user.id}`, []);
-        setWatchedEpisodes(eps);
-        setWatchedMovies(movs);
-        setLists(customLists);
-        setFollowedShows(follows);
-        setFollowedUsers(followsUsers);
-        calculateGenreStats(eps, movs);
-        calculateEngagementStats(eps, movs);
+        hydrateTrackingSnapshot(user.id);
         lastRefreshAtRef.current = Date.now();
         setLoading(false);
       }
@@ -306,7 +332,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       refreshInFlightRef.current = null;
     });
     await refreshInFlightRef.current;
-  }, [user]);
+  }, [user, hydrateTrackingSnapshot]);
 
   useEffect(() => {
     if (user) {
