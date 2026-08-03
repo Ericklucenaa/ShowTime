@@ -217,7 +217,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
   return (
     <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
-      <div className="calendar-top-block" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="calendar-top-block" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '16px', width: '100%', maxWidth: '100%' }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '8px' }}>Calendario de Lancamentos</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Arraste os dias para o lado e veja o que estreia em cada data.</p>
@@ -226,15 +226,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         <div className="calendar-tab-switch" style={{ display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.03)', padding: '6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
           <button
             onClick={() => setActiveTab('personal')}
-            className={activeTab === 'personal' ? 'st-btn-primary' : 'st-btn-secondary'}
-            style={{ padding: '6px 14px', fontSize: '13px', border: 'none', background: activeTab === 'personal' ? undefined : 'transparent' }}
+            className={`calendar-tab-btn ${activeTab === 'personal' ? 'active' : ''}`}
           >
             Meu Cronograma ({personalCalendar.length})
           </button>
           <button
             onClick={() => setActiveTab('global')}
-            className={activeTab === 'global' ? 'st-btn-primary' : 'st-btn-secondary'}
-            style={{ padding: '6px 14px', fontSize: '13px', border: 'none', background: activeTab === 'global' ? undefined : 'transparent' }}
+            className={`calendar-tab-btn ${activeTab === 'global' ? 'active' : ''}`}
           >
             Estreias Globais
           </button>
@@ -262,18 +260,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                   <button
                     key={dateKey}
                     onClick={() => setSelectedDateKey(dateKey)}
-                    className={isActive ? 'st-btn-primary' : 'st-btn-secondary'}
+                    className={`calendar-day-btn ${isActive ? 'active' : ''}`}
                     style={{
                       minWidth: '86px',
-                      borderRadius: '12px',
                       padding: '8px 10px',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: '2px',
                       fontSize: '12px',
-                      background: isActive ? undefined : 'transparent',
-                      border: isActive ? 'none' : '1px solid var(--border-color)'
+                      borderRadius: '12px'
                     }}
                   >
                     <span style={{ fontWeight: 700 }}>{DAY_LABELS[dateObj.getDay()]}</span>
@@ -320,10 +316,10 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                   </div>
 
                   <div style={{ padding: '10px 12px' }}>
-                    <h4 style={{ fontSize: '15px', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <h4 className="calendar-episode-title" style={{ fontSize: '15px', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {item.showTitle}
                     </h4>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div className="calendar-episode-subtitle" style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       T{item.seasonNumber} • E{item.episodeNumber} • {item.title || 'Novo episodio'}
                     </div>
                     <button
@@ -331,7 +327,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                         e.stopPropagation();
                         toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
                       }}
-                      className={reminders.includes(item.id) ? 'st-btn-primary' : 'st-btn-secondary'}
+                      className={`calendar-reminder-btn ${reminders.includes(item.id) ? 'active' : ''}`}
                       style={{ width: '100%', fontSize: '12px', padding: '8px 10px' }}
                     >
                       {reminders.includes(item.id) ? 'Lembrete ativo' : 'Adicionar lembrete'}
@@ -343,6 +339,28 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           )}
 
           <style>{`
+            .calendar-tab-btn {
+              border: 1px solid var(--border-color);
+              border-radius: 10px;
+              padding: 6px 12px;
+              font-size: 13px;
+              font-weight: 700;
+              background: transparent;
+              color: var(--text-secondary);
+              cursor: pointer;
+              min-width: 0;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .calendar-tab-btn.active {
+              background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
+              color: #000;
+              border-color: transparent;
+              box-shadow: 0 5px 14px rgba(245, 197, 24, 0.3);
+            }
+
             .calendar-day-strip::-webkit-scrollbar {
               display: none;
             }
@@ -350,15 +368,54 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             .calendar-day-strip {
               -webkit-overflow-scrolling: touch;
               overscroll-behavior-x: contain;
+              overflow-y: hidden;
+              scroll-snap-type: x proximity;
+            }
+
+            .calendar-day-btn {
+              flex: 0 0 auto;
+              border: 1px solid var(--border-color);
+              background: transparent;
+              color: var(--text-primary);
+              cursor: pointer;
+              scroll-snap-align: start;
+            }
+
+            .calendar-day-btn.active {
+              border-color: transparent;
+              background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
+              color: #000;
+              box-shadow: 0 6px 16px rgba(245, 197, 24, 0.3);
+            }
+
+            .calendar-episode-card {
+              min-width: 0;
+            }
+
+            .calendar-episode-title,
+            .calendar-episode-subtitle {
+              min-width: 0;
+            }
+
+            .calendar-reminder-btn {
+              border-radius: 999px;
+              border: 1px solid var(--border-color);
+              background: rgba(255, 255, 255, 0.02);
+              color: var(--text-primary);
+              font-weight: 700;
+              cursor: pointer;
+            }
+
+            .calendar-reminder-btn.active {
+              border-color: transparent;
+              background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
+              color: #000;
             }
 
             @media (max-width: 760px) {
               .calendar-top-block {
-                position: sticky;
-                top: 64px;
-                z-index: 5;
+                position: relative;
                 padding-bottom: 10px;
-                background: var(--bg-dark);
                 align-items: stretch;
               }
 
@@ -368,9 +425,9 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
               }
 
-              .calendar-tab-switch button {
+              .calendar-tab-btn {
                 width: 100%;
-                justify-content: center;
+                text-align: center;
               }
 
               .calendar-episode-grid {
@@ -380,11 +437,27 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               .calendar-episode-image {
                 height: 112px !important;
               }
+
+              .calendar-episode-subtitle {
+                white-space: normal !important;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+              }
             }
 
             @media (max-width: 390px) {
+              .calendar-tab-btn {
+                font-size: 12px;
+                padding: 7px 8px;
+              }
+
               .calendar-episode-image {
                 height: 100px !important;
+              }
+
+              .calendar-episode-grid {
+                gap: 10px !important;
               }
             }
           `}</style>
