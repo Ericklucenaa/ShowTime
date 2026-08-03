@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchTVMazeSchedule, getImageUrl, fetchMediaDetails, fetchSeasonEpisodes } from '../services/api.js';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock, Tv } from 'lucide-react';
 import { useTracking } from '../context/TrackingContext.js';
-import { Calendar as CalendarIcon, Clock, Tv, ChevronLeft, ChevronRight, Bell, Check, CalendarDays, RotateCcw } from 'lucide-react';
+import { fetchMediaDetails, fetchSeasonEpisodes, fetchTVMazeSchedule, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 import { trackEvent } from '../services/telemetry.js';
 
@@ -9,22 +9,31 @@ interface CalendarProps {
   onViewMedia: (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => void;
 }
 
+interface PersonalEvent {
+  id: string;
+  showId: string;
+  showTitle: string;
+  showPoster: string;
+  seasonNumber: number;
+  episodeNumber: number;
+  title: string;
+  overview: string;
+  airDate: string;
+  airDateMs: number;
+}
+
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-const MONTH_FULL_LABELS = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
+const MONTH_FULL = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-function formatDateKeyFromDate(d: Date): string {
+function formatDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
-function dateFromKey(key: string): Date {
-  if (!key) return new Date();
+function parseDateKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
   return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0);
 }
@@ -32,51 +41,44 @@ function dateFromKey(key: string): Date {
 function normalizeAirDateToKey(airDate: string): string {
   if (!airDate) return '';
   if (!airDate.includes('T')) return airDate.slice(0, 10);
-  const dt = new Date(airDate);
-  if (Number.isNaN(dt.getTime())) return airDate.slice(0, 10);
-  return formatDateKeyFromDate(dt);
+  const parsed = new Date(airDate);
+  if (Number.isNaN(parsed.getTime())) return airDate.slice(0, 10);
+  return formatDateKey(parsed);
 }
 
-function formatDateHeaderLabel(d: Date): string {
-  const dayName = DAY_LABELS[d.getDay()];
-  const dayNum = d.getDate();
-  const monthName = MONTH_FULL_LABELS[d.getMonth()];
-  const year = d.getFullYear();
-  return `${dayName}, ${dayNum} de ${monthName} ${year}`;
+function formatHeaderDate(d: Date): string {
+  return `${DAY_LABELS[d.getDay()]}, ${d.getDate()} de ${MONTH_FULL[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-function formatEpisodeBadge(airDate: string) {
-  if (!airDate) return 'Sem horário';
+function formatEpisodeTime(airDate: string): string {
+  if (!airDate) return 'Sem horario';
   if (!airDate.includes('T')) return 'Hoje';
-  const dt = new Date(airDate);
-  if (Number.isNaN(dt.getTime())) return 'Sem horário';
-  return dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const parsed = new Date(airDate);
+  if (Number.isNaN(parsed.getTime())) return 'Sem horario';
+  return parsed.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const { watchedEpisodes, followedShows, lists, fetchListItems } = useTracking();
 
-  const [personalCalendar, setPersonalCalendar] = useState<any[]>([]);
-  const [globalCalendar, setGlobalCalendar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
-  const [selectedDateKey, setSelectedDateKey] = useState<string>('');
+  const [selectedDateKey, setSelectedDateKey] = useState('');
+  const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
+  const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
-  
+
   const dayStripRef = useRef<HTMLDivElement | null>(null);
 
-  // Drag states for day strip
-  const isMouseDownRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
-  const isDragMovementRef = useRef(false);
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
-  // Touch swipe states for episode area
-  const touchStartXRef = useRef(0);
-  const touchStartYRef = useRef(0);
+  const todayKey = useMemo(() => formatDateKey(today), [today]);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
     try {
       const raw = localStorage.getItem('showtime_calendar_reminders');
       if (raw) setReminders(JSON.parse(raw));
@@ -85,705 +87,456 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     }
   }, []);
 
-  const persistReminders = (next: string[]) => {
-    setReminders(next);
-    localStorage.setItem('showtime_calendar_reminders', JSON.stringify(next));
-  };
-
-  const toggleReminder = (id: string, label: string) => {
-    const exists = reminders.includes(id);
-    const next = exists ? reminders.filter((x) => x !== id) : [...reminders, id];
-    persistReminders(next);
-    pushToast('info', exists ? 'Lembrete removido.' : `Lembrete salvo: ${label}`);
-    trackEvent('calendar_reminder_toggled', { id, enabled: !exists });
-  };
-
   useEffect(() => {
+    let disposed = false;
+
     const loadCalendar = async () => {
       setLoading(true);
       try {
         const showIds = new Set<string>([
           ...followedShows,
-          ...watchedEpisodes.map((we) => we.showId)
+          ...watchedEpisodes.map((item) => item.showId)
         ]);
 
-        try {
-          for (const list of lists || []) {
+        for (const list of lists || []) {
+          try {
             const listData = await fetchListItems(list.id);
-            if (listData?.items) {
-              for (const item of listData.items) {
-                if (item.mediaType === 'show' && item.mediaId) {
-                  showIds.add(item.mediaId);
-                }
+            for (const item of listData?.items || []) {
+              if (item.mediaType === 'show' && item.mediaId) {
+                showIds.add(item.mediaId);
               }
             }
+          } catch (err) {
+            console.warn('Calendar: failed to load list items', err);
           }
-        } catch (e) {
-          console.warn('Could not load list items for calendar:', e);
         }
 
-        const personalEvents: any[] = [];
+        const minDate = new Date(today);
+        minDate.setDate(minDate.getDate() - 90);
+        const maxDate = new Date(today);
+        maxDate.setDate(maxDate.getDate() + 365);
 
-        for (const showId of showIds) {
+        const nextPersonal: PersonalEvent[] = [];
+
+        for (const showId of Array.from(showIds)) {
           try {
             const show = await fetchMediaDetails(showId, 'show');
-            if (!show || !show.seasons) continue;
+            if (!show?.seasons) continue;
 
             for (const season of show.seasons) {
               let episodes = season.episodes;
               if (!episodes || episodes.length === 0) {
-                try {
-                  episodes = await fetchSeasonEpisodes(showId, season.seasonNumber);
-                } catch {
-                  continue;
-                }
+                episodes = await fetchSeasonEpisodes(showId, season.seasonNumber);
               }
 
-              if (!episodes) continue;
-
-              for (const ep of episodes) {
+              for (const ep of episodes || []) {
                 if (!ep.airDate) continue;
-                const airDate = new Date(ep.airDate);
-                const now = new Date();
-                const pastCutoff = new Date();
-                pastCutoff.setDate(now.getDate() - 60);
-                const futureCutoff = new Date();
-                futureCutoff.setDate(now.getDate() + 365); // Support future dates up to 1 year
+                const airDateObj = new Date(ep.airDate);
+                if (Number.isNaN(airDateObj.getTime())) continue;
+                if (airDateObj < minDate || airDateObj > maxDate) continue;
 
-                if (airDate >= pastCutoff && airDate <= futureCutoff) {
-                  personalEvents.push({
-                    id: `cal_${show.id}_${season.seasonNumber}_${ep.episodeNumber}`,
-                    showId: show.id,
-                    showTitle: show.title,
-                    showPoster: show.posterPath,
-                    seasonNumber: season.seasonNumber,
-                    episodeNumber: ep.episodeNumber,
-                    title: ep.title,
-                    overview: ep.overview || '',
-                    airDate: ep.airDate,
-                    airDateMs: airDate.getTime()
-                  });
-                }
+                nextPersonal.push({
+                  id: `cal_${show.id}_${season.seasonNumber}_${ep.episodeNumber}`,
+                  showId: show.id,
+                  showTitle: show.title,
+                  showPoster: show.posterPath,
+                  seasonNumber: season.seasonNumber,
+                  episodeNumber: ep.episodeNumber,
+                  title: ep.title || 'Novo episodio',
+                  overview: ep.overview || '',
+                  airDate: ep.airDate,
+                  airDateMs: airDateObj.getTime()
+                });
               }
             }
           } catch (err) {
-            console.warn(`Calendar: failed to load show ${showId}:`, err);
+            console.warn(`Calendar: failed to process show ${showId}`, err);
           }
         }
 
-        personalEvents.sort((a, b) => a.airDateMs - b.airDateMs);
-        setPersonalCalendar(personalEvents);
+        nextPersonal.sort((a, b) => a.airDateMs - b.airDateMs);
 
+        let nextGlobal: any[] = [];
         try {
-          const tvmazeData = await fetchTVMazeSchedule();
-          setGlobalCalendar(tvmazeData.slice(0, 30));
+          const schedule = await fetchTVMazeSchedule();
+          nextGlobal = schedule.slice(0, 40);
         } catch {
-          setGlobalCalendar([]);
+          nextGlobal = [];
         }
-      } catch (e) {
-        console.error('Error loading calendar', e);
+
+        if (!disposed) {
+          setPersonalEvents(nextPersonal);
+          setGlobalEvents(nextGlobal);
+        }
+      } catch (err) {
+        console.error('Calendar load error', err);
       } finally {
-        setLoading(false);
+        if (!disposed) setLoading(false);
       }
     };
 
-    const timer = window.setTimeout(loadCalendar, 120);
-    return () => window.clearTimeout(timer);
-  }, [followedShows.join('|'), watchedEpisodes.length, lists.length]);
+    loadCalendar();
+    return () => {
+      disposed = true;
+    };
+  }, [followedShows.join('|'), watchedEpisodes.length, lists.length, today, fetchListItems]);
 
-  const groupedPersonal = useMemo(() => {
-    const map: Record<string, any[]> = {};
-    for (const item of personalCalendar) {
+  const groupedByDate = useMemo(() => {
+    const map: Record<string, PersonalEvent[]> = {};
+    for (const item of personalEvents) {
       const key = normalizeAirDateToKey(item.airDate);
       if (!key) continue;
       if (!map[key]) map[key] = [];
       map[key].push(item);
     }
     return map;
-  }, [personalCalendar]);
+  }, [personalEvents]);
 
-  const today = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-
-  const todayStr = useMemo(() => formatDateKeyFromDate(today), [today]);
-
-  const visibleDates = useMemo(() => {
+  const visibleDateKeys = useMemo(() => {
     const start = new Date(today);
-    start.setDate(start.getDate() - 30); // 30 days past
-
+    start.setDate(start.getDate() - 30);
     const end = new Date(today);
-    end.setDate(end.getDate() + 180); // 180 days future
+    end.setDate(end.getDate() + 180);
 
-    const days: string[] = [];
+    const keys: string[] = [];
     const cursor = new Date(start);
-
     while (cursor <= end) {
-      days.push(formatDateKeyFromDate(cursor));
+      keys.push(formatDateKey(cursor));
       cursor.setDate(cursor.getDate() + 1);
     }
-
-    // Ensure selected date is in visible list if set externally
-    if (selectedDateKey && !days.includes(selectedDateKey)) {
-      days.push(selectedDateKey);
-      days.sort();
-    }
-
-    return days;
-  }, [today, selectedDateKey]);
+    return keys;
+  }, [today]);
 
   useEffect(() => {
-    if (visibleDates.length === 0) {
-      setSelectedDateKey('');
+    if (selectedDateKey && visibleDateKeys.includes(selectedDateKey)) return;
+    if (visibleDateKeys.includes(todayKey)) {
+      setSelectedDateKey(todayKey);
       return;
     }
+    setSelectedDateKey(visibleDateKeys[0] || '');
+  }, [selectedDateKey, visibleDateKeys, todayKey]);
 
-    if (selectedDateKey && visibleDates.includes(selectedDateKey)) return;
-
-    if (visibleDates.includes(todayStr)) {
-      setSelectedDateKey(todayStr);
-      return;
-    }
-
-    setSelectedDateKey(visibleDates[0]);
-  }, [selectedDateKey, visibleDates, todayStr]);
-
-  const selectedDateObj = selectedDateKey ? dateFromKey(selectedDateKey) : null;
-  const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
-
-  // Scroll selected day button into center view
   useEffect(() => {
-    const strip = dayStripRef.current;
-    if (!strip || !selectedDateKey) return;
-    const selectedEl = strip.querySelector<HTMLButtonElement>(`button[data-date="${selectedDateKey}"]`);
-    if (selectedEl) {
-      selectedEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    if (!selectedDateKey || !dayStripRef.current) return;
+    const target = dayStripRef.current.querySelector<HTMLButtonElement>(`button[data-date="${selectedDateKey}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }
   }, [selectedDateKey]);
 
-  const handleSelectNearbyDate = (direction: -1 | 1) => {
+  const selectedDate = selectedDateKey ? parseDateKey(selectedDateKey) : null;
+  const selectedItems = selectedDateKey ? groupedByDate[selectedDateKey] || [] : [];
+
+  const toggleReminder = (id: string, label: string) => {
+    const enabled = !reminders.includes(id);
+    const next = enabled ? [...reminders, id] : reminders.filter((item) => item !== id);
+    setReminders(next);
+    localStorage.setItem('showtime_calendar_reminders', JSON.stringify(next));
+    pushToast('info', enabled ? `Lembrete salvo: ${label}` : 'Lembrete removido.');
+    trackEvent('calendar_reminder_toggled', { id, enabled });
+  };
+
+  const navigateDay = (direction: -1 | 1) => {
     if (!selectedDateKey) return;
-    const index = visibleDates.indexOf(selectedDateKey);
-    if (index < 0) return;
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= visibleDates.length) return;
-    setSelectedDateKey(visibleDates[nextIndex]);
+    const idx = visibleDateKeys.indexOf(selectedDateKey);
+    if (idx < 0) return;
+    const nextIdx = idx + direction;
+    if (nextIdx < 0 || nextIdx >= visibleDateKeys.length) return;
+    setSelectedDateKey(visibleDateKeys[nextIdx]);
   };
 
-  const handleGoToToday = () => {
-    setSelectedDateKey(todayStr);
-  };
-
-  // Find nearest future date with releases
-  const handleJumpToNextRelease = () => {
-    if (!selectedDateKey) return;
-    const futureKeys = Object.keys(groupedPersonal).sort();
-    const nextKey = futureKeys.find(k => k > selectedDateKey && (groupedPersonal[k]?.length || 0) > 0);
-    if (nextKey) {
-      setSelectedDateKey(nextKey);
-    } else {
-      pushToast('info', 'Nenhum lançamento posterior encontrado no seu cronograma.');
-    }
-  };
-
-  // Mouse Drag functionality for horizontal day strip
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!dayStripRef.current) return;
-    isMouseDownRef.current = true;
-    isDragMovementRef.current = false;
-    startXRef.current = e.pageX - dayStripRef.current.offsetLeft;
-    scrollLeftRef.current = dayStripRef.current.scrollLeft;
-  };
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isMouseDownRef.current || !dayStripRef.current) return;
-    const x = e.pageX - dayStripRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.5;
-    if (Math.abs(walk) > 4) {
-      isDragMovementRef.current = true;
-    }
-    dayStripRef.current.scrollLeft = scrollLeftRef.current - walk;
-  };
-
-  const handleMouseUpOrLeave = () => {
-    isMouseDownRef.current = false;
-  };
-
-  const handleDayButtonClick = (dateKey: string) => {
-    if (isDragMovementRef.current) {
-      isDragMovementRef.current = false;
+  const jumpToNextRelease = () => {
+    const keys = Object.keys(groupedByDate).sort();
+    const next = keys.find((key) => key > selectedDateKey && groupedByDate[key]?.length > 0);
+    if (!next) {
+      pushToast('info', 'Nao ha proximo lancamento no periodo exibido.');
       return;
     }
-    setSelectedDateKey(dateKey);
-  };
-
-  // Touch Swipe functionality on Episode Panel
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    touchStartXRef.current = e.touches[0].clientX;
-    touchStartYRef.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!touchStartXRef.current || !touchStartYRef.current) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-
-    const deltaX = touchEndX - touchStartXRef.current;
-    const deltaY = touchEndY - touchStartYRef.current;
-
-    // Check if horizontal swipe is prominent over vertical scroll
-    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
-      if (deltaX < 0) {
-        // Swiped Left -> Go to Next Day
-        handleSelectNearbyDate(1);
-      } else {
-        // Swiped Right -> Go to Previous Day
-        handleSelectNearbyDate(-1);
-      }
-    }
-
-    touchStartXRef.current = 0;
-    touchStartYRef.current = 0;
+    setSelectedDateKey(next);
   };
 
   return (
-    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '50px', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
-      
-      {/* Header & Tab Switcher */}
-      <div className="calendar-header-block">
-        <div className="calendar-title-group">
-          <h2>Calendário de Lançamentos</h2>
-          <p>Navegue pelos dias e acompanhe os episódios de suas séries e estreias.</p>
+    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '44px' }}>
+      <div className="calendar-head">
+        <div>
+          <h2 className="calendar-title">Calendario de Lancamentos</h2>
+          <p className="calendar-subtitle">Arraste a fileira de dias ou use as setas para navegar por datas futuras.</p>
         </div>
 
-        {/* Restored Tab Switcher */}
-        <div className="calendar-tab-switcher">
-          <button
-            type="button"
-            onClick={() => setActiveTab('personal')}
-            className={`calendar-tab-item ${activeTab === 'personal' ? 'active' : ''}`}
-          >
-            Meu Cronograma ({personalCalendar.length})
+        <div className="calendar-tabs" role="tablist" aria-label="Modo do calendario">
+          <button type="button" className={`calendar-tab ${activeTab === 'personal' ? 'active' : ''}`} onClick={() => setActiveTab('personal')}>
+            Meu Cronograma ({personalEvents.length})
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('global')}
-            className={`calendar-tab-item ${activeTab === 'global' ? 'active' : ''}`}
-          >
+          <button type="button" className={`calendar-tab ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>
             Estreias Globais
           </button>
         </div>
       </div>
 
       {loading && (
-        <div className="calendar-loading-state">
-          <div className="calendar-spinner" />
-          <span>Carregando seu cronograma...</span>
+        <div className="st-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          Carregando calendario...
         </div>
       )}
 
       {!loading && activeTab === 'personal' && (
-        <div className="calendar-personal-content">
-          
-          {/* Day Selector Panel */}
-          <div className="calendar-strip-panel st-panel">
-            <div className="calendar-strip-controls">
-              <div className="calendar-date-display">
-                <CalendarDays size={16} style={{ color: 'var(--primary)' }} />
+        <>
+          <div className="st-panel calendar-strip-panel">
+            <div className="calendar-strip-top">
+              <div className="calendar-month-label">
+                <CalendarIcon size={15} />
                 <span>
-                  {selectedDateObj ? `${MONTH_FULL_LABELS[selectedDateObj.getMonth()]} ${selectedDateObj.getFullYear()}` : ''}
+                  {selectedDate ? `${MONTH_FULL[selectedDate.getMonth()]} ${selectedDate.getFullYear()}` : 'Selecionar data'}
                 </span>
               </div>
 
-              <div className="calendar-action-buttons">
-                {selectedDateKey !== todayStr && (
-                  <button
-                    type="button"
-                    className="calendar-btn-today"
-                    onClick={handleGoToToday}
-                    title="Voltar para Hoje"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Hoje</span>
-                  </button>
-                )}
-                
-                <input
-                  type="date"
-                  value={selectedDateKey}
-                  onChange={(e) => e.target.value && setSelectedDateKey(e.target.value)}
-                  className="calendar-date-picker-input"
-                  title="Selecionar data específica"
-                />
-
-                <div className="calendar-nav-arrow-group">
-                  <button
-                    type="button"
-                    className="calendar-nav-arrow"
-                    onClick={() => handleSelectNearbyDate(-1)}
-                    aria-label="Dia anterior"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    className="calendar-nav-arrow"
-                    onClick={() => handleSelectNearbyDate(1)}
-                    aria-label="Próximo dia"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
-                </div>
+              <div className="calendar-strip-actions">
+                <button type="button" className="calendar-nav-btn" onClick={() => setSelectedDateKey(todayKey)}>
+                  Hoje
+                </button>
+                <input type="date" className="calendar-date-input" value={selectedDateKey} onChange={(e) => setSelectedDateKey(e.target.value)} />
+                <button type="button" className="calendar-nav-btn icon" onClick={() => navigateDay(-1)} aria-label="Dia anterior">
+                  <ChevronLeft size={16} />
+                </button>
+                <button type="button" className="calendar-nav-btn icon" onClick={() => navigateDay(1)} aria-label="Proximo dia">
+                  <ChevronRight size={16} />
+                </button>
               </div>
             </div>
 
-            {/* Drag & Touch Scrollable Day Strip */}
-            <div
-              ref={dayStripRef}
-              className="calendar-day-strip"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUpOrLeave}
-              onMouseLeave={handleMouseUpOrLeave}
-            >
-              {visibleDates.map((dateKey) => {
-                const dateObj = dateFromKey(dateKey);
-                const isActive = dateKey === selectedDateKey;
-                const isToday = dateKey === todayStr;
-                const count = groupedPersonal[dateKey]?.length || 0;
-
+            <div ref={dayStripRef} className="calendar-day-strip">
+              {visibleDateKeys.map((key) => {
+                const date = parseDateKey(key);
+                const isActive = key === selectedDateKey;
+                const isToday = key === todayKey;
+                const count = groupedByDate[key]?.length || 0;
                 return (
                   <button
-                    key={dateKey}
+                    key={key}
+                    data-date={key}
                     type="button"
-                    data-date={dateKey}
-                    onClick={() => handleDayButtonClick(dateKey)}
-                    className={`calendar-day-pill ${isActive ? 'active' : ''} ${isToday ? 'is-today' : ''}`}
+                    className={`calendar-day-pill ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`}
+                    onClick={() => setSelectedDateKey(key)}
                   >
-                    <span className="day-pill-name">{DAY_LABELS[dateObj.getDay()]}</span>
-                    <span className="day-pill-number">{dateObj.getDate()}</span>
-                    <span className="day-pill-month">{MONTH_LABELS[dateObj.getMonth()]}</span>
-                    {count > 0 ? (
-                      <span className="day-pill-badge">{count} {count === 1 ? 'ep' : 'eps'}</span>
-                    ) : (
-                      <span className="day-pill-empty">-</span>
-                    )}
+                    <span className="dow">{DAY_LABELS[date.getDay()]}</span>
+                    <span className="dom">{date.getDate()}</span>
+                    <span className="mon">{MONTH_LABELS[date.getMonth()]}</span>
+                    <span className="cnt">{count > 0 ? `${count} ep` : '-'}</span>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Selected Date Title & Swipe Area */}
-          <div
-            className="calendar-episodes-section"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            <div className="calendar-selected-date-header">
-              <h3>{selectedDateObj ? formatDateHeaderLabel(selectedDateObj) : ''}</h3>
-              {selectedItems.length > 0 && (
-                <span className="calendar-count-tag">{selectedItems.length} {selectedItems.length === 1 ? 'Lançamento' : 'Lançamentos'}</span>
-              )}
-            </div>
-
-            {/* List of Episodes / Empty State */}
-            {selectedItems.length === 0 ? (
-              <div className="calendar-empty-card st-panel">
-                <p>Nenhum lançamento agendado para este dia no seu cronograma.</p>
-                <button
-                  type="button"
-                  className="calendar-btn-next-release"
-                  onClick={handleJumpToNextRelease}
-                >
-                  Ver próximo dia com lançamentos ➔
-                </button>
-              </div>
-            ) : (
-              <div className="calendar-cards-container">
-                {selectedItems.map((item) => {
-                  const isReminderActive = reminders.includes(item.id);
-                  return (
-                    <div
-                      key={item.id}
-                      className="st-card glow-hover calendar-item-card"
-                      onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}
-                    >
-                      <div className="calendar-card-poster">
-                        <img
-                          src={getImageUrl(item.showPoster)}
-                          alt={item.showTitle}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                        <div className="calendar-card-airbadge">
-                          <Clock size={11} />
-                          <span>{formatEpisodeBadge(item.airDate)}</span>
-                        </div>
-                      </div>
-
-                      <div className="calendar-card-info">
-                        <h4 className="calendar-card-show-title">{item.showTitle}</h4>
-                        <div className="calendar-card-ep-subtitle">
-                          T{item.seasonNumber} • E{item.episodeNumber} • {item.title || 'Novo episódio'}
-                        </div>
-
-                        {item.overview && (
-                          <p className="calendar-card-overview">{item.overview}</p>
-                        )}
-
-                        <div className="calendar-card-actions">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
-                            }}
-                            className={`calendar-reminder-btn ${isReminderActive ? 'active' : ''}`}
-                          >
-                            {isReminderActive ? <Check size={13} /> : <Bell size={13} />}
-                            <span>{isReminderActive ? 'Lembrete ativo' : 'Lembrete'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div className="calendar-selected-head">
+            <h3>{selectedDate ? formatHeaderDate(selectedDate) : ''}</h3>
+            {selectedItems.length > 0 && <span>{selectedItems.length} lancamentos</span>}
           </div>
-        </div>
-      )}
 
-      {/* Global Releases Tab */}
-      {!loading && activeTab === 'global' && (
-        <div className="calendar-global-content">
-          {globalCalendar.length === 0 ? (
-            <div className="st-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Nenhum lançamento global obtido para hoje.
+          {selectedItems.length === 0 ? (
+            <div className="st-panel" style={{ padding: '26px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <p style={{ marginBottom: '12px' }}>Sem lancamentos para este dia.</p>
+              <button type="button" className="calendar-next-release" onClick={jumpToNextRelease}>
+                Ir para proximo lancamento
+              </button>
             </div>
           ) : (
-            <div className="calendar-global-list">
-              {globalCalendar.map((item) => (
-                <div key={item.id} className="st-card calendar-global-card">
-                  {item.showPoster ? (
-                    <img src={item.showPoster} alt={item.showTitle} className="calendar-global-poster" />
-                  ) : (
-                    <div className="calendar-global-poster-fallback">
-                      <Tv size={20} style={{ color: 'var(--text-muted)' }} />
+            <div className="calendar-grid">
+              {selectedItems.map((item) => {
+                const reminderActive = reminders.includes(item.id);
+                return (
+                  <article
+                    key={item.id}
+                    className="st-card calendar-card"
+                    onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}
+                  >
+                    <div className="poster-wrap">
+                      <img src={getImageUrl(item.showPoster)} alt={item.showTitle} />
+                      <div className="air-badge">
+                        <Clock size={11} />
+                        {formatEpisodeTime(item.airDate)}
+                      </div>
                     </div>
-                  )}
 
-                  <div className="calendar-global-info">
-                    <h4>{item.showTitle}</h4>
-                    <div className="calendar-global-sub">
-                      T{item.seasonNumber?.toString().padStart(2, '0')}E{item.episodeNumber?.toString().padStart(2, '0')} - {item.title}
+                    <div className="card-content">
+                      <h4>{item.showTitle}</h4>
+                      <p className="ep-line">T{item.seasonNumber} E{item.episodeNumber} • {item.title || 'Novo episodio'}</p>
+                      {item.overview ? <p className="overview">{item.overview}</p> : <div style={{ height: '8px' }} />}
+
+                      <button
+                        type="button"
+                        className={`calendar-reminder ${reminderActive ? 'active' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`);
+                        }}
+                      >
+                        {reminderActive ? 'Lembrete ativo' : 'Adicionar lembrete'}
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="calendar-global-date">
-                    <span className="calendar-global-date-badge">
-                      <CalendarIcon size={12} />
-                      {new Date(item.airDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
-                    </span>
-                    {item.time && (
-                      <span className="calendar-global-time">
-                        <Clock size={10} />
-                        {item.time}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+                  </article>
+                );
+              })}
             </div>
+          )}
+        </>
+      )}
+
+      {!loading && activeTab === 'global' && (
+        <div className="calendar-global-list">
+          {globalEvents.length === 0 ? (
+            <div className="st-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              Nenhuma estreia global encontrada agora.
+            </div>
+          ) : (
+            globalEvents.map((item) => (
+              <article key={item.id} className="st-card calendar-global-card">
+                {item.showPoster ? (
+                  <img src={item.showPoster} alt={item.showTitle} className="global-poster" />
+                ) : (
+                  <div className="global-poster fallback">
+                    <Tv size={18} />
+                  </div>
+                )}
+
+                <div className="global-main">
+                  <h4>{item.showTitle}</h4>
+                  <p>
+                    T{String(item.seasonNumber ?? 0).padStart(2, '0')}E{String(item.episodeNumber ?? 0).padStart(2, '0')} - {item.title}
+                  </p>
+                </div>
+
+                <div className="global-meta">
+                  <span className="date-pill">{new Date(item.airDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}</span>
+                  {item.time && <span className="time-pill">{item.time}</span>}
+                </div>
+              </article>
+            ))
           )}
         </div>
       )}
 
-      {/* Embedded CSS for Calendar component */}
       <style>{`
-        .calendar-header-block {
+        .calendar-head {
           display: flex;
-          justify-content: space-between;
           align-items: flex-end;
+          justify-content: space-between;
+          gap: 14px;
           flex-wrap: wrap;
-          gap: 16px;
-          margin-bottom: 24px;
-          width: 100%;
+          margin-bottom: 18px;
         }
 
-        .calendar-title-group h2 {
+        .calendar-title {
           font-family: var(--font-display);
           font-size: 28px;
           margin-bottom: 6px;
-          color: var(--text-primary);
         }
 
-        .calendar-title-group p {
+        .calendar-subtitle {
           color: var(--text-secondary);
           font-size: 14px;
-          margin: 0;
         }
 
-        /* Tab Switcher */
-        .calendar-tab-switcher {
-          display: flex;
+        .calendar-tabs {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 6px;
-          background: rgba(255, 255, 255, 0.04);
+          width: min(100%, 460px);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
           padding: 5px;
-          border-radius: var(--radius-md, 12px);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
-          width: auto;
         }
 
-        .calendar-tab-item {
+        .calendar-tab {
           border: 1px solid transparent;
           border-radius: 8px;
-          padding: 8px 16px;
-          font-size: 13px;
-          font-weight: 700;
           background: transparent;
           color: var(--text-secondary);
+          font-size: 12px;
+          font-weight: 700;
+          padding: 9px 10px;
           cursor: pointer;
-          transition: all 0.2s ease;
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
-        .calendar-tab-item.active {
+        .calendar-tab.active {
           background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
           color: #000;
-          box-shadow: 0 4px 14px rgba(245, 197, 24, 0.35);
+          box-shadow: 0 4px 12px rgba(245, 197, 24, 0.28);
         }
 
-        .calendar-loading-state {
-          padding: 60px;
-          text-align: center;
-          color: var(--text-secondary);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .calendar-spinner {
-          width: 36px;
-          height: 36px;
-          border: 3px solid var(--border-color, rgba(255,255,255,0.1));
-          border-top-color: var(--primary, #f5c518);
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        /* Day Strip Container & Controls */
         .calendar-strip-panel {
-          padding: 16px;
-          margin-bottom: 24px;
-          border-radius: var(--radius-lg, 16px);
-          background: var(--surface-color, rgba(255, 255, 255, 0.02));
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+          padding: 14px;
+          margin-bottom: 16px;
         }
 
-        .calendar-strip-controls {
+        .calendar-strip-top {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 14px;
+          gap: 10px;
+          margin-bottom: 12px;
           flex-wrap: wrap;
         }
 
-        .calendar-date-display {
-          display: flex;
+        .calendar-month-label {
+          display: inline-flex;
           align-items: center;
           gap: 8px;
           font-weight: 700;
-          font-size: 14px;
-          color: var(--text-primary);
+          font-size: 13px;
         }
 
-        .calendar-action-buttons {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .calendar-btn-today {
+        .calendar-strip-actions {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
-          background: rgba(245, 197, 24, 0.12);
-          color: var(--primary, #f5c518);
-          border: 1px solid rgba(245, 197, 24, 0.3);
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
+        .calendar-nav-btn {
+          border: 1px solid var(--border-color);
           border-radius: 999px;
-          padding: 5px 12px;
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-primary);
+          height: 32px;
+          padding: 0 12px;
+          cursor: pointer;
           font-size: 12px;
           font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s ease;
         }
 
-        .calendar-btn-today:hover {
-          background: rgba(245, 197, 24, 0.25);
-        }
-
-        .calendar-date-picker-input {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
-          color: var(--text-primary);
-          border-radius: 8px;
-          padding: 4px 8px;
-          font-size: 12px;
-          cursor: pointer;
-          color-scheme: dark;
-        }
-
-        .calendar-nav-arrow-group {
-          display: inline-flex;
-          gap: 4px;
-        }
-
-        .calendar-nav-arrow {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.12));
-          color: var(--text-primary);
-          border-radius: 50%;
+        .calendar-nav-btn.icon {
           width: 32px;
-          height: 32px;
+          padding: 0;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
         }
 
-        .calendar-nav-arrow:hover {
-          border-color: var(--primary, #f5c518);
-          color: var(--primary, #f5c518);
-          background: rgba(245, 197, 24, 0.1);
+        .calendar-date-input {
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-primary);
+          height: 32px;
+          padding: 0 8px;
+          font-size: 12px;
+          color-scheme: dark;
         }
 
-        /* Horizontal Day Strip */
         .calendar-day-strip {
           display: flex;
           gap: 8px;
           overflow-x: auto;
+          overflow-y: hidden;
           padding-bottom: 6px;
-          padding-top: 2px;
-          width: 100%;
-          maxWidth: 100%;
-          touch-action: pan-x;
           -webkit-overflow-scrolling: touch;
-          overscroll-behavior-x: contain;
+          touch-action: pan-x;
           scrollbar-width: none;
-          user-select: none;
-          cursor: grab;
-        }
-
-        .calendar-day-strip:active {
-          cursor: grabbing;
         }
 
         .calendar-day-strip::-webkit-scrollbar {
@@ -792,272 +545,167 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         .calendar-day-pill {
           flex: 0 0 auto;
-          width: 76px;
-          padding: 10px 8px;
+          width: 74px;
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.03);
+          color: var(--text-primary);
+          padding: 8px 6px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
           gap: 2px;
-          background: rgba(255, 255, 255, 0.025);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-          border-radius: 14px;
-          color: var(--text-primary);
           cursor: pointer;
-          transition: all 0.2s ease;
-          -webkit-tap-highlight-color: transparent;
         }
 
-        .calendar-day-pill:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .calendar-day-pill.is-today {
-          border-color: rgba(245, 197, 24, 0.5);
+        .calendar-day-pill.today {
+          border-color: rgba(245, 197, 24, 0.4);
         }
 
         .calendar-day-pill.active {
           background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
-          color: #000 !important;
-          border-color: transparent;
-          box-shadow: 0 6px 18px rgba(245, 197, 24, 0.35);
-          transform: translateY(-2px);
-        }
-
-        .day-pill-name {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          opacity: 0.85;
-        }
-
-        .day-pill-number {
-          font-size: 20px;
-          font-weight: 800;
-          line-height: 1.1;
-        }
-
-        .day-pill-month {
-          font-size: 11px;
-          opacity: 0.75;
-        }
-
-        .day-pill-badge {
-          font-size: 10px;
-          font-weight: 800;
-          background: rgba(255, 255, 255, 0.15);
-          padding: 2px 6px;
-          border-radius: 999px;
-          margin-top: 2px;
-        }
-
-        .calendar-day-pill.active .day-pill-badge {
-          background: rgba(0, 0, 0, 0.2);
           color: #000;
+          border-color: transparent;
+          box-shadow: 0 6px 14px rgba(245, 197, 24, 0.32);
         }
 
-        .day-pill-empty {
-          font-size: 10px;
-          opacity: 0.4;
-          margin-top: 2px;
-        }
+        .calendar-day-pill .dow { font-size: 10px; font-weight: 700; }
+        .calendar-day-pill .dom { font-size: 19px; font-weight: 800; line-height: 1; }
+        .calendar-day-pill .mon { font-size: 11px; opacity: 0.8; }
+        .calendar-day-pill .cnt { font-size: 10px; opacity: 0.85; margin-top: 2px; }
 
-        /* Episodes Section */
-        .calendar-episodes-section {
-          width: 100%;
-          min-height: 200px;
-        }
-
-        .calendar-selected-date-header {
+        .calendar-selected-head {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 16px;
           flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 14px;
         }
 
-        .calendar-selected-date-header h3 {
+        .calendar-selected-head h3 {
           font-family: var(--font-display);
-          font-size: 22px;
-          margin: 0;
-          color: var(--text-primary);
+          font-size: 26px;
+          line-height: 1.1;
         }
 
-        .calendar-count-tag {
+        .calendar-selected-head span {
+          border: 1px solid rgba(245, 197, 24, 0.3);
+          background: rgba(245, 197, 24, 0.1);
+          color: var(--primary);
+          border-radius: 999px;
+          padding: 4px 10px;
           font-size: 12px;
           font-weight: 700;
-          background: rgba(245, 197, 24, 0.12);
-          color: var(--primary, #f5c518);
-          padding: 4px 10px;
-          border-radius: 999px;
-          border: 1px solid rgba(245, 197, 24, 0.25);
         }
 
-        /* Empty State */
-        .calendar-empty-card {
-          padding: 36px 20px;
-          text-align: center;
-          color: var(--text-secondary);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .calendar-btn-next-release {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
-          color: var(--primary, #f5c518);
+        .calendar-next-release {
+          border: 1px solid var(--border-color);
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-primary);
           border-radius: 999px;
-          padding: 8px 18px;
-          font-size: 13px;
+          padding: 8px 14px;
+          font-size: 12px;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.2s ease;
         }
 
-        .calendar-btn-next-release:hover {
-          background: rgba(245, 197, 24, 0.15);
-          border-color: var(--primary, #f5c518);
-        }
-
-        /* Episode Cards Container */
-        .calendar-cards-container {
+        .calendar-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 16px;
-          width: 100%;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
         }
 
-        /* Desktop & Mobile Card Layout */
-        .calendar-item-card {
+        .calendar-card {
           display: flex;
-          flex-direction: row;
-          align-items: stretch;
-          background: var(--surface-color, rgba(255, 255, 255, 0.03));
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-          border-radius: 14px;
           overflow: hidden;
-          cursor: pointer;
           min-width: 0;
-          transition: transform 0.2s ease, border-color 0.2s ease;
+          cursor: pointer;
         }
 
-        .calendar-item-card:hover {
-          transform: translateY(-2px);
-          border-color: rgba(245, 197, 24, 0.4);
-        }
-
-        .calendar-card-poster {
+        .poster-wrap {
+          width: 86px;
+          min-width: 86px;
           position: relative;
-          width: 90px;
-          min-width: 90px;
-          background: rgba(0, 0, 0, 0.3);
-          flex-shrink: 0;
+          background: rgba(255, 255, 255, 0.04);
         }
 
-        .calendar-card-poster img {
+        .poster-wrap img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
         }
 
-        .calendar-card-airbadge {
+        .air-badge {
           position: absolute;
           left: 6px;
           bottom: 6px;
-          background: rgba(0, 0, 0, 0.75);
-          backdrop-filter: blur(4px);
+          border-radius: 999px;
+          background: rgba(0, 0, 0, 0.7);
           color: #fff;
           font-size: 10px;
           font-weight: 700;
           padding: 3px 7px;
-          border-radius: 999px;
           display: inline-flex;
-          align-items: center;
           gap: 4px;
-          max-width: calc(100% - 12px);
-          white-space: nowrap;
-          overflow: hidden;
+          align-items: center;
         }
 
-        .calendar-card-info {
-          flex: 1;
+        .card-content {
           min-width: 0;
-          padding: 12px 14px;
+          flex: 1;
+          padding: 10px 12px;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
+          gap: 6px;
         }
 
-        .calendar-card-show-title {
+        .card-content h4 {
           font-size: 15px;
-          font-weight: 700;
-          margin: 0 0 4px 0;
-          color: var(--text-primary);
+          line-height: 1.2;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .calendar-card-ep-subtitle {
-          font-size: 12px;
-          color: var(--primary, #f5c518);
-          font-weight: 600;
-          margin-bottom: 6px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .calendar-card-overview {
-          font-size: 12px;
+        .card-content .ep-line {
           color: var(--text-secondary);
-          margin: 0 0 10px 0;
+          font-size: 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .card-content .overview {
+          color: var(--text-muted);
+          font-size: 12px;
+          line-height: 1.35;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
-          line-height: 1.4;
         }
 
-        .calendar-card-actions {
-          display: flex;
-          align-items: center;
+        .calendar-reminder {
           margin-top: auto;
-          padding-top: 4px;
-        }
-
-        .calendar-reminder-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          border-radius: 999px;
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+          border: 1px solid var(--border-color);
           background: rgba(255, 255, 255, 0.04);
           color: var(--text-primary);
+          border-radius: 999px;
+          padding: 7px 10px;
           font-size: 12px;
           font-weight: 700;
-          padding: 6px 12px;
           cursor: pointer;
-          transition: all 0.2s ease;
+          width: 100%;
         }
 
-        .calendar-reminder-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .calendar-reminder-btn.active {
-          border-color: transparent;
+        .calendar-reminder.active {
           background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
           color: #000;
-          box-shadow: 0 3px 10px rgba(245, 197, 24, 0.3);
+          border-color: transparent;
         }
 
-        /* Global Tab Styling */
         .calendar-global-list {
           display: flex;
           flex-direction: column;
@@ -1066,56 +714,48 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         .calendar-global-card {
           display: flex;
+          gap: 12px;
           align-items: center;
-          gap: 14px;
-          padding: 12px 14px;
-          border-radius: 12px;
-          background: var(--surface-color, rgba(255, 255, 255, 0.03));
-          border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+          padding: 12px;
         }
 
-        .calendar-global-poster {
+        .global-poster {
           width: 44px;
           height: 64px;
-          object-fit: cover;
           border-radius: 6px;
+          object-fit: cover;
           flex-shrink: 0;
         }
 
-        .calendar-global-poster-fallback {
-          width: 44px;
-          height: 64px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 6px;
+        .global-poster.fallback {
           display: flex;
           align-items: center;
           justify-content: center;
-          flex-shrink: 0;
+          background: rgba(255, 255, 255, 0.04);
+          color: var(--text-muted);
         }
 
-        .calendar-global-info {
+        .global-main {
           flex: 1;
           min-width: 0;
         }
 
-        .calendar-global-info h4 {
+        .global-main h4 {
           font-size: 15px;
-          margin: 0 0 4px 0;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .calendar-global-sub {
-          font-size: 13px;
-          color: var(--primary, #f5c518);
-          font-weight: 600;
+        .global-main p {
+          font-size: 12px;
+          color: var(--text-secondary);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .calendar-global-date {
+        .global-meta {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
@@ -1123,78 +763,55 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           flex-shrink: 0;
         }
 
-        .calendar-global-date-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
+        .date-pill {
           font-size: 11px;
-          background: rgba(245, 197, 24, 0.12);
-          color: var(--primary, #f5c518);
-          padding: 4px 8px;
-          border-radius: 6px;
           font-weight: 700;
+          color: var(--primary);
+          border: 1px solid rgba(245, 197, 24, 0.28);
+          background: rgba(245, 197, 24, 0.1);
+          border-radius: 999px;
+          padding: 4px 8px;
         }
 
-        .calendar-global-time {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
+        .time-pill {
           font-size: 11px;
           color: var(--text-muted);
         }
 
-        /* Mobile Adjustments */
-        @media (max-width: 640px) {
-          .calendar-header-block {
-            flex-direction: column;
+        @media (max-width: 760px) {
+          .calendar-head {
             align-items: stretch;
-            gap: 12px;
           }
 
-          .calendar-tab-switcher {
+          .calendar-title {
+            font-size: 24px;
+          }
+
+          .calendar-tabs {
             width: 100%;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
           }
 
-          .calendar-tab-item {
-            text-align: center;
-            padding: 8px 10px;
-            font-size: 12px;
-          }
-
-          .calendar-cards-container {
+          .calendar-grid {
             grid-template-columns: 1fr;
           }
 
-          .calendar-item-card {
-            min-height: 105px;
+          .calendar-selected-head h3 {
+            font-size: 22px;
           }
+        }
 
-          .calendar-card-poster {
-            width: 80px;
-            min-width: 80px;
-          }
-
-          .calendar-card-info {
-            padding: 10px;
-          }
-
-          .calendar-card-show-title {
-            font-size: 14px;
-          }
-
-          .calendar-card-ep-subtitle {
+        @media (max-width: 420px) {
+          .calendar-tab {
             font-size: 11px;
+            padding: 8px 7px;
           }
 
           .calendar-day-pill {
             width: 68px;
-            padding: 8px 6px;
           }
 
-          .day-pill-number {
-            font-size: 18px;
+          .calendar-day-pill .dom {
+            font-size: 17px;
           }
         }
       `}</style>
