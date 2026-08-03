@@ -67,6 +67,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
+  const [canScrollDatesLeft, setCanScrollDatesLeft] = useState(false);
+  const [canScrollDatesRight, setCanScrollDatesRight] = useState(false);
 
   const dayStripRef = useRef<HTMLDivElement | null>(null);
 
@@ -236,6 +238,43 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     }
   }, [selectedDateKey]);
 
+  const refreshDateStripControls = () => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+
+    const maxLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
+    const current = strip.scrollLeft;
+    setCanScrollDatesLeft(current > 4);
+    setCanScrollDatesRight(current < maxLeft - 4);
+  };
+
+  useEffect(() => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+
+    const onScroll = () => refreshDateStripControls();
+    strip.addEventListener('scroll', onScroll, { passive: true });
+
+    const onResize = () => refreshDateStripControls();
+    window.addEventListener('resize', onResize);
+
+    const timer = window.setTimeout(refreshDateStripControls, 80);
+
+    return () => {
+      window.clearTimeout(timer);
+      strip.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [visibleDateKeys.length]);
+
+  const stepDateStrip = (direction: 'left' | 'right') => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+    const amount = Math.max(180, Math.floor(strip.clientWidth * 0.68));
+    const delta = direction === 'right' ? amount : -amount;
+    strip.scrollBy({ left: delta, behavior: 'smooth' });
+  };
+
   const selectedDate = selectedDateKey ? parseDateKey(selectedDateKey) : null;
   const selectedItems = selectedDateKey ? groupedByDate[selectedDateKey] || [] : [];
 
@@ -317,27 +356,51 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               </div>
             </div>
 
-            <div ref={dayStripRef} className="calendar-day-strip">
-              {visibleDateKeys.map((key) => {
-                const date = parseDateKey(key);
-                const isActive = key === selectedDateKey;
-                const isToday = key === todayKey;
-                const count = groupedByDate[key]?.length || 0;
-                return (
-                  <button
-                    key={key}
-                    data-date={key}
-                    type="button"
-                    className={`calendar-day-pill ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`}
-                    onClick={() => setSelectedDateKey(key)}
-                  >
-                    <span className="dow">{DAY_LABELS[date.getDay()]}</span>
-                    <span className="dom">{date.getDate()}</span>
-                    <span className="mon">{MONTH_LABELS[date.getMonth()]}</span>
-                    <span className="cnt">{count > 0 ? `${count} ep` : '-'}</span>
-                  </button>
-                );
-              })}
+            <div className="calendar-day-strip-shell">
+              {canScrollDatesLeft && (
+                <button
+                  type="button"
+                  className="calendar-strip-fab left"
+                  onClick={() => stepDateStrip('left')}
+                  aria-label="Ver datas anteriores"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+
+              <div ref={dayStripRef} className="calendar-day-strip">
+                {visibleDateKeys.map((key) => {
+                  const date = parseDateKey(key);
+                  const isActive = key === selectedDateKey;
+                  const isToday = key === todayKey;
+                  const count = groupedByDate[key]?.length || 0;
+                  return (
+                    <button
+                      key={key}
+                      data-date={key}
+                      type="button"
+                      className={`calendar-day-pill ${isActive ? 'active' : ''} ${isToday ? 'today' : ''}`}
+                      onClick={() => setSelectedDateKey(key)}
+                    >
+                      <span className="dow">{DAY_LABELS[date.getDay()]}</span>
+                      <span className="dom">{date.getDate()}</span>
+                      <span className="mon">{MONTH_LABELS[date.getMonth()]}</span>
+                      <span className="cnt">{count > 0 ? `${count} ep` : '-'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {canScrollDatesRight && (
+                <button
+                  type="button"
+                  className="calendar-strip-fab right"
+                  onClick={() => stepDateStrip('right')}
+                  aria-label="Ver datas futuras"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -559,6 +622,42 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           touch-action: pan-x;
           overscroll-behavior-x: contain;
           scrollbar-width: none;
+        }
+
+        .calendar-day-strip-shell {
+          position: relative;
+          width: 100%;
+        }
+
+        .calendar-strip-fab {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          z-index: 3;
+          width: 32px;
+          height: 32px;
+          border-radius: 999px;
+          border: 1px solid var(--border-color);
+          background: rgba(7, 7, 10, 0.86);
+          color: var(--text-primary);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+        }
+
+        .calendar-strip-fab.left {
+          left: -6px;
+        }
+
+        .calendar-strip-fab.right {
+          right: -6px;
+        }
+
+        .calendar-strip-fab:hover {
+          border-color: var(--primary);
+          color: var(--primary);
         }
 
         .calendar-day-strip::-webkit-scrollbar {
@@ -819,6 +918,19 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
           .calendar-selected-head h3 {
             font-size: 22px;
+          }
+
+          .calendar-strip-fab {
+            width: 30px;
+            height: 30px;
+          }
+
+          .calendar-strip-fab.left {
+            left: -2px;
+          }
+
+          .calendar-strip-fab.right {
+            right: -2px;
           }
         }
 
