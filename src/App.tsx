@@ -195,7 +195,7 @@ const AppContent: React.FC = () => {
             }}>ShowTime</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="header-user-area" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button onClick={toggleTheme} className="st-btn-icon" title="Alternar Tema">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -295,11 +295,13 @@ const AppContent: React.FC = () => {
         {/* Mobile Bottom Navigation Bar */}
         <nav className="bottom-nav">
           {[
-            { id: 'dashboard', label: 'Painel', icon: <LayoutGrid size={20} /> },
-            { id: 'following', label: 'Seguindo', icon: <Bookmark size={20} /> },
-            { id: 'search', label: 'Buscar', icon: <SearchIcon size={20} /> },
-            { id: 'friends', label: 'Amigos', icon: <Users size={20} /> },
-            { id: 'profile', label: 'Perfil', icon: <User size={20} /> }
+            { id: 'dashboard', label: 'Painel', icon: <LayoutGrid size={18} /> },
+            { id: 'following', label: 'Seguindo', icon: <Bookmark size={18} /> },
+            { id: 'search', label: 'Buscar', icon: <SearchIcon size={18} /> },
+            { id: 'calendar', label: 'Calendário', icon: <CalendarIcon size={18} /> },
+            { id: 'lists', label: 'Listas', icon: <List size={18} /> },
+            { id: 'friends', label: 'Amigos', icon: <Users size={18} /> },
+            { id: 'profile', label: 'Perfil', icon: <User size={18} /> }
           ].map(tab => {
             const isActive = activeTab === tab.id && !selectedMedia && !viewingProfile;
             return (

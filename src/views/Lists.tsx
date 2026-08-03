@@ -149,7 +149,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
             <p style={{ fontSize: '13px', marginTop: '6px' }}>Clique no botão "Criar Nova Lista" no canto superior para iniciar!</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+          <div className="lists-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
             {lists.map(list => (
               <div 
                 key={list.id} 
@@ -187,7 +187,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
         /* Detailed List View */
         <div>
           {/* Header & Back Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+          <div className="list-detail-header" style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
             <button onClick={() => setSelectedListId(null)} className="st-btn-secondary" style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
               <ArrowLeft size={16} />
               Voltar
@@ -264,6 +264,25 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
           )}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 760px) {
+          .lists-cards-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .list-detail-header {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px !important;
+          }
+
+          .list-detail-header button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
 
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes, fetchWatchProviders } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { useAuth } from '../context/AuthContext.js';
@@ -332,6 +333,66 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
 
     await toggleWatchEpisode(epId, media, ep);
   };
+
+  const futureEpisodeModal = pendingFutureEpisode ? (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.65)',
+        zIndex: 12000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}
+      onClick={() => {
+        if (!confirmingFutureEpisode) setPendingFutureEpisode(null);
+      }}
+    >
+      <div
+        className="st-panel"
+        style={{ width: '100%', maxWidth: '460px', padding: '20px', borderRadius: 'var(--radius-md)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '10px' }}>Episódio ainda não lançado</h4>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '14px' }}>
+          Este episódio tem data de estreia futura ({pendingFutureEpisode.episode?.airDate ? new Date(pendingFutureEpisode.episode.airDate).toLocaleDateString('pt-BR') : 'sem data confirmada'}).
+        </p>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '18px' }}>
+          Tem certeza que deseja marcar como assistido mesmo assim?
+        </p>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+          <button
+            className="st-btn-secondary"
+            style={{ padding: '8px 12px', fontSize: '12px' }}
+            onClick={() => setPendingFutureEpisode(null)}
+            disabled={confirmingFutureEpisode}
+          >
+            Cancelar
+          </button>
+          <button
+            className="st-btn-primary"
+            style={{ padding: '8px 12px', fontSize: '12px' }}
+            disabled={confirmingFutureEpisode}
+            onClick={async () => {
+              if (!pendingFutureEpisode) return;
+              setConfirmingFutureEpisode(true);
+              try {
+                await toggleWatchEpisode(pendingFutureEpisode.episodeId, media, pendingFutureEpisode.episode);
+                trackEvent('future_episode_marked_confirmed', { showId: media?.id, episodeId: pendingFutureEpisode.episodeId });
+              } finally {
+                setConfirmingFutureEpisode(false);
+                setPendingFutureEpisode(null);
+              }
+            }}
+          >
+            {confirmingFutureEpisode ? 'Marcando...' : 'Marcar mesmo assim'}
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
 
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1471,65 +1532,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
 
       </div>
 
-      {pendingFutureEpisode && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
-            zIndex: 12000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-          }}
-          onClick={() => {
-            if (!confirmingFutureEpisode) setPendingFutureEpisode(null);
-          }}
-        >
-          <div
-            className="st-panel"
-            style={{ width: '100%', maxWidth: '460px', padding: '20px', borderRadius: 'var(--radius-md)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '10px' }}>Episódio ainda não lançado</h4>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '14px' }}>
-              Este episódio tem data de estreia futura ({pendingFutureEpisode.episode?.airDate ? new Date(pendingFutureEpisode.episode.airDate).toLocaleDateString('pt-BR') : 'sem data confirmada'}).
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '18px' }}>
-              Tem certeza que deseja marcar como assistido mesmo assim?
-            </p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button
-                className="st-btn-secondary"
-                style={{ padding: '8px 12px', fontSize: '12px' }}
-                onClick={() => setPendingFutureEpisode(null)}
-                disabled={confirmingFutureEpisode}
-              >
-                Cancelar
-              </button>
-              <button
-                className="st-btn-primary"
-                style={{ padding: '8px 12px', fontSize: '12px' }}
-                disabled={confirmingFutureEpisode}
-                onClick={async () => {
-                  if (!pendingFutureEpisode) return;
-                  setConfirmingFutureEpisode(true);
-                  try {
-                    await toggleWatchEpisode(pendingFutureEpisode.episodeId, media, pendingFutureEpisode.episode);
-                    trackEvent('future_episode_marked_confirmed', { showId: media?.id, episodeId: pendingFutureEpisode.episodeId });
-                  } finally {
-                    setConfirmingFutureEpisode(false);
-                    setPendingFutureEpisode(null);
-                  }
-                }}
-              >
-                {confirmingFutureEpisode ? 'Marcando...' : 'Marcar mesmo assim'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {futureEpisodeModal && typeof document !== 'undefined' ? createPortal(futureEpisodeModal, document.body) : null}
 
       <style>{`
         @media (max-width: 1080px) {

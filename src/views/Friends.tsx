@@ -70,7 +70,7 @@ export const Friends: React.FC<{ onViewProfile?: (userId: string, username: stri
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {friendsData.map(friend => (
-            <div key={friend.id} className="st-card glow-hover" style={{ display: 'flex', padding: '20px', alignItems: 'center', gap: '20px', cursor: 'pointer' }} onClick={() => onViewProfile?.(friend.id, friend.username)}>
+            <div key={friend.id} className="st-card glow-hover friend-card" style={{ display: 'flex', padding: '20px', alignItems: 'center', gap: '20px', cursor: 'pointer' }} onClick={() => onViewProfile?.(friend.id, friend.username)}>
               <div style={{ position: 'relative' }}>
                 <img 
                   src={friend.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friend.username}`}
@@ -79,9 +79,9 @@ export const Friends: React.FC<{ onViewProfile?: (userId: string, username: stri
                 />
                 <div style={{ position: 'absolute', bottom: '0', right: '0', width: '14px', height: '14px', background: 'var(--accent)', borderRadius: '50%', border: '2px solid var(--bg-card)' }} title="Online"></div>
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <h4 style={{ fontSize: '18px', marginBottom: '4px' }}>@{friend.username}</h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <div className="friend-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Clock size={12} /> {friend.lastActive}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Activity size={12} /> Assistiu: {friend.recentWatch}</span>
                 </div>
@@ -93,6 +93,22 @@ export const Friends: React.FC<{ onViewProfile?: (userId: string, username: stri
           ))}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 760px) {
+          .friend-card {
+            padding: 14px !important;
+            gap: 12px !important;
+            align-items: flex-start !important;
+          }
+
+          .friend-meta {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 6px !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

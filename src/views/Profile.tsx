@@ -120,6 +120,7 @@ export const Profile: React.FC = () => {
 
             {/* Custom URL Input */}
             <form 
+              className="avatar-url-form"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (customAvatarUrl.trim()) handleSelectAvatar(customAvatarUrl.trim());
@@ -210,6 +211,25 @@ export const Profile: React.FC = () => {
         @media (max-width: 800px) {
           .profile-grid {
             grid-template-columns: 1fr !important;
+          }
+
+          .avatar-url-form {
+            flex-direction: column;
+          }
+
+          .avatar-url-form button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .profile-view .st-panel {
+            padding: 16px !important;
+          }
+
+          .profile-view h2 {
+            font-size: 20px !important;
           }
         }
       `}</style>

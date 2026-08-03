@@ -122,7 +122,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
       </div>
 
       {/* Search Type Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <div className="search-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <button
           onClick={() => setSearchTab('media')}
           className={searchTab === 'media' ? 'st-btn-primary' : 'st-btn-secondary'}
@@ -267,7 +267,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
                         {u.username}
                       </h4>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                    <div className="search-user-actions" style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                       <button
                         className="btn-primary"
                         style={{ fontSize: '13px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -292,6 +292,30 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
           )}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 760px) {
+          .search-tabs {
+            flex-wrap: wrap;
+          }
+
+          .search-tabs button {
+            flex: 1 1 160px;
+            justify-content: center;
+          }
+
+          .search-user-actions {
+            width: 100%;
+            flex-wrap: wrap;
+            margin-top: 8px;
+          }
+
+          .search-user-actions button {
+            flex: 1 1 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
     </div>
   );
 };
