@@ -402,6 +402,7 @@ const AppContent: React.FC = () => {
               <input 
                 type="text" 
                 required
+                autoComplete="username"
                 placeholder="Ex: joaosilva"
                 value={authUsername}
                 onChange={e => setAuthUsername(e.target.value)}
@@ -415,6 +416,7 @@ const AppContent: React.FC = () => {
             <input 
               type="email" 
               required
+              autoComplete="email"
               placeholder="Ex: joao@email.com"
               value={authEmail}
               onChange={e => setAuthEmail(e.target.value)}
@@ -428,6 +430,7 @@ const AppContent: React.FC = () => {
               <input 
                 type={showPassword ? "text" : "password"} 
                 required
+                autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                 placeholder="Mínimo 8 caracteres"
                 value={authPassword}
                 onChange={e => setAuthPassword(e.target.value)}
