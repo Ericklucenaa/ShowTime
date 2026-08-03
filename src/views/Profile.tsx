@@ -126,14 +126,6 @@ export const Profile: React.FC = () => {
             <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', marginBottom: '4px' }}>@{user?.username}</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '12px' }}>{user?.email}</p>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button 
-                onClick={() => setShowAvatarPicker(!showAvatarPicker)} 
-                className="st-btn-secondary" 
-                style={{ padding: '8px 16px', fontSize: '13px', display: 'inline-flex', gap: '6px' }}
-              >
-                <Camera size={16} />
-                Alterar Foto
-              </button>
               <button
                 onClick={() => devicePhotoInputRef.current?.click()}
                 className="st-btn-secondary"
