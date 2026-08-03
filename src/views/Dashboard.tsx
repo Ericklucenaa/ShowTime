@@ -140,8 +140,18 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
     <div className="dashboard-view animate-fade-in" style={{ paddingBottom: '40px' }}>
       
       {/* Welcome Banner & Quick Stats */}
-      <div className="welcome-banner glass-panel" style={{ padding: '24px', marginBottom: '30px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <div>
+      <div
+        className="welcome-banner glass-panel"
+        style={{
+          padding: '24px',
+          marginBottom: '24px',
+          display: 'grid',
+          gap: '18px',
+          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}
+      >
+        <div className="welcome-copy">
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '6px' }}>Olá, Bem-vindo ao ShowTime!</h2>
           <p style={{ color: 'var(--text-secondary)' }}>Acompanhe suas séries e filmes preferidos em um só lugar.</p>
           {lastWatchedAt && (
@@ -150,31 +160,31 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
             </p>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="welcome-stats-grid">
+          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <Clock size={24} style={{ color: 'var(--primary)' }} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{totalHours}h</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tempo Assistido</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <Tv size={24} style={{ color: 'var(--secondary)' }} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{watchedEpisodes.length}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <Film size={24} style={{ color: 'var(--accent)' }} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{watchedMovies.length}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 18px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
             <Trophy size={24} style={{ color: 'var(--primary)' }} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{streakDays}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Streak Atual</div>
             </div>
@@ -182,7 +192,7 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }} className="dashboard-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }} className="dashboard-grid">
         
         {/* Main Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -323,9 +333,75 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
 
       {/* CSS overrides inside Dashboard view for smaller layouts */}
       <style>{`
+        .welcome-banner {
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+          align-items: start;
+        }
+
+        .welcome-copy {
+          min-width: 0;
+        }
+
+        .welcome-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          width: 100%;
+          align-self: stretch;
+        }
+
+        .stat-badge {
+          min-height: 84px;
+        }
+
         @media (max-width: 800px) {
+          .welcome-banner {
+            grid-template-columns: 1fr;
+            padding: 18px !important;
+          }
+
+          .welcome-copy h2 {
+            font-size: 24px !important;
+            line-height: 1.1;
+          }
+
+          .welcome-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+          }
+
+          .stat-badge {
+            min-height: 78px;
+          }
+
           .dashboard-grid {
             grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .welcome-copy h2 {
+            font-size: 21px !important;
+          }
+
+          .stat-badge {
+            padding: 10px 10px !important;
+            gap: 8px !important;
+            min-height: 74px;
+          }
+
+          .stat-badge svg {
+            width: 20px;
+            height: 20px;
+          }
+
+          .stat-badge > div > div:first-child {
+            font-size: 16px !important;
+          }
+
+          .stat-badge > div > div:last-child {
+            font-size: 11px !important;
           }
         }
       `}</style>
