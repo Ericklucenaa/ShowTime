@@ -90,6 +90,19 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
 
+function isEpisodeReleased(airDateValue?: string): boolean {
+  if (!airDateValue) return false;
+  const parsed = new Date(airDateValue);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  const releaseDay = new Date(parsed);
+  releaseDay.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return releaseDay <= today;
+}
+
 export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [watchedEpisodes, setWatchedEpisodes] = useState<WatchEpisodeEvent[]>([]);
@@ -338,19 +351,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const watchAllEpisodesOfSeason = async (showMetadata: any, episodes: any[], seasonNumber: number): Promise<void> => {
     if (!user) return;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     const unwatchedEpisodes = episodes.filter(ep => {
       const epId = `ep_${showMetadata.id}_${seasonNumber}_${ep.episodeNumber}`;
       const alreadyWatched = watchedEpisodes.some(we => we.episodeId === epId);
       if (alreadyWatched) return false;
-      // Skip episodes that haven't aired yet
-      if (ep.airDate) {
-        const airDate = new Date(ep.airDate);
-        if (airDate > today) return false;
-      }
-      return true;
+      // Skip episodes with unknown or future release dates in bulk actions.
+      return isEpisodeReleased(ep.airDate);
     });
 
     if (unwatchedEpisodes.length === 0) return;
@@ -782,18 +788,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       const episodesToMark: any[] = [];
       const seasons = showMetadata.seasons || [];
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
 
       for (const season of seasons) {
         if (season.seasonNumber > 0) {
           const episodes = await fetchSeasonEpisodes(showMetadata.id, season.seasonNumber);
           episodes.forEach((ep: any) => {
-            // Skip future episodes
-            if (ep.airDate) {
-              const airDate = new Date(ep.airDate);
-              if (airDate > today) return;
-            }
+            if (!isEpisodeReleased(ep.airDate)) return;
             episodesToMark.push({
               episodeNumber: ep.episodeNumber,
               title: ep.title,

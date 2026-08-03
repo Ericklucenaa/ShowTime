@@ -23,6 +23,19 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
 
+function isEpisodeReleased(airDateValue?: string): boolean {
+  if (!airDateValue) return false;
+  const parsed = new Date(airDateValue);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  const releaseDay = new Date(parsed);
+  releaseDay.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return releaseDay <= today;
+}
+
 interface ShowDetailProps {
   mediaId: string;
   mediaType: 'show' | 'movie';
@@ -68,6 +81,8 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [newChatMessageText, setNewChatMessageText] = useState('');
   const [watchProviders, setWatchProviders] = useState<any[]>([]);
+  const [pendingFutureEpisode, setPendingFutureEpisode] = useState<{ episodeId: string; episode: any } | null>(null);
+  const [confirmingFutureEpisode, setConfirmingFutureEpisode] = useState(false);
   
   const handleTabChange = (tab: 'episodes' | 'community') => {
     setActiveSubTab(tab);
@@ -272,6 +287,14 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
     return isEpisodeWatched(epId);
   }).length;
   const isSeasonComplete = seasonEpisodes.length > 0 && watchedInSeason === seasonEpisodes.length;
+  const latestReleasedEpisode = [...seasonEpisodes]
+    .filter((ep: any) => isEpisodeReleased(ep.airDate))
+    .sort((a: any, b: any) => {
+      const aDate = new Date(a.airDate).getTime();
+      const bDate = new Date(b.airDate).getTime();
+      if (bDate !== aDate) return bDate - aDate;
+      return (b.episodeNumber || 0) - (a.episodeNumber || 0);
+    })[0] || null;
 
   // Toggle list membership
 
@@ -297,6 +320,17 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
       trackEvent('detail_list_item_removed', { listId, mediaType, mediaId: media.id });
     }
     setShowListDropdown(false);
+  };
+
+  const handleEpisodeWatchClick = async (e: React.MouseEvent, ep: any, epId: string, watched: boolean) => {
+    e.stopPropagation();
+
+    if (!watched && !isEpisodeReleased(ep.airDate)) {
+      setPendingFutureEpisode({ episodeId: epId, episode: ep });
+      return;
+    }
+
+    await toggleWatchEpisode(epId, media, ep);
   };
 
   const handlePostComment = async (e: React.FormEvent) => {
@@ -910,16 +944,33 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>Nenhum episódio cadastrado para esta temporada.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {latestReleasedEpisode && (
+                    <div className="st-panel" style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--primary)' }}>Último episódio lançado:</strong>{' '}
+                      E{String(latestReleasedEpisode.episodeNumber || 0).padStart(2, '0')} - {latestReleasedEpisode.title || 'Sem título'}
+                      {latestReleasedEpisode.airDate ? ` (${new Date(latestReleasedEpisode.airDate).toLocaleDateString('pt-BR')})` : ''}
+                    </div>
+                  )}
                   {seasonEpisodes.map((ep: any) => {
                     const epId = `ep_${media.id}_${selectedSeasonNum}_${ep.episodeNumber}`;
                     const watched = isEpisodeWatched(epId);
                     const isExpanded = expandedEpisodeNum === ep.episodeNumber;
+                    const released = isEpisodeReleased(ep.airDate);
+                    const isLatestReleased = Boolean(latestReleasedEpisode) && released && latestReleasedEpisode.episodeNumber === ep.episodeNumber;
 
                     return (
                       <div 
                         key={ep.episodeNumber} 
                         className="st-card" 
-                        style={{ borderLeft: watched ? '4px solid var(--accent)' : '1px solid var(--border-color)', overflow: 'hidden' }}
+                        style={{
+                          borderLeft: watched
+                            ? '4px solid var(--accent)'
+                            : isLatestReleased
+                              ? '4px solid var(--primary)'
+                              : '1px solid var(--border-color)',
+                          overflow: 'hidden',
+                          background: isLatestReleased ? 'rgba(245, 197, 24, 0.06)' : undefined
+                        }}
                       >
                         {/* Accordion Header */}
                         <div 
@@ -927,10 +978,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                           onClick={() => handleEpisodeClick(ep.episodeNumber)}
                         >
                           <button 
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              await toggleWatchEpisode(epId, media, ep);
-                            }}
+                            onClick={(e) => handleEpisodeWatchClick(e, ep, epId, watched)}
                             style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: watched ? 'var(--accent)' : 'var(--text-muted)', transition: 'color var(--transition-fast)' }}
                           >
                             <CheckCircle size={22} fill={watched ? 'rgba(16, 185, 129, 0.1)' : 'transparent'} />
@@ -940,6 +988,16 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                             <div className="episode-header-info" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                               <h4 style={{ fontSize: '14px', fontWeight: 'bold' }}>
                                 Ep {ep.episodeNumber.toString().padStart(2, '0')} - {ep.title}
+                                {isLatestReleased && (
+                                  <span style={{ marginLeft: '8px', fontSize: '10px', color: '#000', background: 'var(--primary)', borderRadius: '999px', padding: '2px 8px', fontWeight: 800 }}>
+                                    ÚLTIMO LANÇADO
+                                  </span>
+                                )}
+                                {!released && (
+                                  <span style={{ marginLeft: '8px', fontSize: '10px', color: 'var(--warning)', border: '1px solid rgba(245, 158, 11, 0.5)', borderRadius: '999px', padding: '2px 8px', fontWeight: 700 }}>
+                                    NÃO LANÇADO
+                                  </span>
+                                )}
                               </h4>
                               <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
                                 <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Calendar size={10} /> {ep.airDate}</span>
@@ -1412,6 +1470,66 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
         </div>
 
       </div>
+
+      {pendingFutureEpisode && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.65)',
+            zIndex: 12000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={() => {
+            if (!confirmingFutureEpisode) setPendingFutureEpisode(null);
+          }}
+        >
+          <div
+            className="st-panel"
+            style={{ width: '100%', maxWidth: '460px', padding: '20px', borderRadius: 'var(--radius-md)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '10px' }}>Episódio ainda não lançado</h4>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '14px' }}>
+              Este episódio tem data de estreia futura ({pendingFutureEpisode.episode?.airDate ? new Date(pendingFutureEpisode.episode.airDate).toLocaleDateString('pt-BR') : 'sem data confirmada'}).
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '18px' }}>
+              Tem certeza que deseja marcar como assistido mesmo assim?
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                className="st-btn-secondary"
+                style={{ padding: '8px 12px', fontSize: '12px' }}
+                onClick={() => setPendingFutureEpisode(null)}
+                disabled={confirmingFutureEpisode}
+              >
+                Cancelar
+              </button>
+              <button
+                className="st-btn-primary"
+                style={{ padding: '8px 12px', fontSize: '12px' }}
+                disabled={confirmingFutureEpisode}
+                onClick={async () => {
+                  if (!pendingFutureEpisode) return;
+                  setConfirmingFutureEpisode(true);
+                  try {
+                    await toggleWatchEpisode(pendingFutureEpisode.episodeId, media, pendingFutureEpisode.episode);
+                    trackEvent('future_episode_marked_confirmed', { showId: media?.id, episodeId: pendingFutureEpisode.episodeId });
+                  } finally {
+                    setConfirmingFutureEpisode(false);
+                    setPendingFutureEpisode(null);
+                  }
+                }}
+              >
+                {confirmingFutureEpisode ? 'Marcando...' : 'Marcar mesmo assim'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 1080px) {
