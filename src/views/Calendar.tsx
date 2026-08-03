@@ -71,6 +71,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const dayStripRef = useRef<HTMLDivElement | null>(null);
   const stripTouchStartRef = useRef<{ x: number; y: number } | null>(null);
   const stripScrollEndTimerRef = useRef<number | null>(null);
+  const skipAutoCenterRef = useRef(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -220,9 +221,17 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
   useEffect(() => {
     if (!selectedDateKey || !dayStripRef.current) return;
+    if (skipAutoCenterRef.current) {
+      skipAutoCenterRef.current = false;
+      return;
+    }
+
     const target = dayStripRef.current.querySelector<HTMLButtonElement>(`button[data-date="${selectedDateKey}"]`);
     if (target) {
-      target.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const strip = dayStripRef.current;
+      const targetCenter = target.offsetLeft + target.offsetWidth / 2;
+      const nextScrollLeft = Math.max(0, targetCenter - strip.clientWidth / 2);
+      strip.scrollTo({ left: nextScrollLeft, behavior: 'smooth' });
     }
   }, [selectedDateKey]);
 
@@ -312,6 +321,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     }
 
     if (bestKey && bestKey !== selectedDateKey) {
+      skipAutoCenterRef.current = true;
       setSelectedDateKey(bestKey);
     }
   };
@@ -516,8 +526,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-tabs {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          display: flex;
           gap: 6px;
           width: min(100%, 460px);
           background: rgba(255, 255, 255, 0.03);
@@ -527,6 +536,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-tab {
+          flex: 1;
+          min-width: 0;
           border: 1px solid transparent;
           border-radius: 8px;
           background: transparent;
@@ -534,6 +545,11 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           font-size: 12px;
           font-weight: 700;
           padding: 9px 10px;
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
           cursor: pointer;
           white-space: nowrap;
           overflow: hidden;
@@ -612,6 +628,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           overflow-x: auto;
           overflow-y: hidden;
           padding-bottom: 6px;
+          width: 100%;
+          max-width: 100%;
           -webkit-overflow-scrolling: touch;
           touch-action: pan-x;
           overscroll-behavior-x: contain;

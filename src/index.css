@@ -85,6 +85,7 @@ body {
 html, #root {
   width: 100%;
   max-width: 100%;
+  overflow-x: clip;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -103,11 +104,17 @@ button, input, select, textarea {
   display: flex;
   min-height: 100vh;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 .main-content-layout {
   display: flex;
   flex: 1;
   flex-direction: row;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* Glassmorphism Semantic Classes */
