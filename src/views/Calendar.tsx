@@ -603,10 +603,12 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         .calendar-day-strip {
           display: flex;
+          flex: 1;
+          min-width: 0;
           gap: 8px;
           overflow-x: auto;
           overflow-y: hidden;
-          padding: 6px 110px;
+          padding: 6px 0;
           width: 100%;
           max-width: 100%;
           -webkit-overflow-scrolling: touch;
@@ -616,15 +618,14 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-strip-shell {
-          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 8px;
           width: 100%;
         }
 
         .calendar-strip-edge-btn {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 3;
+          flex: 0 0 auto;
           min-width: 92px;
           height: 40px;
           border-radius: 12px;
@@ -640,19 +641,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           justify-content: center;
           gap: 6px;
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
         }
 
-        .calendar-strip-edge-btn.left {
-          left: 4px;
-        }
-
-        .calendar-strip-edge-btn.right {
-          right: 4px;
+        .calendar-strip-edge-btn:active {
+          transform: scale(0.98);
         }
 
         .calendar-strip-edge-btn:hover {
-          transform: translateY(calc(-50% - 1px));
+          transform: translateY(-1px);
           box-shadow: 0 10px 20px rgba(245, 197, 24, 0.38);
         }
 
@@ -917,15 +914,14 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           }
 
           .calendar-day-strip {
-            padding-left: 96px;
-            padding-right: 96px;
+            gap: 6px;
           }
 
           .calendar-strip-edge-btn {
-            min-width: 84px;
+            min-width: 82px;
             height: 36px;
             font-size: 11px;
-            padding: 0 8px;
+            padding: 0 7px;
           }
         }
 
