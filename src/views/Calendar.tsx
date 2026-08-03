@@ -67,7 +67,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
-  const [canScrollDatesLeft, setCanScrollDatesLeft] = useState(false);
   const [canScrollDatesRight, setCanScrollDatesRight] = useState(false);
 
   const dayStripRef = useRef<HTMLDivElement | null>(null);
@@ -196,7 +195,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
   const visibleDateKeys = useMemo(() => {
     const start = new Date(today);
-    start.setDate(start.getDate() - 30);
     const end = new Date(today);
     end.setDate(end.getDate() + 180);
 
@@ -245,7 +243,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
     const maxLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
     const current = strip.scrollLeft;
-    setCanScrollDatesLeft(current > 4);
     setCanScrollDatesRight(current < maxLeft - 4);
   };
 
@@ -297,7 +294,9 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     if (idx < 0) return;
     const nextIdx = idx + direction;
     if (nextIdx < 0 || nextIdx >= visibleDateKeys.length) return;
-    setSelectedDateKey(visibleDateKeys[nextIdx]);
+    const nextKey = visibleDateKeys[nextIdx];
+    if (nextKey < todayKey) return;
+    setSelectedDateKey(nextKey);
   };
 
   const jumpToNextRelease = () => {
@@ -361,15 +360,17 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             </div>
 
             <div className="calendar-day-strip-shell">
-              <button
-                type="button"
-                className={`calendar-strip-fab left ${canScrollDatesLeft ? '' : 'disabled'}`}
-                onClick={() => stepDateStrip('left')}
-                aria-label="Ver datas anteriores"
-                disabled={!canScrollDatesLeft}
-              >
-                <ChevronLeft size={16} />
-              </button>
+              {selectedDateKey !== todayKey && (
+                <button
+                  type="button"
+                  className="calendar-strip-fab left"
+                  onClick={() => setSelectedDateKey(todayKey)}
+                  aria-label="Voltar para hoje"
+                  title="Voltar para hoje"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+              )}
 
               <div ref={dayStripRef} className="calendar-day-strip">
                 {visibleDateKeys.map((key) => {
