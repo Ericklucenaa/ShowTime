@@ -21,15 +21,45 @@ import {
   Users
 } from 'lucide-react';
 
-const Dashboard = lazy(() => import('./views/Dashboard.js').then((m) => ({ default: m.Dashboard })));
-const Search = lazy(() => import('./views/Search.js').then((m) => ({ default: m.Search })));
-const ShowDetail = lazy(() => import('./views/ShowDetail.js').then((m) => ({ default: m.ShowDetail })));
-const Calendar = lazy(() => import('./views/Calendar.js').then((m) => ({ default: m.Calendar })));
-const Lists = lazy(() => import('./views/Lists.js').then((m) => ({ default: m.Lists })));
-const Profile = lazy(() => import('./views/Profile.js').then((m) => ({ default: m.Profile })));
-const UserProfile = lazy(() => import('./views/UserProfile.js').then((m) => ({ default: m.UserProfile })));
-const Following = lazy(() => import('./views/Following.js').then((m) => ({ default: m.Following })));
-const Friends = lazy(() => import('./views/Friends.js').then((m) => ({ default: m.Friends })));
+const LAZY_RETRY_KEY = 'showtime_lazy_retry_once';
+
+function lazyWithRetry<TModule>(
+  importer: () => Promise<TModule>,
+  pickDefault: (module: TModule) => React.ComponentType<any>
+) {
+  return lazy(async () => {
+    try {
+      const module = await importer();
+      sessionStorage.removeItem(LAZY_RETRY_KEY);
+      return { default: pickDefault(module) };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error || '');
+      const isDynamicImportError =
+        error instanceof TypeError ||
+        /dynamically imported module|module script|Failed to fetch/i.test(message);
+      const alreadyRetried = sessionStorage.getItem(LAZY_RETRY_KEY) === '1';
+
+      if (isDynamicImportError && !alreadyRetried) {
+        sessionStorage.setItem(LAZY_RETRY_KEY, '1');
+        window.location.reload();
+        return new Promise<never>(() => {});
+      }
+
+      sessionStorage.removeItem(LAZY_RETRY_KEY);
+      throw error;
+    }
+  });
+}
+
+const Dashboard = lazyWithRetry(() => import('./views/Dashboard.js'), (m) => m.Dashboard);
+const Search = lazyWithRetry(() => import('./views/Search.js'), (m) => m.Search);
+const ShowDetail = lazyWithRetry(() => import('./views/ShowDetail.js'), (m) => m.ShowDetail);
+const Calendar = lazyWithRetry(() => import('./views/Calendar.js'), (m) => m.Calendar);
+const Lists = lazyWithRetry(() => import('./views/Lists.js'), (m) => m.Lists);
+const Profile = lazyWithRetry(() => import('./views/Profile.js'), (m) => m.Profile);
+const UserProfile = lazyWithRetry(() => import('./views/UserProfile.js'), (m) => m.UserProfile);
+const Following = lazyWithRetry(() => import('./views/Following.js'), (m) => m.Following);
+const Friends = lazyWithRetry(() => import('./views/Friends.js'), (m) => m.Friends);
 
 const ViewLoadingFallback: React.FC = () => (
   <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>
