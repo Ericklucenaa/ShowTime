@@ -25,6 +25,7 @@ interface PersonalEvent {
 const DAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 const MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const MONTH_FULL = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const DATE_PAGE_SIZE = 21;
 
 function formatDateKey(d: Date): string {
   const y = d.getFullYear();
@@ -67,7 +68,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
-  const [canScrollDatesRight, setCanScrollDatesRight] = useState(false);
+  const [rangeStartOffset, setRangeStartOffset] = useState(0);
 
   const dayStripRef = useRef<HTMLDivElement | null>(null);
 
@@ -195,17 +196,16 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
   const visibleDateKeys = useMemo(() => {
     const start = new Date(today);
-    const end = new Date(today);
-    end.setDate(end.getDate() + 180);
+    start.setDate(start.getDate() + rangeStartOffset);
 
     const keys: string[] = [];
     const cursor = new Date(start);
-    while (cursor <= end) {
+    for (let i = 0; i < DATE_PAGE_SIZE; i += 1) {
       keys.push(formatDateKey(cursor));
       cursor.setDate(cursor.getDate() + 1);
     }
     return keys;
-  }, [today]);
+  }, [today, rangeStartOffset]);
 
   useEffect(() => {
     if (selectedDateKey && visibleDateKeys.includes(selectedDateKey)) return;
@@ -229,52 +229,9 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     if (!selectedDateKey || !dayStripRef.current) return;
     const target = dayStripRef.current.querySelector<HTMLButtonElement>(`button[data-date="${selectedDateKey}"]`);
     if (target) {
-      const strip = dayStripRef.current;
-      const targetCenter = target.offsetLeft + target.offsetWidth / 2;
-      const nextScrollLeft = Math.max(0, targetCenter - strip.clientWidth / 2);
-      strip.scrollTo({ left: nextScrollLeft, behavior: 'smooth' });
-      window.setTimeout(() => refreshDateStripControls(), 120);
+      target.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
     }
-  }, [selectedDateKey]);
-
-  const refreshDateStripControls = () => {
-    const strip = dayStripRef.current;
-    if (!strip) return;
-
-    const maxLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
-    const current = strip.scrollLeft;
-    setCanScrollDatesRight(current < maxLeft - 4);
-  };
-
-  useEffect(() => {
-    if (loading || activeTab !== 'personal') return;
-
-    const strip = dayStripRef.current;
-    if (!strip) return;
-
-    const onScroll = () => refreshDateStripControls();
-    strip.addEventListener('scroll', onScroll, { passive: true });
-
-    const onResize = () => refreshDateStripControls();
-    window.addEventListener('resize', onResize);
-
-    const timer = window.setTimeout(refreshDateStripControls, 80);
-
-    return () => {
-      window.clearTimeout(timer);
-      strip.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [loading, activeTab, visibleDateKeys.length]);
-
-  const stepDateStrip = (direction: 'left' | 'right') => {
-    const strip = dayStripRef.current;
-    if (!strip) return;
-    const amount = Math.max(180, Math.floor(strip.clientWidth * 0.68));
-    const delta = direction === 'right' ? amount : -amount;
-    strip.scrollBy({ left: delta, behavior: 'smooth' });
-    window.setTimeout(() => refreshDateStripControls(), 240);
-  };
+  }, [selectedDateKey, rangeStartOffset]);
 
   const selectedDate = selectedDateKey ? parseDateKey(selectedDateKey) : null;
   const selectedItems = selectedDateKey ? groupedByDate[selectedDateKey] || [] : [];
@@ -290,13 +247,44 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
   const navigateDay = (direction: -1 | 1) => {
     if (!selectedDateKey) return;
-    const idx = visibleDateKeys.indexOf(selectedDateKey);
-    if (idx < 0) return;
-    const nextIdx = idx + direction;
-    if (nextIdx < 0 || nextIdx >= visibleDateKeys.length) return;
-    const nextKey = visibleDateKeys[nextIdx];
+
+    const nextDate = parseDateKey(selectedDateKey);
+    nextDate.setDate(nextDate.getDate() + direction);
+    const nextKey = formatDateKey(nextDate);
     if (nextKey < todayKey) return;
+
+    if (!visibleDateKeys.includes(nextKey)) {
+      if (direction === 1) {
+        setRangeStartOffset((prev) => prev + DATE_PAGE_SIZE);
+      } else {
+        setRangeStartOffset((prev) => Math.max(0, prev - DATE_PAGE_SIZE));
+      }
+    }
+
     setSelectedDateKey(nextKey);
+  };
+
+  const moveDateRange = (direction: -1 | 1) => {
+    if (direction === -1 && rangeStartOffset === 0) return;
+
+    setRangeStartOffset((prev) => {
+      const next = direction === 1 ? prev + DATE_PAGE_SIZE : Math.max(0, prev - DATE_PAGE_SIZE);
+
+      const nextStart = new Date(today);
+      nextStart.setDate(nextStart.getDate() + next);
+      setSelectedDateKey(formatDateKey(nextStart));
+      return next;
+    });
+  };
+
+  const handleDateInputChange = (value: string) => {
+    if (!value) return;
+    const normalized = value < todayKey ? todayKey : value;
+    const diffMs = parseDateKey(normalized).getTime() - today.getTime();
+    const diffDays = Math.max(0, Math.floor(diffMs / 86400000));
+    const offset = Math.floor(diffDays / DATE_PAGE_SIZE) * DATE_PAGE_SIZE;
+    setRangeStartOffset(offset);
+    setSelectedDateKey(normalized);
   };
 
   const jumpToNextRelease = () => {
@@ -315,7 +303,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       <div className="calendar-head">
         <div>
           <h2 className="calendar-title">Calendario de Lancamentos</h2>
-          <p className="calendar-subtitle">Arraste a fileira de dias ou use as setas para navegar por datas futuras.</p>
+          <p className="calendar-subtitle">Use os controles da fileira para carregar blocos de datas futuras e voltar ao bloco anterior.</p>
         </div>
 
         <div className="calendar-tabs" role="tablist" aria-label="Modo do calendario">
@@ -349,7 +337,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                 <button type="button" className="calendar-nav-btn" onClick={() => setSelectedDateKey(todayKey)}>
                   Hoje
                 </button>
-                <input type="date" className="calendar-date-input" value={selectedDateKey} onChange={(e) => setSelectedDateKey(e.target.value)} />
+                <input type="date" className="calendar-date-input" value={selectedDateKey} onChange={(e) => handleDateInputChange(e.target.value)} />
                 <button type="button" className="calendar-nav-btn icon" onClick={() => navigateDay(-1)} aria-label="Dia anterior">
                   <ChevronLeft size={16} />
                 </button>
@@ -360,19 +348,19 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             </div>
 
             <div className="calendar-day-strip-shell">
-              {selectedDateKey !== todayKey && (
-                <button
-                  type="button"
-                  className="calendar-strip-fab left"
-                  onClick={() => setSelectedDateKey(todayKey)}
-                  aria-label="Voltar para hoje"
-                  title="Voltar para hoje"
-                >
-                  <ChevronLeft size={16} />
-                </button>
-              )}
-
               <div ref={dayStripRef} className="calendar-day-strip">
+                {rangeStartOffset > 0 && (
+                  <button
+                    type="button"
+                    className="calendar-range-nav prev"
+                    onClick={() => moveDateRange(-1)}
+                    aria-label="Ver bloco de datas anterior"
+                  >
+                    <ChevronLeft size={14} />
+                    Voltar
+                  </button>
+                )}
+
                 {visibleDateKeys.map((key) => {
                   const date = parseDateKey(key);
                   const isActive = key === selectedDateKey;
@@ -393,17 +381,17 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
                     </button>
                   );
                 })}
-              </div>
 
-              <button
-                type="button"
-                className={`calendar-strip-fab right ${canScrollDatesRight ? '' : 'disabled'}`}
-                onClick={() => stepDateStrip('right')}
-                aria-label="Ver datas futuras"
-                disabled={!canScrollDatesRight}
-              >
-                <ChevronRight size={16} />
-              </button>
+                <button
+                  type="button"
+                  className="calendar-range-nav next"
+                  onClick={() => moveDateRange(1)}
+                  aria-label="Ver proximo bloco de datas"
+                >
+                  Avancar
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -628,47 +616,34 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         }
 
         .calendar-day-strip-shell {
-          position: relative;
           width: 100%;
         }
 
-        .calendar-strip-fab {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 3;
-          width: 32px;
-          height: 32px;
-          border-radius: 999px;
-          border: 1px solid var(--border-color);
-          background: rgba(7, 7, 10, 0.86);
-          color: var(--text-primary);
+        .calendar-range-nav {
+          flex: 0 0 auto;
+          min-width: 90px;
+          height: 74px;
+          border-radius: 12px;
+          border: 1px solid rgba(245, 197, 24, 0.45);
+          background: linear-gradient(135deg, rgba(245, 197, 24, 0.18) 0%, rgba(212, 169, 18, 0.18) 100%);
+          color: var(--primary);
+          font-size: 11px;
+          font-weight: 800;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 6px;
           cursor: pointer;
-          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+          transition: transform 0.18s ease, border-color 0.18s ease;
         }
 
-        .calendar-strip-fab.left {
-          left: 6px;
-        }
-
-        .calendar-strip-fab.right {
-          right: 6px;
-        }
-
-        .calendar-strip-fab:hover {
+        .calendar-range-nav:hover {
+          transform: translateY(-1px);
           border-color: var(--primary);
-          color: var(--primary);
         }
 
-        .calendar-strip-fab.disabled {
-          opacity: 0.42;
-          cursor: not-allowed;
-          border-color: rgba(255, 255, 255, 0.14);
-          color: var(--text-muted);
-          box-shadow: none;
+        .calendar-range-nav.next {
+          margin-right: 2px;
         }
 
         .calendar-day-strip::-webkit-scrollbar {
@@ -931,17 +906,9 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
             font-size: 22px;
           }
 
-          .calendar-strip-fab {
-            width: 30px;
-            height: 30px;
-          }
-
-          .calendar-strip-fab.left {
-            left: 4px;
-          }
-
-          .calendar-strip-fab.right {
-            right: 4px;
+          .calendar-range-nav {
+            min-width: 84px;
+            height: 68px;
           }
         }
 
