@@ -69,6 +69,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [reminders, setReminders] = useState<string[]>([]);
 
   const dayStripRef = useRef<HTMLDivElement | null>(null);
+  const stripTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const stripScrollEndTimerRef = useRef<number | null>(null);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -224,6 +226,38 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     }
   }, [selectedDateKey]);
 
+  useEffect(() => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!touch) return;
+      stripTouchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    };
+
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const start = stripTouchStartRef.current;
+      if (!touch || !start) return;
+
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (Math.abs(dx) > Math.abs(dy) + 4) {
+        // Keep horizontal gesture inside the date strip on mobile.
+        event.preventDefault();
+      }
+    };
+
+    strip.addEventListener('touchstart', onTouchStart, { passive: true });
+    strip.addEventListener('touchmove', onTouchMove, { passive: false });
+
+    return () => {
+      strip.removeEventListener('touchstart', onTouchStart);
+      strip.removeEventListener('touchmove', onTouchMove);
+    };
+  }, []);
+
   const selectedDate = selectedDateKey ? parseDateKey(selectedDateKey) : null;
   const selectedItems = selectedDateKey ? groupedByDate[selectedDateKey] || [] : [];
 
@@ -255,8 +289,52 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     setSelectedDateKey(next);
   };
 
+  const selectClosestVisibleDate = () => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+
+    const stripCenter = strip.scrollLeft + strip.clientWidth / 2;
+    const dayButtons = Array.from(strip.querySelectorAll<HTMLButtonElement>('button[data-date]'));
+    if (dayButtons.length === 0) return;
+
+    let bestKey = selectedDateKey;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (const button of dayButtons) {
+      const key = button.dataset.date;
+      if (!key) continue;
+      const center = button.offsetLeft + button.offsetWidth / 2;
+      const distance = Math.abs(center - stripCenter);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestKey = key;
+      }
+    }
+
+    if (bestKey && bestKey !== selectedDateKey) {
+      setSelectedDateKey(bestKey);
+    }
+  };
+
+  const handleDayStripScroll = () => {
+    if (stripScrollEndTimerRef.current) {
+      window.clearTimeout(stripScrollEndTimerRef.current);
+    }
+    stripScrollEndTimerRef.current = window.setTimeout(() => {
+      selectClosestVisibleDate();
+    }, 110);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (stripScrollEndTimerRef.current) {
+        window.clearTimeout(stripScrollEndTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '44px' }}>
+    <div className="calendar-view animate-fade-in" style={{ paddingBottom: '44px', width: '100%', maxWidth: '100%', overflowX: 'clip' }}>
       <div className="calendar-head">
         <div>
           <h2 className="calendar-title">Calendario de Lancamentos</h2>
@@ -304,7 +382,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               </div>
             </div>
 
-            <div ref={dayStripRef} className="calendar-day-strip">
+            <div ref={dayStripRef} className="calendar-day-strip" onScroll={handleDayStripScroll}>
               {visibleDateKeys.map((key) => {
                 const date = parseDateKey(key);
                 const isActive = key === selectedDateKey;
@@ -536,6 +614,7 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
           padding-bottom: 6px;
           -webkit-overflow-scrolling: touch;
           touch-action: pan-x;
+          overscroll-behavior-x: contain;
           scrollbar-width: none;
         }
 
