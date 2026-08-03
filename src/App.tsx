@@ -178,7 +178,7 @@ const AppContent: React.FC = () => {
         <header className="st-panel" style={{ 
           position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', 
           justifyContent: 'space-between', padding: '14px 4%', borderLeft: 'none', borderRight: 'none', borderTop: 'none',
-          borderRadius: 0, background: 'rgba(7,7,10,0.85)'
+          borderRadius: 0, background: 'var(--header-bg)', borderBottom: '1px solid var(--header-border)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => { setSelectedMedia(null); setActiveTab('dashboard'); }}>
             <div style={{ 
@@ -199,7 +199,9 @@ const AppContent: React.FC = () => {
             <button onClick={toggleTheme} className="st-btn-icon" title="Alternar Tema">
               {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
             </button>
-            <span className="user-greeting" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Olá, <strong>@{user.username}</strong></span>
+            <span className="user-greeting" style={{ fontSize: '13px', color: 'var(--header-text)' }}>
+              Olá, <strong style={{ color: 'var(--text-primary)' }}>@{user.username}</strong>
+            </span>
             <img 
               src={user.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.username}`} 
               alt={user.username} 

@@ -21,6 +21,10 @@
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
+
+  --header-bg: rgba(7, 7, 10, 0.9);
+  --header-border: rgba(255, 255, 255, 0.08);
+  --header-text: #cbd5e1;
   
   --border-color: rgba(255, 255, 255, 0.08);
   --border-focus: rgba(245, 197, 24, 0.5);
@@ -424,6 +428,10 @@ button, input, select, textarea {
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-muted: #94a3b8;
+
+  --header-bg: rgba(255, 255, 255, 0.96);
+  --header-border: rgba(15, 23, 42, 0.14);
+  --header-text: #1e293b;
   
   --border-color: rgba(15, 23, 42, 0.1);
   --border-focus: rgba(245, 197, 24, 0.5);
