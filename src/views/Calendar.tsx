@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchTVMazeSchedule, getImageUrl, fetchMediaDetails, fetchSeasonEpisodes } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { Calendar as CalendarIcon, Clock, Tv } from 'lucide-react';
@@ -53,6 +53,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
   const [selectedDateKey, setSelectedDateKey] = useState<string>('');
   const [reminders, setReminders] = useState<string[]>([]);
+  const dayStripRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef({
+    isDown: false,
+    pointerId: -1,
+    startX: 0,
+    startScrollLeft: 0
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -215,6 +222,39 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const selectedDateObj = selectedDateKey ? dateFromKey(selectedDateKey) : null;
   const selectedItems = selectedDateKey ? groupedPersonal[selectedDateKey] || [] : [];
 
+  const handleDayStripPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+    dragStateRef.current = {
+      isDown: true,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startScrollLeft: strip.scrollLeft
+    };
+    strip.setPointerCapture(e.pointerId);
+  };
+
+  const handleDayStripPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+    const drag = dragStateRef.current;
+    if (!drag.isDown || drag.pointerId !== e.pointerId) return;
+
+    const delta = e.clientX - drag.startX;
+    strip.scrollLeft = drag.startScrollLeft - delta;
+  };
+
+  const handleDayStripPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const strip = dayStripRef.current;
+    if (!strip) return;
+    const drag = dragStateRef.current;
+    if (drag.pointerId !== e.pointerId) return;
+
+    dragStateRef.current.isDown = false;
+    dragStateRef.current.pointerId = -1;
+    strip.releasePointerCapture(e.pointerId);
+  };
+
   return (
     <div className="calendar-view animate-fade-in" style={{ paddingBottom: '40px', width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       <div className="calendar-top-block" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'end', flexWrap: 'wrap', gap: '16px', width: '100%', maxWidth: '100%' }}>
@@ -250,7 +290,15 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div className="st-panel" style={{ padding: '14px' }}>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>Arraste para o lado para navegar pelos dias do mes</p>
-            <div className="calendar-day-strip" style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', width: '100%', maxWidth: '100%', touchAction: 'pan-x' }}>
+            <div
+              ref={dayStripRef}
+              className="calendar-day-strip"
+              onPointerDown={handleDayStripPointerDown}
+              onPointerMove={handleDayStripPointerMove}
+              onPointerUp={handleDayStripPointerUp}
+              onPointerCancel={handleDayStripPointerUp}
+              style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px', width: '100%', maxWidth: '100%', touchAction: 'pan-x' }}
+            >
               {visibleDates.map((dateKey) => {
                 const dateObj = dateFromKey(dateKey);
                 const isActive = dateKey === selectedDateKey;
@@ -370,6 +418,12 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
               overscroll-behavior-x: contain;
               overflow-y: hidden;
               scroll-snap-type: x proximity;
+              cursor: grab;
+              user-select: none;
+            }
+
+            .calendar-day-strip:active {
+              cursor: grabbing;
             }
 
             .calendar-day-btn {
