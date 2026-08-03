@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
-import { BarChart3, LogOut, Camera } from 'lucide-react';
+import { BarChart3, LogOut, Camera, Upload } from 'lucide-react';
+import { pushToast } from '../services/toast.js';
 
 export const Profile: React.FC = () => {
   const { user, logout, updateAvatar } = useAuth();
@@ -11,6 +12,7 @@ export const Profile: React.FC = () => {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const devicePhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const avatarPresets = [
     `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username || 'user'}_1`,
@@ -27,8 +29,53 @@ export const Profile: React.FC = () => {
     const success = await updateAvatar(url);
     if (success) {
       setShowAvatarPicker(false);
+      pushToast('success', 'Foto de perfil atualizada.');
+    } else {
+      pushToast('error', 'Nao foi possivel atualizar a foto de perfil.');
     }
     setAvatarLoading(false);
+  };
+
+  const handleDevicePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      pushToast('error', 'Selecione um arquivo de imagem valido.');
+      return;
+    }
+
+    const maxSizeMb = 4;
+    if (file.size > maxSizeMb * 1024 * 1024) {
+      pushToast('error', `A imagem deve ter no maximo ${maxSizeMb}MB.`);
+      return;
+    }
+
+    setAvatarLoading(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const imageDataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!imageDataUrl) {
+        pushToast('error', 'Falha ao ler a imagem selecionada.');
+        setAvatarLoading(false);
+        return;
+      }
+
+      const success = await updateAvatar(imageDataUrl);
+      if (success) {
+        setShowAvatarPicker(false);
+        pushToast('success', 'Foto enviada do dispositivo com sucesso.');
+      } else {
+        pushToast('error', 'Nao foi possivel atualizar a foto de perfil.');
+      }
+      setAvatarLoading(false);
+    };
+    reader.onerror = () => {
+      pushToast('error', 'Erro ao processar imagem do dispositivo.');
+      setAvatarLoading(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Math stats (improved estimation based on genres)
@@ -87,17 +134,43 @@ export const Profile: React.FC = () => {
                 <Camera size={16} />
                 Alterar Foto
               </button>
+              <button
+                onClick={() => devicePhotoInputRef.current?.click()}
+                className="st-btn-secondary"
+                style={{ padding: '8px 16px', fontSize: '13px', display: 'inline-flex', gap: '6px' }}
+                disabled={avatarLoading}
+              >
+                <Upload size={16} />
+                Enviar do Dispositivo
+              </button>
               <button onClick={logout} className="st-btn-secondary" style={{ padding: '8px 16px', fontSize: '13px', display: 'inline-flex', gap: '6px', color: 'var(--error)', borderColor: 'rgba(239, 68, 110, 0.2)' }}>
                 <LogOut size={16} />
                 Sair da Conta
               </button>
             </div>
+            <input
+              ref={devicePhotoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleDevicePhotoChange}
+              style={{ display: 'none' }}
+            />
           </div>
         </div>
 
         {showAvatarPicker && (
           <div className="st-card animate-fade-in" style={{ padding: '20px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.15)' }}>
             <h4 style={{ fontSize: '14px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Escolha um Avatar ou insira um link personalizado</h4>
+            <button
+              type="button"
+              onClick={() => devicePhotoInputRef.current?.click()}
+              className="st-btn-secondary"
+              style={{ marginBottom: '12px', width: '100%', justifyContent: 'center', fontSize: '13px' }}
+              disabled={avatarLoading}
+            >
+              <Upload size={15} />
+              Carregar imagem do dispositivo
+            </button>
             
             {/* Presets Grid */}
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
