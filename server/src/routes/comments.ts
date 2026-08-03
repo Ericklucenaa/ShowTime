@@ -1,12 +1,19 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { db, Comment, Reaction } from '../db.js';
 
 function generateId() {
-  return Math.random().toString(36).substring(2, 9);
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 const router = Router();
+const ALLOWED_REACTIONS = new Set(['like', 'love', 'wow', 'sad', 'angry']);
+
+function hasExactlyOneTarget(payload: { episodeId?: unknown; showId?: unknown; movieId?: unknown }): boolean {
+  const count = [payload.episodeId, payload.showId, payload.movieId].filter(Boolean).length;
+  return count === 1;
+}
 
 // GET /comments
 // Fetches comments for an episode, show, or movie
@@ -38,8 +45,18 @@ router.post('/comments', (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId!;
   const { episodeId, showId, movieId, content } = req.body;
 
-  if (!content || content.trim() === '') {
+  if (!hasExactlyOneTarget({ episodeId, showId, movieId })) {
+    return res.status(400).json({ error: 'Exactly one target is required: episodeId, showId, or movieId.' });
+  }
+
+  const normalizedContent = String(content || '').trim();
+
+  if (!normalizedContent) {
     return res.status(400).json({ error: 'Comment content cannot be empty' });
+  }
+
+  if (normalizedContent.length > 1000) {
+    return res.status(400).json({ error: 'Comment content exceeds max length (1000).' });
   }
 
   const database = db.read();
@@ -56,7 +73,7 @@ router.post('/comments', (req: AuthenticatedRequest, res: Response) => {
     episodeId: episodeId || undefined,
     showId: showId || undefined,
     movieId: movieId || undefined,
-    content,
+    content: normalizedContent,
     createdAt: new Date().toISOString()
   };
 
@@ -108,8 +125,18 @@ router.post('/reactions', (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId!;
   const { episodeId, showId, movieId, type } = req.body; // type: 'like', 'love', 'wow', 'sad', 'angry'
 
-  if (!type) {
+  if (!hasExactlyOneTarget({ episodeId, showId, movieId })) {
+    return res.status(400).json({ error: 'Exactly one target is required: episodeId, showId, or movieId.' });
+  }
+
+  const normalizedType = String(type || '').trim().toLowerCase();
+
+  if (!normalizedType) {
     return res.status(400).json({ error: 'Reaction type is required' });
+  }
+
+  if (!ALLOWED_REACTIONS.has(normalizedType)) {
+    return res.status(400).json({ error: 'Invalid reaction type' });
   }
 
   const database = db.read();
@@ -128,13 +155,13 @@ router.post('/reactions', (req: AuthenticatedRequest, res: Response) => {
   let action = '';
   if (existingReactionIndex > -1) {
     const existingReaction = database.reactions[existingReactionIndex];
-    if (existingReaction.type === type) {
+    if (existingReaction.type === normalizedType) {
       // Toggle off: remove
       database.reactions.splice(existingReactionIndex, 1);
       action = 'removed';
     } else {
       // Change reaction type
-      existingReaction.type = type;
+      existingReaction.type = normalizedType;
       existingReaction.createdAt = new Date().toISOString();
       action = 'updated';
     }
@@ -146,7 +173,7 @@ router.post('/reactions', (req: AuthenticatedRequest, res: Response) => {
       episodeId: episodeId || undefined,
       showId: showId || undefined,
       movieId: movieId || undefined,
-      type,
+      type: normalizedType,
       createdAt: new Date().toISOString()
     };
     database.reactions.push(newReaction);

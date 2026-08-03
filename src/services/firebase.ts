@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore/lite';
 
 // Vite environment variables for Firebase configuration
 const firebaseConfig = {
@@ -19,14 +20,16 @@ export const isFirebaseEnabled = !!(
 
 let app;
 let auth: any = null;
+let db: any = null;
 
 if (isFirebaseEnabled) {
   try {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     auth = getAuth(app);
+    db = getFirestore(app);
   } catch (error) {
     console.error('Failed to initialize Firebase SDK:', error);
   }
 }
 
-export { auth };
+export { auth, db };

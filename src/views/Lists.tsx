@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTracking } from '../context/TrackingContext.js';
-import { backendApi, getImageUrl } from '../services/api.js';
+import { getImageUrl } from '../services/api.js';
 import { Plus, List, Trash2, ArrowLeft, Tv, Film, Star } from 'lucide-react';
 
 export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie') => void }> = ({ onViewMedia }) => {
-  const { lists, createList, deleteList, removeFromList } = useTracking();
+  const { lists, createList, deleteList, removeFromList, fetchListItems } = useTracking();
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [selectedListDetails, setSelectedListDetails] = useState<any | null>(null);
   
@@ -19,8 +19,8 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
   const loadListItems = async (listId: string) => {
     setLoadingItems(true);
     try {
-      const res = await backendApi.get(`/api/lists/${listId}/items`);
-      setSelectedListDetails(res.data);
+      const data = await fetchListItems(listId);
+      setSelectedListDetails(data);
     } catch (e) {
       console.error(e);
       setSelectedListId(null);
@@ -78,7 +78,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
             <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '8px' }}>Minhas Listas</h2>
             <p style={{ color: 'var(--text-secondary)' }}>Organize suas séries e filmes em coleções personalizadas.</p>
           </div>
-          <button onClick={() => setIsCreating(true)} className="btn-primary">
+          <button onClick={() => setIsCreating(true)} className="st-btn-primary">
             <Plus size={16} />
             Criar Nova Lista
           </button>
@@ -87,7 +87,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
 
       {/* Creation Modal / Form */}
       {isCreating && (
-        <div className="glass-panel" style={{ padding: '24px', marginBottom: '30px' }}>
+        <div className="st-panel" style={{ padding: '24px', marginBottom: '30px' }}>
           <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>Nova Lista Personalizada</h3>
           <form onSubmit={handleCreateList} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div>
@@ -124,8 +124,8 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
               </select>
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'end' }}>
-              <button type="button" onClick={() => setIsCreating(false)} className="btn-secondary">Cancelar</button>
-              <button type="submit" className="btn-primary">Criar Lista</button>
+              <button type="button" onClick={() => setIsCreating(false)} className="st-btn-secondary">Cancelar</button>
+              <button type="submit" className="st-btn-primary">Criar Lista</button>
             </div>
           </form>
         </div>
@@ -133,8 +133,17 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
 
       {/* Main Lists Display */}
       {!selectedListId ? (
-        lists.length === 0 ? (
-          <div className="glass-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <>
+          {/* Custom Lists */}
+          <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <List size={18} style={{ color: 'var(--primary)' }} />
+              Listas Personalizadas
+            </h3>
+          </div>
+
+          {lists.length === 0 ? (
+          <div className="st-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
             <List size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
             <p>Você não tem nenhuma lista personalizada criada.</p>
             <p style={{ fontSize: '13px', marginTop: '6px' }}>Clique no botão "Criar Nova Lista" no canto superior para iniciar!</p>
@@ -144,7 +153,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
             {lists.map(list => (
               <div 
                 key={list.id} 
-                className="glass-card glow-hover" 
+                className="st-card glow-hover" 
                 onClick={() => setSelectedListId(list.id)}
                 style={{ padding: '20px', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '180px' }}
               >
@@ -172,12 +181,14 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
             ))}
           </div>
         )
+        }
+        </>
       ) : (
         /* Detailed List View */
         <div>
           {/* Header & Back Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-            <button onClick={() => setSelectedListId(null)} className="btn-secondary" style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
+            <button onClick={() => setSelectedListId(null)} className="st-btn-secondary" style={{ padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>
               <ArrowLeft size={16} />
               Voltar
             </button>
@@ -192,7 +203,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
           {loadingItems ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>Carregando itens da lista...</div>
           ) : !selectedListDetails || selectedListDetails.items.length === 0 ? (
-            <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <div className="st-panel" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               <p>Esta lista está vazia.</p>
               <p style={{ fontSize: '13px', marginTop: '6px' }}>Busque por uma série ou filme e adicione nesta lista pela página de detalhes!</p>
             </div>
@@ -204,7 +215,7 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
                 return (
                   <div 
                     key={item.id} 
-                    className="glass-card glow-hover" 
+                    className="st-card glow-hover" 
                     onClick={() => onViewMedia(media.id, item.mediaType)}
                     style={{ cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}
                   >

@@ -1,9 +1,10 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { db, Show, Season, Episode, Movie, WatchEpisode, WatchMovie } from '../db.js';
 
 function generateId() {
-  return Math.random().toString(36).substring(2, 9);
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 const router = Router();
@@ -101,10 +102,16 @@ router.post('/watch_movies/movie/:movie_id', (req: AuthenticatedRequest, res: Re
   const userId = req.userId!;
   const movieId = req.params.movie_id;
   const { movie, action, isFavorite, watchedAt } = req.body; // action: 'watch' | 'favorite'
+  const normalizedAction = String(action || 'watch').trim().toLowerCase();
 
   const database = db.read();
 
-  let dbMovie = database.movies.find(m => m.id === movieId || m.tmdbId === parseInt(movieId));
+  const parsedMovieId = Number.parseInt(movieId, 10);
+  let dbMovie = database.movies.find(m => m.id === movieId || m.tmdbId === parsedMovieId);
+
+  if (!['watch', 'favorite'].includes(normalizedAction)) {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
 
   if (!dbMovie && movie) {
     dbMovie = {
@@ -132,7 +139,7 @@ router.post('/watch_movies/movie/:movie_id', (req: AuthenticatedRequest, res: Re
   let watched = false;
   let favorite = isFavorite !== undefined ? isFavorite : false;
 
-  if (action === 'favorite') {
+  if (normalizedAction === 'favorite') {
     if (watchEvent) {
       watchEvent.isFavorite = !watchEvent.isFavorite;
       favorite = watchEvent.isFavorite;

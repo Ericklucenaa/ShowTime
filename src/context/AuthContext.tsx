@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { backendApi } from '../services/api.js';
-import { auth as firebaseAuth, isFirebaseEnabled } from '../services/firebase.js';
+import { auth as firebaseAuth, db, isFirebaseEnabled } from '../services/firebase.js';
+import { doc, setDoc } from 'firebase/firestore/lite';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -8,7 +8,8 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 
 interface User {
@@ -26,11 +27,30 @@ interface AuthContextType {
   login: (emailOrUsername: string, password: string) => Promise<boolean>;
   register: (username: string, email: string, password: string) => Promise<boolean>;
   loginWithGoogle: () => Promise<boolean>;
+  resetPassword: (email: string) => Promise<boolean>;
+  updateAvatar: (avatarUrl: string) => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const mapFirebaseUser = (fbUser: any): User => {
+  return {
+    id: fbUser.uid,
+    username: fbUser.displayName || fbUser.email.split('@')[0],
+    email: fbUser.email || '',
+    avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${fbUser.uid}`
+  };
+};
+
+const generateMockToken = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `mock-${crypto.randomUUID()}`;
+  }
+
+  return `mock-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -38,55 +58,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync Firebase User with our Express Backend
-  const syncFirebaseUser = async (fbUser: any, fbToken: string, usernameOverride?: string) => {
-    try {
-      const response = await backendApi.post('/api/auth/firebase-sync', {
-        uid: fbUser.uid,
-        email: fbUser.email,
-        username: usernameOverride || fbUser.displayName || fbUser.email.split('@')[0],
-        avatarUrl: fbUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${fbUser.uid}`
-      }, {
-        headers: {
-          'TVST_ACCESS_TOKEN': fbToken,
-          'Authorization': `Bearer ${fbToken}`
+  const handleAuthStateChange = async (fbUser: any) => {
+    if (fbUser) {
+      try {
+        const fbToken = await fbUser.getIdToken();
+        const mappedUser = mapFirebaseUser(fbUser);
+        localStorage.setItem('showtime_token', fbToken);
+        localStorage.setItem('showtime_user', JSON.stringify(mappedUser));
+        setToken(fbToken);
+        setUser(mappedUser);
+
+        // Sync public profile
+        if (db) {
+          const profileRef = doc(db, 'profiles', fbUser.uid);
+          await setDoc(profileRef, {
+            id: fbUser.uid,
+            username: mappedUser.username,
+            usernameLower: mappedUser.username.toLowerCase(),
+            email: mappedUser.email,
+            emailLower: mappedUser.email.toLowerCase(),
+            avatarUrl: mappedUser.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
         }
-      });
-      
-      const userData = response.data.user;
-      localStorage.setItem('showtime_token', fbToken);
-      localStorage.setItem('showtime_user', JSON.stringify(userData));
-      setToken(fbToken);
-      setUser(userData);
-    } catch (err) {
-      console.error('Error synchronizing Firebase user with backend:', err);
+      } catch (err) {
+        console.error('Error in auth state change:', err);
+      }
+    } else {
+      localStorage.removeItem('showtime_token');
+      localStorage.removeItem('showtime_user');
+      setToken(null);
+      setUser(null);
     }
   };
 
   useEffect(() => {
     if (isFirebaseEnabled && firebaseAuth) {
-      // Set up Firebase auth listener
       const unsubscribe = onAuthStateChanged(firebaseAuth, async (fbUser) => {
         setLoading(true);
-        if (fbUser) {
-          try {
-            const fbToken = await fbUser.getIdToken();
-            await syncFirebaseUser(fbUser, fbToken);
-          } catch (err) {
-            console.error('Error getting Firebase token:', err);
-          }
-        } else {
-          // Firebase logged out
-          localStorage.removeItem('showtime_token');
-          localStorage.removeItem('showtime_user');
-          setToken(null);
-          setUser(null);
-        }
+        await handleAuthStateChange(fbUser);
         setLoading(false);
       });
       return () => unsubscribe();
     } else {
-      // Fallback local auth restore
+      // Fallback local auth restore for offline/mock sessions
       const savedToken = localStorage.getItem('showtime_token');
       const savedUser = localStorage.getItem('showtime_user');
 
@@ -102,56 +117,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
 
-    const isEmail = emailOrUsername.includes('@');
-
-    if (isFirebaseEnabled && firebaseAuth && isEmail) {
+    if (isFirebaseEnabled && firebaseAuth) {
       try {
-        // Firebase Auth expects email
-        const userCredential = await signInWithEmailAndPassword(firebaseAuth, emailOrUsername, password);
-        const fbToken = await userCredential.user.getIdToken();
-        await syncFirebaseUser(userCredential.user, fbToken);
+        const isEmail = emailOrUsername.includes('@');
+        const email = isEmail ? emailOrUsername : `${emailOrUsername}@showtime.com`; // fallback
+        const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        await handleAuthStateChange(userCredential.user);
         setLoading(false);
         return true;
       } catch (err: any) {
-        console.error('Firebase login error, attempting local database fallback:', err);
-        // Fallback to local auth if Firebase fails
-        try {
-          const response = await backendApi.post('/signin', { username: emailOrUsername, password });
-          const { tvst_access_token, user: userData } = response.data;
-          
-          localStorage.setItem('showtime_token', tvst_access_token);
-          localStorage.setItem('showtime_user', JSON.stringify(userData));
-          
-          setToken(tvst_access_token);
-          setUser(userData);
-          setLoading(false);
-          return true;
-        } catch (localErr: any) {
-          const errMsg = localErr.response?.data?.error || 'E-mail ou senha inválidos.';
-          setError(errMsg);
-          setLoading(false);
-          return false;
-        }
-      }
-    } else {
-      // Legacy backend auth
-      try {
-        const response = await backendApi.post('/signin', { username: emailOrUsername, password });
-        const { tvst_access_token, user: userData } = response.data;
-        
-        localStorage.setItem('showtime_token', tvst_access_token);
-        localStorage.setItem('showtime_user', JSON.stringify(userData));
-        
-        setToken(tvst_access_token);
-        setUser(userData);
-        setLoading(false);
-        return true;
-      } catch (err: any) {
-        const errMsg = err.response?.data?.error || 'Erro ao fazer login. Verifique suas credenciais.';
+        console.error('Firebase login error:', err);
+        const errMsg = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+          ? 'E-mail ou senha inválidos.' 
+          : 'Erro ao conectar ao Firebase. Verifique suas credenciais.';
         setError(errMsg);
         setLoading(false);
         return false;
       }
+    } else {
+      // Offline mock authentication
+      const mockUser = {
+        id: 'u_mock',
+        username: emailOrUsername.split('@')[0],
+        email: emailOrUsername.includes('@') ? emailOrUsername : `${emailOrUsername}@showtime.com`,
+        avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${emailOrUsername}`
+      };
+      const mockToken = generateMockToken();
+      localStorage.setItem('showtime_token', mockToken);
+      localStorage.setItem('showtime_user', JSON.stringify(mockUser));
+      setToken(mockToken);
+      setUser(mockUser);
+      setLoading(false);
+      return true;
     }
   };
 
@@ -166,8 +163,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: username,
           photoURL: `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`
         });
-        const fbToken = await userCredential.user.getIdToken();
-        await syncFirebaseUser(userCredential.user, fbToken, username);
+        // Force refresh user profile
+        const updatedUser = firebaseAuth.currentUser;
+        await handleAuthStateChange(updatedUser || userCredential.user);
         setLoading(false);
         return true;
       } catch (err: any) {
@@ -180,24 +178,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     } else {
-      // Legacy backend auth
-      try {
-        const response = await backendApi.post('/signup', { username, email, password });
-        const { tvst_access_token, user: userData } = response.data;
-        
-        localStorage.setItem('showtime_token', tvst_access_token);
-        localStorage.setItem('showtime_user', JSON.stringify(userData));
-        
-        setToken(tvst_access_token);
-        setUser(userData);
-        setLoading(false);
-        return true;
-      } catch (err: any) {
-        const errMsg = err.response?.data?.error || 'Erro ao registrar. Username ou email podem já estar em uso.';
-        setError(errMsg);
-        setLoading(false);
-        return false;
-      }
+      // Offline mock registration
+      const mockUser = {
+        id: 'u_mock',
+        username,
+        email,
+        avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`
+      };
+      const mockToken = generateMockToken();
+      localStorage.setItem('showtime_token', mockToken);
+      localStorage.setItem('showtime_user', JSON.stringify(mockUser));
+      setToken(mockToken);
+      setUser(mockUser);
+      setLoading(false);
+      return true;
     }
   };
 
@@ -223,8 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const provider = new GoogleAuthProvider();
         const userCredential = await signInWithPopup(firebaseAuth, provider);
-        const fbToken = await userCredential.user.getIdToken();
-        await syncFirebaseUser(userCredential.user, fbToken);
+        await handleAuthStateChange(userCredential.user);
         setLoading(false);
         return true;
       } catch (err: any) {
@@ -240,10 +233,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    if (isFirebaseEnabled && firebaseAuth) {
+      try {
+        await sendPasswordResetEmail(firebaseAuth, email);
+        setLoading(false);
+        return true;
+      } catch (err: any) {
+        console.error('Firebase password reset error:', err);
+        const errMsg = err.code === 'auth/user-not-found'
+          ? 'Não há usuário cadastrado com este e-mail.'
+          : 'Erro ao enviar e-mail de recuperação. Tente novamente.';
+        setError(errMsg);
+        setLoading(false);
+        return false;
+      }
+    } else {
+      alert(`[Offline Mode] Link de redefinição simulado enviado para: ${email}`);
+      setLoading(false);
+      return true;
+    }
+  };
+
+  const updateAvatar = async (avatarUrl: string): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    if (isFirebaseEnabled && firebaseAuth && firebaseAuth.currentUser) {
+      try {
+        await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
+        await handleAuthStateChange(firebaseAuth.currentUser);
+        setLoading(false);
+        return true;
+      } catch (err: any) {
+        console.error('Firebase avatar update error:', err);
+        setError('Erro ao atualizar foto de perfil no Firebase.');
+        setLoading(false);
+        return false;
+      }
+    } else {
+      if (user) {
+        const mockUser = { ...user, avatarUrl };
+        localStorage.setItem('showtime_user', JSON.stringify(mockUser));
+        setUser(mockUser);
+      }
+      setLoading(false);
+      return true;
+    }
+  };
+
   const clearError = () => setError(null);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, logout, clearError }}>
+    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, resetPassword, updateAvatar, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );

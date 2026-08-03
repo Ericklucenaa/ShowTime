@@ -187,42 +187,48 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
                 <p style={{ fontSize: '13px', marginTop: '6px' }}>Busque por uma série e marque um episódio para começar a acompanhar!</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {continueWatching.map(item => (
-                  <div 
-                    key={item.showId} 
-                    className="glass-card glow-hover" 
-                    onClick={() => onViewMedia(item.showId, 'show')}
-                    style={{ display: 'flex', padding: '16px', gap: '16px', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-                  >
-                    <img 
-                      src={getImageUrl(item.posterPath)} 
-                      alt={item.showTitle} 
-                      style={{ width: '60px', height: '90px', objectFit: 'cover', borderRadius: 'var(--radius-sm)' }}
-                    />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <h4 style={{ fontSize: '16px', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.showTitle}
-                      </h4>
-                      <div style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: '600', marginBottom: '4px' }}>
-                        T{item.nextSeasonNumber.toString().padStart(2, '0')}E{item.nextEpisodeNumber.toString().padStart(2, '0')} - {item.nextEpisodeTitle}
+              <div className="media-carousel">
+                {continueWatching.map(item => {
+                  // Calculate dummy progress percentage based on next episode number vs total
+                  const totalEps = item.fullEpisodeData?.seasonNumber ? (item.fullEpisodeData.episodeCount || 10) : 10;
+                  const progressPct = Math.min(100, Math.max(10, ((item.nextEpisodeNumber - 1) / totalEps) * 100));
+                  
+                  return (
+                    <div 
+                      key={item.showId} 
+                      className="carousel-item" 
+                      onClick={() => onViewMedia(item.showId, 'show')}
+                    >
+                      <img 
+                        src={getImageUrl(item.posterPath)} 
+                        alt={item.showTitle} 
+                        className="carousel-poster"
+                      />
+                      <div className="carousel-item-overlay">
+                        <span className="carousel-item-title">
+                          {item.showTitle}<br/>
+                          <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'normal' }}>
+                            S{item.nextSeasonNumber.toString().padStart(2, '0')} E{item.nextEpisodeNumber.toString().padStart(2, '0')}
+                          </span>
+                        </span>
                       </div>
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
-                        {item.nextEpisodeOverview || "Sem sinopse disponível para este episódio."}
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '8px' }}>
+                      
+                      {/* Play/Check button hovering over poster */}
                       <button 
-                        onClick={(e) => handleQuickWatch(e, item)}
-                        className="btn-primary"
-                        style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0, minWidth: '40px', boxShadow: 'none' }}
+                        onClick={(e) => { e.stopPropagation(); handleQuickWatch(e, item); }}
+                        className="st-btn-primary"
+                        style={{ position: 'absolute', top: '10px', right: '10px', width: '36px', height: '36px', padding: 0, minWidth: '36px' }}
                         title="Marcar como assistido"
                       >
-                        <Check size={20} />
+                        <Check size={16} />
                       </button>
+
+                      <div className="carousel-progress-bar-bg">
+                        <div className="carousel-progress-bar-fill" style={{ width: `${progressPct}%` }}></div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>

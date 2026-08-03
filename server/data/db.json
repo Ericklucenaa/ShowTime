@@ -39,6 +39,46 @@
       "passwordHash": "",
       "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocL1zamnbloKhhw-QElSH4dgM1uD5z_2E6QaU3hddJYK93Jxt20S=s96-c",
       "createdAt": "2026-07-02T03:33:37.816Z"
+    },
+    {
+      "id": "u_5965a8655c24430f",
+      "username": "testsignup_msdlryzd",
+      "email": "signup_msdlryzd@test.com",
+      "passwordHash": "$2a$10$JYiK2.4t.CZc9Xra68AZ2ut3hkQImxRWie6QjzVipRFC844iG8w1q",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdlryzd",
+      "createdAt": "2026-08-03T19:09:12.908Z"
+    },
+    {
+      "id": "u_a1d95ab77f3d4f55",
+      "username": "testsignup_msdls6k7",
+      "email": "signup_msdls6k7@test.com",
+      "passwordHash": "$2a$10$fFvAHpF/kDceWcEzcrqaReJRomZnZweaZ4N9t2HitSpHQc.BshphS",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdls6k7",
+      "createdAt": "2026-08-03T19:09:22.736Z"
+    },
+    {
+      "id": "u_09097d4a3d204f9c",
+      "username": "testsignup_msdluhco",
+      "email": "signup_msdluhco@test.com",
+      "passwordHash": "$2a$10$DSHDd35NzkRrtvdKqEERFe8nYoStdkphNNse8BJPmlfoFtAyx66Py",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdluhco",
+      "createdAt": "2026-08-03T19:11:10.061Z"
+    },
+    {
+      "id": "u_12d5c601073e47e1",
+      "username": "testsignup_msdm01t1",
+      "email": "signup_msdm01t1@test.com",
+      "passwordHash": "$2a$10$tGk/flj8wgfQcizte0p5Me9T0gexCLQ.cSzysoteDpQR7Z2ky/aPy",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdm01t1",
+      "createdAt": "2026-08-03T19:15:29.822Z"
+    },
+    {
+      "id": "u_927903d7d2144f45",
+      "username": "testsignup_msdm308k",
+      "email": "signup_msdm308k@test.com",
+      "passwordHash": "$2a$10$D.qjtADZ2eDrbAs6Ox.XXO/342JrfozuyalqXkr.4ie5Rq3FqstlW",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdm308k",
+      "createdAt": "2026-08-03T19:17:47.758Z"
     }
   ],
   "shows": [
@@ -2810,7 +2850,43 @@
       "watchedAt": "2026-07-02T03:47:10.871Z"
     }
   ],
-  "watch_movies": [],
+  "watch_movies": [
+    {
+      "id": "wm_848769036c3a47a7",
+      "userId": "u_5965a8655c24430f",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:09:13.111Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_17117de11b1a41a7",
+      "userId": "u_a1d95ab77f3d4f55",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:09:22.979Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_c177e31db05c4dca",
+      "userId": "u_09097d4a3d204f9c",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:11:10.306Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_7d8d66a4721b4107",
+      "userId": "u_12d5c601073e47e1",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:15:30.021Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_196908f133d7456b",
+      "userId": "u_927903d7d2144f45",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T19:17:47.956Z",
+      "isFavorite": false
+    }
+  ],
   "lists": [
     {
       "id": "l1",

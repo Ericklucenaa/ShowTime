@@ -5,6 +5,10 @@ import { db } from '../src/db.js';
 describe('ShowTime Backend API Integration Tests', () => {
   let token = '';
   let userId = '';
+  const suffix = Date.now().toString(36);
+  const testUsername = `testsignup_${suffix}`;
+  const testEmail = `signup_${suffix}@test.com`;
+  const testPassword = 'password123';
 
   afterAll(async () => {
     // Close the server connection to prevent Jest hanging
@@ -20,9 +24,9 @@ describe('ShowTime Backend API Integration Tests', () => {
       const res = await request(app)
         .post('/signup')
         .send({
-          username: 'testsignup',
-          email: 'signup@test.com',
-          password: 'password123'
+          username: testUsername,
+          email: testEmail,
+          password: testPassword
         });
 
       expect(res.status).toBe(201);
@@ -30,12 +34,12 @@ describe('ShowTime Backend API Integration Tests', () => {
       expect(res.body.tvst_access_token).toBeDefined();
     });
 
-    it('should login the seeded user', async () => {
+    it('should login the created user', async () => {
       const res = await request(app)
         .post('/signin')
         .send({
-          username: 'testuser',
-          password: '123456'
+          username: testUsername,
+          password: testPassword
         });
 
       expect(res.status).toBe(200);
@@ -50,7 +54,7 @@ describe('ShowTime Backend API Integration Tests', () => {
       const res = await request(app)
         .post('/signin')
         .send({
-          username: 'testuser',
+          username: testUsername,
           password: 'wrongpassword'
         });
 
@@ -111,8 +115,7 @@ describe('ShowTime Backend API Integration Tests', () => {
         .send({ action: 'watch' });
 
       expect(res.status).toBe(200);
-      // It was initially watched in the seed, so toggling should unwatch it
-      expect(res.body.watched).toBe(false);
+      expect(res.body.watched).toBe(true);
     });
   });
 });

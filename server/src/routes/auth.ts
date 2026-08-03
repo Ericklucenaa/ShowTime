@@ -1,25 +1,40 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { db } from '../db.js';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { getJwtAudience, getJwtIssuer, getJwtSecret } from '../config/security.js';
 
 // Helper to generate IDs if uuid is not loaded
 function generateId() {
-  return Math.random().toString(36).substring(2, 9);
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 const router = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'showtime-secret-key-12345';
+const JWT_SECRET = getJwtSecret();
+const JWT_ISSUER = getJwtIssuer();
+const JWT_AUDIENCE = getJwtAudience();
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function normalizeUsername(username: string): string {
+  return username.trim();
+}
 
 // POST /signin (Legacy TV Time exact endpoint format)
 router.post('/signin', (req: Request, res: Response) => {
-  // Support both application/json and application/x-www-form-urlencoded
-  const username = req.body.username || req.body.email;
-  const password = req.body.password;
+  const username = String(req.body.username || req.body.email || '').trim();
+  const password = String(req.body.password || '');
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({ error: 'Invalid credentials format' });
   }
 
   const database = db.read();
@@ -40,7 +55,12 @@ router.post('/signin', (req: Request, res: Response) => {
   const token = jwt.sign(
     { userId: user.id, email: user.email },
     JWT_SECRET,
-    { expiresIn: '30d' }
+    {
+      expiresIn: '30d',
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+      algorithm: 'HS256'
+    }
   );
 
   res.json({
@@ -58,10 +78,28 @@ router.post('/signin', (req: Request, res: Response) => {
 
 // POST /signup
 router.post('/signup', (req: Request, res: Response) => {
-  const { username, email, password } = req.body;
+  const username = normalizeUsername(String(req.body.username || ''));
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const password = String(req.body.password || '');
 
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  if (username.length < 3 || username.length > 32) {
+    return res.status(400).json({ error: 'Username must be between 3 and 32 characters' });
+  }
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+    return res.status(400).json({ error: 'Username contains invalid characters' });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  if (password.length < 8 || password.length > 128) {
+    return res.status(400).json({ error: 'Password must be between 8 and 128 characters' });
   }
 
   const database = db.read();
@@ -93,7 +131,12 @@ router.post('/signup', (req: Request, res: Response) => {
   const token = jwt.sign(
     { userId: newUser.id, email: newUser.email },
     JWT_SECRET,
-    { expiresIn: '30d' }
+    {
+      expiresIn: '30d',
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+      algorithm: 'HS256'
+    }
   );
 
   res.status(201).json({
@@ -114,7 +157,8 @@ router.post('/signup', (req: Request, res: Response) => {
 router.post('/firebase-sync', authMiddleware, (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId!;
   const email = req.userEmail || '';
-  const { username, avatarUrl } = req.body;
+  const username = String(req.body.username || '').trim();
+  const avatarUrl = String(req.body.avatarUrl || '').trim();
 
   const database = db.read();
   let user = database.users.find(u => u.id === userId);
@@ -126,7 +170,7 @@ router.post('/firebase-sync', authMiddleware, (req: AuthenticatedRequest, res: R
       username: username || email.split('@')[0],
       email: email,
       passwordHash: '', // Não precisa de senha local
-      avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${username}`,
+      avatarUrl: avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${username || userId}`,
       createdAt: new Date().toISOString()
     };
     database.users.push(user);

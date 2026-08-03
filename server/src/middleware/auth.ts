@@ -1,15 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getApps, initializeApp } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
+import { getJwtAudience, getJwtIssuer, getJwtSecret } from '../config/security.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'showtime-secret-key-12345';
+const JWT_SECRET = getJwtSecret();
+const JWT_ISSUER = getJwtIssuer();
+const JWT_AUDIENCE = getJwtAudience();
 
-// Initialize Firebase Admin if it hasn't been initialized yet
-if (getApps().length === 0) {
-  initializeApp({
-    projectId: process.env.FIREBASE_PROJECT_ID || 'showtime-78f63'
-  });
+let firebaseInitialized = false;
+
+async function verifyFirebaseToken(token: string) {
+  const adminAppModule = await import('firebase-admin/app');
+  const adminAuthModule = await import('firebase-admin/auth');
+
+  if (!firebaseInitialized && adminAppModule.getApps().length === 0) {
+    adminAppModule.initializeApp({
+      projectId: process.env.FIREBASE_PROJECT_ID || 'showtime-78f63'
+    });
+    firebaseInitialized = true;
+  }
+
+  return adminAuthModule.getAuth().verifyIdToken(token);
 }
 
 export interface AuthenticatedRequest extends Request {
@@ -30,19 +40,22 @@ export async function authMiddleware(req: AuthenticatedRequest, res: Response, n
   }
 
   try {
-    // 1. Decode token to inspect issuer
-    const decodedPayload = jwt.decode(token) as any;
-    const isFirebaseToken = decodedPayload && decodedPayload.iss && decodedPayload.iss.includes('securetoken.google.com');
+    const decodedPayload = jwt.decode(token) as jwt.JwtPayload | null;
+    const issuer = decodedPayload?.iss;
+    const isFirebaseToken = !!issuer && issuer.includes('securetoken.google.com');
 
     if (isFirebaseToken) {
-      // 2. Verify with Firebase Admin Auth
-      const fbDecoded = await getAuth().verifyIdToken(token);
+      const fbDecoded = await verifyFirebaseToken(token);
       req.userId = fbDecoded.uid;
       req.userEmail = fbDecoded.email;
       next();
     } else {
-      // 3. Verify with local JWT
-      const localDecoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };
+      const localDecoded = jwt.verify(token, JWT_SECRET, {
+        algorithms: ['HS256'],
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE
+      }) as { userId: string; email: string };
+
       req.userId = localDecoded.userId;
       req.userEmail = localDecoded.email;
       next();

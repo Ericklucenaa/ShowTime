@@ -1,12 +1,15 @@
 import { Router, Response } from 'express';
+import crypto from 'crypto';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { db, CustomList, ListItem } from '../db.js';
 
 function generateId() {
-  return Math.random().toString(36).substring(2, 9);
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 }
 
 const router = Router();
+const LIST_TYPES = new Set(['show', 'movie', 'mixed']);
+const MEDIA_TYPES = new Set(['show', 'movie']);
 
 // GET /lists
 // Get all lists for the logged-in user
@@ -33,18 +36,33 @@ router.get('/lists', (req: AuthenticatedRequest, res: Response) => {
 router.post('/lists', (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId!;
   const { name, description, type } = req.body;
+  const normalizedName = String(name || '').trim();
+  const normalizedDescription = String(description || '').trim();
+  const normalizedType = String(type || 'mixed').trim();
 
-  if (!name) {
+  if (!normalizedName) {
     return res.status(400).json({ error: 'List name is required' });
+  }
+
+  if (normalizedName.length > 80) {
+    return res.status(400).json({ error: 'List name exceeds max length (80).' });
+  }
+
+  if (normalizedDescription.length > 500) {
+    return res.status(400).json({ error: 'List description exceeds max length (500).' });
+  }
+
+  if (!LIST_TYPES.has(normalizedType)) {
+    return res.status(400).json({ error: 'Invalid list type' });
   }
 
   const database = db.read();
   const newList: CustomList = {
     id: 'l_' + generateId(),
     userId,
-    name,
-    description: description || '',
-    type: type || 'mixed',
+    name: normalizedName,
+    description: normalizedDescription,
+    type: normalizedType as 'show' | 'movie' | 'mixed',
     createdAt: new Date().toISOString()
   };
 
@@ -117,9 +135,15 @@ router.post('/lists/:id/items', (req: AuthenticatedRequest, res: Response) => {
   const userId = req.userId!;
   const listId = req.params.id;
   const { mediaType, mediaId, mediaMetadata } = req.body; // mediaType: 'show' | 'movie'
+  const normalizedMediaType = String(mediaType || '').trim();
+  const normalizedMediaId = String(mediaId || '').trim();
 
-  if (!mediaType || !mediaId) {
+  if (!normalizedMediaType || !normalizedMediaId) {
     return res.status(400).json({ error: 'mediaType and mediaId are required' });
+  }
+
+  if (!MEDIA_TYPES.has(normalizedMediaType)) {
+    return res.status(400).json({ error: 'Invalid media type' });
   }
 
   const database = db.read();
@@ -131,9 +155,9 @@ router.post('/lists/:id/items', (req: AuthenticatedRequest, res: Response) => {
 
   // If show or movie details are provided in metadata and not yet in our database, add them
   if (mediaMetadata) {
-    if (mediaType === 'show' && !database.shows.some(s => s.id === mediaId || s.tmdbId === mediaMetadata.tmdbId)) {
+    if (normalizedMediaType === 'show' && !database.shows.some(s => s.id === normalizedMediaId || s.tmdbId === mediaMetadata.tmdbId)) {
       database.shows.push({
-        id: mediaId,
+        id: normalizedMediaId,
         tmdbId: mediaMetadata.tmdbId,
         title: mediaMetadata.title,
         overview: mediaMetadata.overview || '',
@@ -143,9 +167,9 @@ router.post('/lists/:id/items', (req: AuthenticatedRequest, res: Response) => {
         genre: mediaMetadata.genres || [],
         status: mediaMetadata.status || 'Returning Series'
       });
-    } else if (mediaType === 'movie' && !database.movies.some(m => m.id === mediaId || m.tmdbId === mediaMetadata.tmdbId)) {
+    } else if (normalizedMediaType === 'movie' && !database.movies.some(m => m.id === normalizedMediaId || m.tmdbId === mediaMetadata.tmdbId)) {
       database.movies.push({
-        id: mediaId,
+        id: normalizedMediaId,
         tmdbId: mediaMetadata.tmdbId,
         title: mediaMetadata.title,
         overview: mediaMetadata.overview || '',
@@ -160,7 +184,7 @@ router.post('/lists/:id/items', (req: AuthenticatedRequest, res: Response) => {
 
   // Check if item is already in the list
   const itemExists = database.list_items.some(
-    li => li.listId === listId && li.mediaType === mediaType && (li.mediaId === mediaId || li.mediaId === mediaMetadata?.id)
+    li => li.listId === listId && li.mediaType === normalizedMediaType && (li.mediaId === normalizedMediaId || li.mediaId === mediaMetadata?.id)
   );
 
   if (itemExists) {
@@ -170,8 +194,8 @@ router.post('/lists/:id/items', (req: AuthenticatedRequest, res: Response) => {
   const newItem: ListItem = {
     id: 'li_' + generateId(),
     listId,
-    mediaType,
-    mediaId
+    mediaType: normalizedMediaType as 'show' | 'movie',
+    mediaId: normalizedMediaId
   };
 
   database.list_items.push(newItem);

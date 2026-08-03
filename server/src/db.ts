@@ -182,19 +182,21 @@ class JSONDatabase {
   private seedData() {
     console.log("Seeding ShowTime database...");
     const db = this.read();
+    const includeDemoUser = process.env.SEED_DEMO_USER === 'true';
 
-    // 1. Seed Test User
-    const salt = bcrypt.genSaltSync(10);
-    const passwordHash = bcrypt.hashSync("123456", salt);
-    const testUser: User = {
-      id: "u1",
-      username: "testuser",
-      email: "test@showtime.com",
-      passwordHash: passwordHash,
-      avatarUrl: "https://api.dicebear.com/7.x/adventurer/svg?seed=testuser",
-      createdAt: new Date().toISOString()
-    };
-    db.users.push(testUser);
+    if (includeDemoUser) {
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync("change-me-demo-user", salt);
+      const testUser: User = {
+        id: "u1",
+        username: "testuser",
+        email: "test@showtime.com",
+        passwordHash: passwordHash,
+        avatarUrl: "https://api.dicebear.com/7.x/adventurer/svg?seed=testuser",
+        createdAt: new Date().toISOString()
+      };
+      db.users.push(testUser);
+    }
 
     // 2. Seed Shows
     const showsData: Show[] = [
@@ -378,84 +380,81 @@ class JSONDatabase {
     ];
     db.movies.push(...moviesData);
 
-    // 5. Seed Watch History for Test User
-    // Let's assume testuser watched some episodes of Breaking Bad Season 1
-    db.watch_episodes.push(
-      {
-        id: "w_ep1",
+    if (includeDemoUser) {
+      db.watch_episodes.push(
+        {
+          id: "w_ep1",
+          userId: "u1",
+          showId: "s1",
+          episodeId: "ep_s1_1_1",
+          watchedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: "w_ep2",
+          userId: "u1",
+          showId: "s1",
+          episodeId: "ep_s1_1_2",
+          watchedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          id: "w_ep3",
+          userId: "u1",
+          showId: "s1",
+          episodeId: "ep_s1_1_3",
+          watchedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      );
+
+      db.watch_movies.push({
+        id: "w_m1",
         userId: "u1",
-        showId: "s1",
+        movieId: "m1",
+        watchedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+        isFavorite: true
+      });
+
+      db.lists.push({
+        id: "l1",
+        userId: "u1",
+        name: "Minha Lista de Favoritos",
+        description: "Séries e filmes que mais me marcaram.",
+        type: "mixed",
+        createdAt: new Date().toISOString()
+      });
+
+      db.list_items.push(
+        {
+          id: "li1",
+          listId: "l1",
+          mediaType: "show",
+          mediaId: "s1"
+        },
+        {
+          id: "li2",
+          listId: "l1",
+          mediaType: "movie",
+          mediaId: "m1"
+        }
+      );
+
+      db.comments.push({
+        id: "c1",
+        userId: "u1",
+        username: "testuser",
         episodeId: "ep_s1_1_1",
-        watchedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
-      },
-      {
-        id: "w_ep2",
-        userId: "u1",
         showId: "s1",
-        episodeId: "ep_s1_1_2",
-        watchedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
-      },
-      {
-        id: "w_ep3",
+        content: "Que episódio piloto sensacional! A cena do trailer no deserto é fantástica e dita muito bem o tom da série inteira.",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString()
+      });
+
+      db.reactions.push({
+        id: "r1",
         userId: "u1",
-        showId: "s1",
-        episodeId: "ep_s1_1_3",
-        watchedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
-      }
-    );
-
-    // Add watch history for Interstellar (movie)
-    db.watch_movies.push({
-      id: "w_m1",
-      userId: "u1",
-      movieId: "m1",
-      watchedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      isFavorite: true
-    });
-
-    // 6. Seed Custom Lists
-    db.lists.push({
-      id: "l1",
-      userId: "u1",
-      name: "Minha Lista de Favoritos",
-      description: "Séries e filmes que mais me marcaram.",
-      type: "mixed",
-      createdAt: new Date().toISOString()
-    });
-
-    db.list_items.push(
-      {
-        id: "li1",
-        listId: "l1",
-        mediaType: "show",
-        mediaId: "s1"
-      },
-      {
-        id: "li2",
-        listId: "l1",
-        mediaType: "movie",
-        mediaId: "m1"
-      }
-    );
-
-    // 7. Seed Comments and Reactions
-    db.comments.push({
-      id: "c1",
-      userId: "u1",
-      username: "testuser",
-      episodeId: "ep_s1_1_1",
-      showId: "s1",
-      content: "Que episódio piloto sensacional! A cena do trailer no deserto é fantástica e dita muito bem o tom da série inteira.",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000).toISOString()
-    });
-
-    db.reactions.push({
-      id: "r1",
-      userId: "u1",
-      episodeId: "ep_s1_1_1",
-      type: "love",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 31 * 60 * 1000).toISOString()
-    });
+        episodeId: "ep_s1_1_1",
+        type: "love",
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 + 31 * 60 * 1000).toISOString()
+      });
+    }
 
     this.write(db);
     console.log("Database seeded successfully!");

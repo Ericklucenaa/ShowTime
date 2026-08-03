@@ -1,23 +1,7 @@
 import axios from 'axios';
 
 // LocalStorage key for user token
-const TOKEN_KEY = 'showtime_token';
 const TMDB_KEY_KEY = 'showtime_tmdb_key';
-
-// Backend Axios instance
-export const backendApi = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '' : 'http://localhost:5000'),
-});
-
-// Interceptor to inject TVST_ACCESS_TOKEN
-backendApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    config.headers['TVST_ACCESS_TOKEN'] = token;
-    config.headers['Authorization'] = `Bearer ${token}`;
-  }
-  return config;
-});
 
 // TMDB API Client configuration
 const getTmdbKey = () => localStorage.getItem(TMDB_KEY_KEY) || import.meta.env.VITE_TMDB_API_KEY || '';
@@ -134,7 +118,7 @@ const MOCK_SHOWS = [
     id: 's4',
     tmdbId: 1399,
     title: 'Game of Thrones',
-    overview: 'Em uma terra onde os verões podem durar décadas e o inverno uma vida inteira, várias famílias nobres travam uma guerra mortal pelo controle dos Sete Reinos de Westeros.',
+    overview: 'Em uma terra onde os verões podem durar décadas e o inverno uma via inteira, várias famílias nobres travam uma guerra mortal pelo controle dos Sete Reinos de Westeros.',
     posterPath: '/1XS1oqLmx6o7LI4DQn0G1a2rlil.jpg',
     backdropPath: '/2OMB0nv2TxiKVq7i5O7iEvJ4eXt.jpg',
     firstAirDate: '2011-04-17',
@@ -242,39 +226,38 @@ export const searchMedia = async (query: string): Promise<any[]> => {
 
 // Fetch Full Details with Season Episodes
 export const fetchMediaDetails = async (id: string, mediaType: 'show' | 'movie'): Promise<any> => {
-  // First, check backend db to see if it is already synchronized
-  try {
-    const route = mediaType === 'show' ? `/api/shows/${id}` : `/api/shows/${id}`; // Both handled by shows.ts
-    const backendRes = await backendApi.get(route);
-    if (backendRes.data) {
-      // Find full episodes locally or simulate
-      const localShow = MOCK_SHOWS.find(s => s.id === id || s.tmdbId.toString() === id || s.tmdbId === backendRes.data.tmdbId);
-      return {
-        ...backendRes.data,
-        seasons: localShow ? localShow.seasons : backendRes.data.seasons || []
-      };
+  const key = getTmdbKey();
+  const rawId = id.replace(/^[sm]_/, '');
+  const tmdbNumId = parseInt(rawId);
+
+  // First check if it's a local mock ID (non-numeric prefix or found in local data)
+  const isLocalId = isNaN(tmdbNumId);
+  if (isLocalId) {
+    if (mediaType === 'show') {
+      return MOCK_SHOWS.find(s => s.id === id) || null;
+    } else {
+      return MOCK_MOVIES.find(m => m.id === id) || null;
     }
-  } catch (err) {
-    // If backend doesn't have it, continue to fetch from TMDB or mock
   }
 
-  const key = getTmdbKey();
-  const tmdbNumId = parseInt(id.replace(/^[sm]_/, ''));
-
-  if (key && !isNaN(tmdbNumId)) {
+  // Try TMDB if key available
+  if (key) {
     try {
       if (mediaType === 'show') {
         const tvRes = await axios.get(`https://api.themoviedb.org/3/tv/${tmdbNumId}`, {
           params: { api_key: key, language: 'pt-BR' }
         });
-        
+
+        const tvData = tvRes.data;
+        if (!tvData || !tvData.id) throw new Error('Invalid TMDB response');
+
         // Pre-load Season 1 episodes for initial display
         let season1Episodes: any[] = [];
         try {
           const epRes = await axios.get(`https://api.themoviedb.org/3/tv/${tmdbNumId}/season/1`, {
             params: { api_key: key, language: 'pt-BR' }
           });
-          season1Episodes = epRes.data.episodes.map((ep: any) => ({
+          season1Episodes = (epRes.data.episodes || []).map((ep: any) => ({
             episodeNumber: ep.episode_number,
             title: ep.name,
             overview: ep.overview,
@@ -285,59 +268,75 @@ export const fetchMediaDetails = async (id: string, mediaType: 'show' | 'movie')
           console.warn("Failed to pre-load Season 1 episodes", e);
         }
 
-        // Map all available seasons from TMDB (without limits)
-        const seasons = (tvRes.data.seasons || [])
+        // Map all available seasons from TMDB (filter out season 0 = Specials)
+        const seasons = (tvData.seasons || [])
           .filter((s: any) => s.season_number > 0)
           .map((s: any) => ({
             seasonNumber: s.season_number,
             episodeCount: s.episode_count,
+            posterPath: s.poster_path,
             episodes: s.season_number === 1 ? season1Episodes : []
           }));
 
         return {
-          id: `s_${tvRes.data.id}`,
-          tmdbId: tvRes.data.id,
-          title: tvRes.data.name,
-          overview: tvRes.data.overview,
-          posterPath: tvRes.data.poster_path,
-          backdropPath: tvRes.data.backdrop_path,
-          firstAirDate: tvRes.data.first_air_date,
-          genres: tvRes.data.genres.map((g: any) => g.name),
+          id: `s_${tvData.id}`,
+          tmdbId: tvData.id,
+          title: tvData.name || tvData.original_name || 'Sem título',
+          overview: tvData.overview || '',
+          posterPath: tvData.poster_path,
+          backdropPath: tvData.backdrop_path,
+          firstAirDate: tvData.first_air_date,
+          genres: (tvData.genres || []).map((g: any) => g.name),
           mediaType: 'show',
-          rating: tvRes.data.vote_average,
-          status: tvRes.data.status,
-          seasons
+          rating: tvData.vote_average || 0,
+          status: tvData.status || '',
+          seasons: seasons.length > 0 ? seasons : [{
+            seasonNumber: 1,
+            episodeCount: 0,
+            episodes: season1Episodes
+          }]
         };
       } else {
         const movRes = await axios.get(`https://api.themoviedb.org/3/movie/${tmdbNumId}`, {
           params: { api_key: key, language: 'pt-BR' }
         });
+        const movData = movRes.data;
+        if (!movData || !movData.id) throw new Error('Invalid TMDB response');
+
         return {
-          id: `m_${movRes.data.id}`,
-          tmdbId: movRes.data.id,
-          title: movRes.data.title,
-          overview: movRes.data.overview,
-          posterPath: movRes.data.poster_path,
-          backdropPath: movRes.data.backdrop_path,
-          releaseDate: movRes.data.release_date,
-          genres: movRes.data.genres.map((g: any) => g.name),
+          id: `m_${movData.id}`,
+          tmdbId: movData.id,
+          title: movData.title || movData.original_title || 'Sem título',
+          overview: movData.overview || '',
+          posterPath: movData.poster_path,
+          backdropPath: movData.backdrop_path,
+          releaseDate: movData.release_date,
+          genres: (movData.genres || []).map((g: any) => g.name),
           mediaType: 'movie',
-          rating: movRes.data.vote_average,
-          duration: movRes.data.runtime
+          rating: movData.vote_average || 0,
+          duration: movData.runtime
         };
       }
     } catch (e) {
-      console.warn("TMDB details fetch failed, falling back to local mock data");
+      console.warn("TMDB details fetch failed:", e);
+      // Try local mock as fallback only if it's a known mock ID
+      if (mediaType === 'show') {
+        const local = MOCK_SHOWS.find(s => s.id === id || s.tmdbId.toString() === rawId);
+        return local || null;
+      } else {
+        const local = MOCK_MOVIES.find(m => m.id === id || m.tmdbId.toString() === rawId);
+        return local || null;
+      }
     }
   }
 
-  // Fallback to local mocks
+  // No TMDB key – use local mocks
   if (mediaType === 'show') {
-    const show = MOCK_SHOWS.find(s => s.id === id || s.tmdbId.toString() === id || s.id === `s_${id}`);
-    return show || MOCK_SHOWS[0];
+    const show = MOCK_SHOWS.find(s => s.id === id || s.tmdbId.toString() === rawId || s.id === `s_${rawId}`);
+    return show || null;
   } else {
-    const movie = MOCK_MOVIES.find(m => m.id === id || m.tmdbId.toString() === id || m.id === `m_${id}`);
-    return movie || MOCK_MOVIES[0];
+    const movie = MOCK_MOVIES.find(m => m.id === id || m.tmdbId.toString() === rawId || m.id === `m_${rawId}`);
+    return movie || null;
   }
 };
 
@@ -348,19 +347,6 @@ export const fetchSeasonEpisodes = async (showId: string, seasonNumber: number):
   if (localShow) {
     const localSeason = localShow.seasons.find(s => s.seasonNumber === seasonNumber);
     return localSeason ? localSeason.episodes : [];
-  }
-
-  // Check backend db
-  try {
-    const backendRes = await backendApi.get(`/api/shows/${showId}`);
-    if (backendRes.data) {
-      const dbSeason = backendRes.data.seasons?.find((s: any) => s.seasonNumber === seasonNumber);
-      if (dbSeason && dbSeason.episodes && dbSeason.episodes.length > 0) {
-        return dbSeason.episodes;
-      }
-    }
-  } catch (err) {
-    // ignore
   }
 
   const key = getTmdbKey();

@@ -1,12 +1,6 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 import { TrackingProvider } from './context/TrackingContext.js';
-import { Dashboard } from './views/Dashboard.js';
-import { Search } from './views/Search.js';
-import { ShowDetail } from './views/ShowDetail.js';
-import { Calendar } from './views/Calendar.js';
-import { Lists } from './views/Lists.js';
-import { Profile } from './views/Profile.js';
 import { 
   Tv, 
   Search as SearchIcon, 
@@ -16,16 +10,63 @@ import {
   ShieldAlert, 
   Eye, 
   EyeOff, 
-  LayoutGrid
+  LayoutGrid,
+  LogOut,
+  Sun,
+  Moon,
+  Bookmark,
+  Users
 } from 'lucide-react';
 
+const Dashboard = lazy(() => import('./views/Dashboard.js').then((m) => ({ default: m.Dashboard })));
+const Search = lazy(() => import('./views/Search.js').then((m) => ({ default: m.Search })));
+const ShowDetail = lazy(() => import('./views/ShowDetail.js').then((m) => ({ default: m.ShowDetail })));
+const Calendar = lazy(() => import('./views/Calendar.js').then((m) => ({ default: m.Calendar })));
+const Lists = lazy(() => import('./views/Lists.js').then((m) => ({ default: m.Lists })));
+const Profile = lazy(() => import('./views/Profile.js').then((m) => ({ default: m.Profile })));
+const UserProfile = lazy(() => import('./views/UserProfile.js').then((m) => ({ default: m.UserProfile })));
+const Following = lazy(() => import('./views/Following.js').then((m) => ({ default: m.Following })));
+const Friends = lazy(() => import('./views/Friends.js').then((m) => ({ default: m.Friends })));
+
+const ViewLoadingFallback: React.FC = () => (
+  <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+    Carregando tela...
+  </div>
+);
+
 const AppContent: React.FC = () => {
-  const { user, login, register, loginWithGoogle, error, clearError } = useAuth();
+  const { user, login, register, loginWithGoogle, resetPassword, logout, error, clearError } = useAuth();
   
+  // Theme State
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('showtime_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  const toggleTheme = () => {
+    setTheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('showtime_theme', next);
+      return next;
+    });
+  };
+
+  React.useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light-theme');
+    } else {
+      document.documentElement.classList.remove('light-theme');
+    }
+  }, [theme]);
+
   // Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'calendar' | 'lists' | 'profile'>('dashboard');
-  const [selectedMedia, setSelectedMedia] = useState<{ id: string; type: 'show' | 'movie' } | null>(null);
-  const [previousTab, setPreviousTab] = useState<'dashboard' | 'search' | 'lists' | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'calendar' | 'lists' | 'following' | 'friends' | 'profile'>('dashboard');
+  const [selectedMedia, setSelectedMedia] = useState<{ 
+    id: string; 
+    type: 'show' | 'movie'; 
+    initialSeasonNum?: number; 
+    initialEpisodeNum?: number; 
+  } | null>(null);
+  const [previousTab, setPreviousTab] = useState<'dashboard' | 'search' | 'lists' | 'following' | 'friends' | null>(null);
 
   // Auth Screen State
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -57,8 +98,8 @@ const AppContent: React.FC = () => {
       return;
     }
 
-    if (authPassword.length < 6) {
-      setValidationError("A senha deve ter no mínimo 6 caracteres.");
+    if (authPassword.length < 8) {
+      setValidationError("A senha deve ter no mínimo 8 caracteres.");
       return;
     }
 
@@ -79,9 +120,36 @@ const AppContent: React.FC = () => {
     clearError();
   };
 
-  const handleViewMedia = (id: string, type: 'show' | 'movie') => {
+  const handleForgotPassword = async () => {
+    let email = authEmail.trim();
+    if (!email) {
+      email = prompt("Digite seu e-mail para recuperar a senha:") || "";
+    } else {
+      const confirmEmail = confirm(`Enviar e-mail de recuperação para: ${email}?`);
+      if (!confirmEmail) {
+        email = prompt("Digite seu e-mail para recuperar a senha:") || "";
+      }
+    }
+    
+    if (!email || !email.trim()) return;
+    
+    const success = await resetPassword(email);
+    if (success) {
+      alert(`E-mail de recuperação enviado com sucesso para ${email}! Verifique sua caixa de entrada (e pasta de spam).`);
+    }
+  };
+
+  const [viewingProfile, setViewingProfile] = useState<{ userId: string; username: string } | null>(null);
+
+  const handleViewMedia = (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => {
+    setViewingProfile(null);
     setPreviousTab(activeTab as any);
-    setSelectedMedia({ id, type });
+    setSelectedMedia({ id, type, initialSeasonNum, initialEpisodeNum });
+  };
+
+  const handleViewProfile = (userId: string, username: string) => {
+    setSelectedMedia(null);
+    setViewingProfile({ userId, username });
   };
 
   const handleCloseMedia = () => {
@@ -95,117 +163,146 @@ const AppContent: React.FC = () => {
   // Render main layout if logged in
   if (user) {
     return (
-      <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+      <div className="app-container">
         
         {/* Header Bar */}
-        <header className="glass-panel" style={{ 
+        <header className="st-panel" style={{ 
           position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', 
           justifyContent: 'space-between', padding: '14px 4%', borderLeft: 'none', borderRight: 'none', borderTop: 'none',
-          borderRadius: 0
+          borderRadius: 0, background: 'rgba(7,7,10,0.85)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => { setSelectedMedia(null); setActiveTab('dashboard'); }}>
             <div style={{ 
-              background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)', 
+              background: 'linear-gradient(135deg, var(--primary) 0%, #d4a912 100%)', 
               width: '32px', height: '32px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 0 12px var(--primary-glow)'
             }}>
-              <LayoutGrid size={16} color="white" />
+              <LayoutGrid size={16} color="black" />
             </div>
             <span style={{ 
               fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '20px', 
-              background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--secondary) 100%)',
+              background: 'linear-gradient(135deg, var(--text-primary) 30%, var(--primary) 100%)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
             }}>ShowTime</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Olá, <strong>@{user.username}</strong></span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={toggleTheme} className="st-btn-icon" title="Alternar Tema">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <span className="user-greeting" style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Olá, <strong>@{user.username}</strong></span>
             <img 
               src={user.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.username}`} 
               alt={user.username} 
-              style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--primary)' }}
+              onClick={() => { setSelectedMedia(null); setViewingProfile(null); setActiveTab('profile'); }}
+              style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--primary)', cursor: 'pointer' }}
             />
           </div>
         </header>
 
         {/* Main Body Grid */}
-        <div style={{ display: 'flex', flex: 1, flexDirection: 'row' }} className="main-content-layout">
+        <div className="main-content-layout">
           
-          {/* Left Navigation Bar */}
-          <nav className="glass-panel nav-bar" style={{ 
-            width: '240px', borderLeft: 'none', borderTop: 'none', borderBottom: 'none', 
-            borderRadius: 0, padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: '8px'
-          }}>
+          {/* Desktop Left Navigation Bar */}
+          <nav className="desktop-sidebar">
             {[
-              { id: 'dashboard', label: 'Painel Geral', icon: <LayoutGrid size={18} /> },
+              { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={18} /> },
+              { id: 'following', label: 'Seguindo', icon: <Bookmark size={18} /> },
               { id: 'search', label: 'Descobrir', icon: <SearchIcon size={18} /> },
               { id: 'calendar', label: 'Calendário', icon: <CalendarIcon size={18} /> },
               { id: 'lists', label: 'Minhas Listas', icon: <List size={18} /> },
+              { id: 'friends', label: 'Amigos', icon: <Users size={18} /> },
               { id: 'profile', label: 'Perfil & Stats', icon: <User size={18} /> }
             ].map(tab => {
-              const isActive = activeTab === tab.id && !selectedMedia;
+              const isActive = activeTab === tab.id && !selectedMedia && !viewingProfile;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => { setSelectedMedia(null); setActiveTab(tab.id as any); }}
-                  className={isActive ? 'btn-primary' : 'btn-secondary'}
+                  onClick={() => { setSelectedMedia(null); setViewingProfile(null); setActiveTab(tab.id as any); }}
+                  className={isActive ? 'st-btn-primary' : 'st-btn-secondary'}
                   style={{ 
-                    justifyContent: 'start', border: 'none', fontSize: '14px', padding: '12px 16px',
-                    background: isActive ? undefined : 'transparent', color: isActive ? 'white' : 'var(--text-secondary)'
+                    justifyContent: 'start', padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                    background: isActive ? undefined : 'transparent', color: isActive ? '#000' : 'var(--text-secondary)'
                   }}
                 >
                   {tab.icon}
-                  {tab.label}
+                  <span className="nav-label">{tab.label}</span>
                 </button>
               );
             })}
+            
+            <button
+              onClick={logout}
+              className="st-btn-secondary"
+              style={{ 
+                justifyContent: 'start', padding: '12px 16px', borderRadius: 'var(--radius-md)',
+                background: 'transparent', color: '#ff4a4a', marginTop: 'auto'
+              }}
+            >
+              <LogOut size={18} />
+              <span className="nav-label">Sair da Conta</span>
+            </button>
           </nav>
 
           {/* Center viewport area */}
           <main style={{ flex: 1, padding: '30px 4%' }} className="viewport">
-            {selectedMedia ? (
-              <ShowDetail 
-                mediaId={selectedMedia.id} 
-                mediaType={selectedMedia.type} 
-                onBack={handleCloseMedia} 
-              />
-            ) : (
-              <>
-                {activeTab === 'dashboard' && <Dashboard onViewMedia={handleViewMedia} />}
-                {activeTab === 'search' && <Search onViewMedia={handleViewMedia} />}
-                {activeTab === 'calendar' && <Calendar />}
-                {activeTab === 'lists' && <Lists onViewMedia={handleViewMedia} />}
-                {activeTab === 'profile' && <Profile />}
-              </>
-            )}
+            <Suspense fallback={<ViewLoadingFallback />}>
+              {selectedMedia ? (
+                <ShowDetail 
+                  mediaId={selectedMedia.id} 
+                  mediaType={selectedMedia.type} 
+                  onBack={handleCloseMedia} 
+                  initialSeasonNum={selectedMedia.initialSeasonNum}
+                  initialEpisodeNum={selectedMedia.initialEpisodeNum}
+                />
+              ) : (
+                <>
+                  {viewingProfile ? (
+                    <UserProfile
+                      targetUserId={viewingProfile.userId}
+                      targetUsername={viewingProfile.username}
+                      onBack={() => setViewingProfile(null)}
+                      onViewMedia={handleViewMedia}
+                    />
+                  ) : (
+                    <>
+                      {activeTab === 'dashboard' && <Dashboard onViewMedia={handleViewMedia} />}
+                      {activeTab === 'following' && <Following onViewMedia={handleViewMedia} />}
+                      {activeTab === 'search' && <Search onViewMedia={handleViewMedia} onViewProfile={handleViewProfile} />}
+                      {activeTab === 'calendar' && <Calendar onViewMedia={handleViewMedia} />}
+                      {activeTab === 'lists' && <Lists onViewMedia={handleViewMedia} />}
+                      {activeTab === 'friends' && <Friends onViewProfile={handleViewProfile} />}
+                      {activeTab === 'profile' && <Profile />}
+                    </>
+                  )}
+                </>
+              )}
+            </Suspense>
           </main>
-
         </div>
 
-        {/* Global responsive styles */}
-        <style>{`
-          @media (max-width: 768px) {
-            .main-content-layout {
-              flex-direction: column !important;
-            }
-            .nav-bar {
-              width: 100% !important;
-              flex-direction: row !important;
-              justify-content: space-around;
-              padding: 10px !important;
-              border-bottom: 1px solid var(--border-color) !important;
-              border-right: none !important;
-              overflow-x: auto;
-            }
-            .nav-bar button {
-              padding: 8px 12px !important;
-              font-size: 12px !important;
-            }
-            .viewport {
-              padding: 20px 16px !important;
-            }
-          }
-        `}</style>
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="bottom-nav">
+          {[
+            { id: 'dashboard', label: 'Painel', icon: <LayoutGrid size={20} /> },
+            { id: 'following', label: 'Seguindo', icon: <Bookmark size={20} /> },
+            { id: 'search', label: 'Buscar', icon: <SearchIcon size={20} /> },
+            { id: 'friends', label: 'Amigos', icon: <Users size={20} /> },
+            { id: 'profile', label: 'Perfil', icon: <User size={20} /> }
+          ].map(tab => {
+            const isActive = activeTab === tab.id && !selectedMedia && !viewingProfile;
+            return (
+              <a
+                key={tab.id}
+                onClick={(e) => { e.preventDefault(); setSelectedMedia(null); setViewingProfile(null); setActiveTab(tab.id as any); }}
+                className={`nav-item ${isActive ? 'active' : ''}`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </a>
+            );
+          })}
+        </nav>
       </div>
     );
   }
@@ -288,7 +385,7 @@ const AppContent: React.FC = () => {
               <input 
                 type={showPassword ? "text" : "password"} 
                 required
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={authPassword}
                 onChange={e => setAuthPassword(e.target.value)}
                 style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '10px 40px 10px 14px', color: 'var(--text-primary)', outline: 'none' }}
@@ -302,6 +399,20 @@ const AppContent: React.FC = () => {
               </button>
             </div>
           </div>
+
+          {!isRegisterMode && (
+            <div style={{ textAlign: 'right', marginTop: '-4px' }}>
+              <button 
+                type="button"
+                onClick={handleForgotPassword}
+                style={{ background: 'transparent', border: 'none', color: 'var(--secondary)', fontSize: '12px', cursor: 'pointer', outline: 'none' }}
+                onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
+                onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}
+              >
+                Esqueci minha senha
+              </button>
+            </div>
+          )}
 
           <button type="submit" className="btn-primary" style={{ marginTop: '10px', padding: '12px' }}>
             {isRegisterMode ? 'Criar Minha Conta' : 'Acessar Conta'}
@@ -329,7 +440,7 @@ const AppContent: React.FC = () => {
         </button>
 
         <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
-          Proteção de dados com criptografia de ponta a ponta e total conformidade com a LGPD.
+          Dados protegidos com boas práticas de segurança e políticas de privacidade configuráveis.
         </div>
       </div>
     </div>
