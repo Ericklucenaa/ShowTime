@@ -104,9 +104,15 @@ function isEpisodeReleased(airDateValue?: string): boolean {
 }
 
 const REFRESH_MIN_INTERVAL_MS = 8000;
-const QUOTA_COOLDOWN_MS = 90000;
+const QUOTA_COOLDOWN_MS = 10 * 60 * 1000;
 const LIST_ITEMS_CACHE_TTL_MS = 60000;
 const QUOTA_COOLDOWN_STORAGE_KEY = 'showtime_firestore_quota_cooldown_until';
+
+function isQuotaExceededError(err: any): boolean {
+  const code = String(err?.code || '').toLowerCase();
+  const msg = String(err?.message || '').toLowerCase();
+  return code.includes('resource-exhausted') || msg.includes('quota exceeded');
+}
 
 export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -308,14 +314,18 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           lastRefreshAtRef.current = Date.now();
         } catch (e: any) {
-          console.error('Error fetching Firestore tracking data:', e);
-          const code = String(e?.code || '').toLowerCase();
-          const msg = String(e?.message || '').toLowerCase();
-          if (code.includes('resource-exhausted') || msg.includes('quota exceeded')) {
+          if (isQuotaExceededError(e)) {
             const cooldownUntil = Date.now() + QUOTA_COOLDOWN_MS;
             quotaCooldownUntilRef.current = cooldownUntil;
             localStorage.setItem(QUOTA_COOLDOWN_STORAGE_KEY, String(cooldownUntil));
             hydrateTrackingSnapshot(user.id);
+            if (Date.now() - quotaWarnedAtRef.current > 20000) {
+              quotaWarnedAtRef.current = Date.now();
+              pushToast('info', 'Cota do Firestore em uso alto. Operando em modo local temporario.');
+            }
+            lastRefreshAtRef.current = Date.now();
+          } else {
+            console.error('Error fetching Firestore tracking data:', e);
           }
         } finally {
           setLoading(false);
