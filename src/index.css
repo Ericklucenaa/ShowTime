@@ -541,3 +541,21 @@ button, input, select, textarea {
 .light-theme .btn-primary {
   color: #000; /* Contrast against yellow */
 }
+
+.light-theme .toast-success {
+  background: rgba(5, 150, 105, 0.12);
+  border-color: rgba(5, 150, 105, 0.4);
+  color: #065f46;
+}
+
+.light-theme .toast-error {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #7f1d1d;
+}
+
+.light-theme .toast-info {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #1e3a8a;
+}
