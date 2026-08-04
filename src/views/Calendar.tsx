@@ -66,7 +66,9 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [activeTab, setActiveTab] = useState<'personal' | 'global'>('personal');
   const [selectedDateKey, setSelectedDateKey] = useState('');
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
+  const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
+  const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
   const [rangeStartOffset, setRangeStartOffset] = useState(0);
 
@@ -169,6 +171,20 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         if (!disposed) {
           setPersonalEvents(nextPersonal);
           setGlobalEvents(nextGlobal);
+          // Build followed shows data for "Minha Lista" visual grid
+          const showsMap = new Map<string, any>();
+          for (const ev of nextPersonal) {
+            if (!showsMap.has(ev.showId)) {
+              showsMap.set(ev.showId, {
+                showId: ev.showId,
+                showTitle: ev.showTitle,
+                showPoster: ev.showPoster,
+                episodes: [],
+              });
+            }
+            showsMap.get(ev.showId)!.episodes.push(ev);
+          }
+          setFollowedShowsData(Array.from(showsMap.values()));
         }
       } catch (err) {
         console.error('Calendar load error', err);
@@ -288,10 +304,10 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         <div className="calendar-tabs" role="tablist" aria-label="Modo do calendario">
           <button type="button" className={`calendar-tab ${activeTab === 'personal' ? 'active' : ''}`} onClick={() => setActiveTab('personal')}>
-            Meu Cronograma ({personalEvents.length})
+            Minha Lista
           </button>
           <button type="button" className={`calendar-tab ${activeTab === 'global' ? 'active' : ''}`} onClick={() => setActiveTab('global')}>
-            Estreias Globais
+            Em Breve
           </button>
         </div>
       </div>
@@ -304,6 +320,36 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
       {!loading && activeTab === 'personal' && (
         <>
+          {/* Visual show grid — Minha Lista */}
+          {followedShowsData.length > 0 && (
+            <div style={{ marginBottom: '24px' }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Séries com episódios no período</p>
+              <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                {followedShowsData.map(show => {
+                  const nextEp = show.episodes.find((e: PersonalEvent) => e.airDate >= todayKey);
+                  const lastEp = show.episodes.filter((e: PersonalEvent) => e.airDate <= todayKey).pop();
+                  const displayEp = nextEp || lastEp;
+                  return (
+                    <div
+                      key={show.showId}
+                      onClick={() => onViewMedia(show.showId, 'show')}
+                      style={{ flexShrink: 0, width: '100px', cursor: 'pointer' }}
+                    >
+                      <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', marginBottom: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+                        <img src={getImageUrl(show.showPoster)} alt={show.showTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        {displayEp && (
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85), transparent)', padding: '6px 4px 4px', fontSize: '10px', fontWeight: 700, color: nextEp ? 'var(--primary)' : 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+                            {nextEp ? `T${displayEp.seasonNumber}E${displayEp.episodeNumber}` : `T${displayEp.seasonNumber}E${displayEp.episodeNumber} ✓`}
+                          </div>
+                        )}
+                      </div>
+                      <p style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{show.showTitle}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <div className="st-panel calendar-strip-panel">
             <div className="calendar-day-strip-shell">
               <div ref={dayStripRef} className="calendar-day-strip">
