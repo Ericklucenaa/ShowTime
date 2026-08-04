@@ -70,6 +70,8 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
   const [rangeStartOffset, setRangeStartOffset] = useState(0);
+  const [upcomingOffset, setUpcomingOffset] = useState(1);
+  const [upcomingSelected, setUpcomingSelected] = useState('');
 
   const dayStripRef = useRef<HTMLDivElement | null>(null);
 
@@ -208,6 +210,33 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
     }
     return map;
   }, [personalEvents]);
+
+  // Only future events (from tomorrow onwards) for Em Breve tab
+  const upcomingGroupedByDate = useMemo(() => {
+    const map: Record<string, PersonalEvent[]> = {};
+    for (const item of personalEvents) {
+      const key = normalizeAirDateToKey(item.airDate);
+      if (!key || key <= todayKey) continue;
+      if (!map[key]) map[key] = [];
+      map[key].push(item);
+    }
+    return map;
+  }, [personalEvents, todayKey]);
+
+  // Auto-select first upcoming date with events
+  useEffect(() => {
+    const firstKey = Object.keys(upcomingGroupedByDate).sort()[0];
+    if (firstKey) setUpcomingSelected(firstKey);
+  }, [upcomingGroupedByDate]);
+
+  const upcomingVisibleKeys = useMemo(() => {
+    const start = new Date(today);
+    start.setDate(start.getDate() + upcomingOffset);
+    const keys: string[] = [];
+    const cur = new Date(start);
+    for (let i = 0; i < DATE_PAGE_SIZE; i++) { keys.push(formatDateKey(cur)); cur.setDate(cur.getDate() + 1); }
+    return keys;
+  }, [today, upcomingOffset]);
 
   const visibleDateKeys = useMemo(() => {
     const start = new Date(today);
@@ -452,37 +481,64 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
       )}
 
       {!loading && activeTab === 'global' && (
-        <div className="calendar-global-list">
-          {globalEvents.length === 0 ? (
-            <div className="st-panel" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Nenhuma estreia global encontrada agora.
+        <>
+          <div className="st-panel calendar-strip-panel">
+            <div className="calendar-day-strip-shell">
+              <div className="calendar-day-strip">
+                {upcomingVisibleKeys.map(key => {
+                  const date = parseDateKey(key);
+                  const count = upcomingGroupedByDate[key]?.length || 0;
+                  return (
+                    <button key={key} data-date={key} type="button" className={`calendar-day-pill ${key === upcomingSelected ? 'active' : ''}`} onClick={() => setUpcomingSelected(key)}>
+                      <span className="dow">{DAY_LABELS[date.getDay()]}</span>
+                      <span className="dom">{date.getDate()}</span>
+                      <span className="mon">{MONTH_LABELS[date.getMonth()]}</span>
+                      <span className="cnt">{count > 0 ? `${count} ep` : '-'}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="calendar-range-controls">
+              <button type="button" className="calendar-range-icon" onClick={() => setUpcomingOffset(p => Math.max(1, p - DATE_PAGE_SIZE))} disabled={upcomingOffset <= 1}><ChevronLeft size={16} /></button>
+              <button type="button" className="calendar-range-icon" onClick={() => setUpcomingOffset(p => p + DATE_PAGE_SIZE)}><ChevronRight size={16} /></button>
+            </div>
+          </div>
+
+          <div className="calendar-selected-head">
+            <h3>{upcomingSelected ? formatHeaderDate(parseDateKey(upcomingSelected)) : ''}</h3>
+            {(upcomingGroupedByDate[upcomingSelected]?.length || 0) > 0 && <span>{upcomingGroupedByDate[upcomingSelected].length} episódios</span>}
+          </div>
+
+          {(upcomingGroupedByDate[upcomingSelected] || []).length === 0 ? (
+            <div className="st-panel" style={{ padding: '26px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+              <p style={{ marginBottom: '8px' }}>Nenhum episódio previsto para este dia.</p>
+              {Object.keys(upcomingGroupedByDate).length === 0 && <p style={{ fontSize: '13px' }}>Siga mais séries para ver episódios futuros aqui.</p>}
             </div>
           ) : (
-            globalEvents.map((item) => (
-              <article key={item.id} className="st-card calendar-global-card">
-                {item.showPoster ? (
-                  <img src={item.showPoster} alt={item.showTitle} className="global-poster" />
-                ) : (
-                  <div className="global-poster fallback">
-                    <Tv size={18} />
-                  </div>
-                )}
-
-                <div className="global-main">
-                  <h4>{item.showTitle}</h4>
-                  <p>
-                    T{String(item.seasonNumber ?? 0).padStart(2, '0')}E{String(item.episodeNumber ?? 0).padStart(2, '0')} - {item.title}
-                  </p>
-                </div>
-
-                <div className="global-meta">
-                  <span className="date-pill">{new Date(item.airDate).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}</span>
-                  {item.time && <span className="time-pill">{item.time}</span>}
-                </div>
-              </article>
-            ))
+            <div className="calendar-grid">
+              {(upcomingGroupedByDate[upcomingSelected] || []).map(item => {
+                const reminderActive = reminders.includes(item.id);
+                return (
+                  <article key={item.id} className="st-card calendar-card" onClick={() => onViewMedia(item.showId, 'show', item.seasonNumber, item.episodeNumber)}>
+                    <div className="poster-wrap">
+                      <img src={getImageUrl(item.showPoster)} alt={item.showTitle} />
+                      <div className="air-badge"><Clock size={11} />{formatEpisodeTime(item.airDate)}</div>
+                    </div>
+                    <div className="card-content">
+                      <h4>{item.showTitle}</h4>
+                      <p className="ep-line">T{item.seasonNumber} E{item.episodeNumber} • {item.title}</p>
+                      {item.overview ? <p className="overview">{item.overview}</p> : <div style={{ height: '8px' }} />}
+                      <button type="button" className={`calendar-reminder ${reminderActive ? 'active' : ''}`} onClick={e => { e.stopPropagation(); toggleReminder(item.id, `${item.showTitle} T${item.seasonNumber}E${item.episodeNumber}`); }}>
+                        {reminderActive ? 'Lembrete ativo' : 'Adicionar lembrete'}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       <style>{`
