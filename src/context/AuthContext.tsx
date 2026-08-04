@@ -271,7 +271,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateAvatar = async (avatarUrl: string): Promise<boolean> => {
-    setLoading(true);
     setError(null);
     if (isFirebaseEnabled && firebaseAuth && firebaseAuth.currentUser) {
       try {
@@ -288,10 +287,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(updated);
             localStorage.setItem('showtime_user', JSON.stringify(updated));
           }
-          setLoading(false);
           return true;
         }
 
+        setLoading(true);
         await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
         await handleAuthStateChange(firebaseAuth.currentUser);
         setLoading(false);
@@ -308,7 +307,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('showtime_user', JSON.stringify(mockUser));
         setUser(mockUser);
       }
-      setLoading(false);
       return true;
     }
   };

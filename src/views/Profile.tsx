@@ -67,12 +67,8 @@ export const Profile: React.FC = () => {
       });
 
       const success = await updateAvatar(compressed);
-      if (success) {
-        setShowAvatarPicker(false);
-        pushToast('success', 'Foto atualizada com sucesso.');
-      } else {
-        pushToast('error', authError || 'Não foi possível atualizar a foto de perfil.');
-      }
+      pushToast(success ? 'success' : 'error', success ? 'Foto atualizada com sucesso.' : 'Não foi possível atualizar a foto de perfil.');
+      if (success) setShowAvatarPicker(false);
     } catch {
       pushToast('error', 'Erro ao processar imagem.');
     } finally {
