@@ -55,7 +55,7 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
   // Search users
   useEffect(() => {
     if (searchTab !== 'users') return;
-    if (!query.trim()) { setUserResults([]); return; }
+    if (query.trim().length < 3) { setUserResults([]); return; }
 
     const timer = setTimeout(async () => {
       setLoading(true);
@@ -208,14 +208,14 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
             </div>
           )}
 
-          {isFirebaseEnabled && query.trim() === '' && (
+          {isFirebaseEnabled && query.trim().length < 3 && (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
               <SearchIcon size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
-              <p>Digite um nome de usuário para buscar.</p>
+              <p>Digite pelo menos 3 letras para buscar usuários.</p>
             </div>
           )}
 
-          {isFirebaseEnabled && query.trim() !== '' && userResults.length === 0 && !loading && (
+          {isFirebaseEnabled && query.trim().length >= 3 && userResults.length === 0 && !loading && (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
               <AlertCircle size={40} style={{ color: 'var(--text-muted)', marginBottom: '12px' }} />
               <p>Nenhum usuário encontrado para "{query}"</p>

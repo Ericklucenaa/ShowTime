@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth as firebaseAuth, db, isFirebaseEnabled } from '../services/firebase.js';
-import { doc, setDoc, getDoc } from 'firebase/firestore/lite';
+import { doc, setDoc } from 'firebase/firestore/lite';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -67,33 +67,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fbToken = await fbUser.getIdToken();
         const mappedUser = mapFirebaseUser(fbUser);
 
-        // Prefer avatarUrl and privacy settings stored in Firestore
-        let resolvedAvatarUrl = mappedUser.avatarUrl;
-        let profileVisibility: 'public' | 'friends' | 'private' = 'public';
-        if (db) {
-          const profileSnap = await getDoc(doc(db, 'profiles', fbUser.uid));
-          if (profileSnap.exists()) {
-            const stored = profileSnap.data();
-            if (stored.avatarUrl) resolvedAvatarUrl = stored.avatarUrl;
-            if (stored.profileVisibility) profileVisibility = stored.profileVisibility;
-          }
-        }
-        const mergedUser: User = { ...mappedUser, avatarUrl: resolvedAvatarUrl, profileVisibility };
+        // Restore cached extras (avatarUrl, privacy) from localStorage to avoid a Firestore read on every login
+        const cached = localStorage.getItem('showtime_user');
+        const cachedParsed = cached ? JSON.parse(cached) : null;
+        const mergedUser: User = {
+          ...mappedUser,
+          avatarUrl: (cachedParsed?.id === fbUser.uid ? cachedParsed?.avatarUrl : null) || mappedUser.avatarUrl,
+          profileVisibility: (cachedParsed?.id === fbUser.uid ? cachedParsed?.profileVisibility : null) ?? 'public',
+        };
 
         localStorage.setItem('showtime_token', fbToken);
         localStorage.setItem('showtime_user', JSON.stringify(mergedUser));
         setToken(fbToken);
         setUser(mergedUser);
 
-        // Sync public profile — do not overwrite avatarUrl (may be base64 stored separately)
+        // Sync public profile (write only, no read)
         if (db) {
           const profileRef = doc(db, 'profiles', fbUser.uid);
           await setDoc(profileRef, {
             id: fbUser.uid,
             username: mappedUser.username,
             usernameLower: mappedUser.username.toLowerCase(),
-            email: mappedUser.email,
-            emailLower: mappedUser.email.toLowerCase(),
             updatedAt: new Date().toISOString()
           }, { merge: true });
         }
