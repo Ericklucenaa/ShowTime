@@ -748,13 +748,13 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
           marginLeft: '0',
           marginRight: '0',
           marginTop: '0',
-          backgroundImage: `linear-gradient(to top, var(--bg-dark) 0%, rgba(7, 7, 10, 0.6) 50%, rgba(0, 0, 0, 0.2) 100%), url(${getImageUrl(media.backdropPath, 'original')})`,
+          backgroundImage: `linear-gradient(to top, var(--bg-dark) 15%, rgba(7, 7, 10, 0.85) 55%, rgba(0, 0, 0, 0.35) 100%), url(${getImageUrl(media.backdropPath, 'original')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
           display: 'flex',
-          alignItems: 'end',
-          padding: '40px 4%',
+          alignItems: 'center',
+          padding: '40px 4% 24px',
           marginBottom: '30px',
           position: 'relative',
           borderRadius: 'var(--radius-md)',
@@ -778,7 +778,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                 </span>
               ))}
             </div>
-            <p className="detail-overview" style={{ color: 'rgba(255,255,255,0.85)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>
+            <p className="detail-overview" style={{ color: 'rgba(255,255,255,0.92)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6', textShadow: '0 1px 6px rgba(0,0,0,0.95), 0 2px 12px rgba(0,0,0,0.8)' }}>
               {media.overview || "Sem sinopse disponível."}
             </p>
           </div>

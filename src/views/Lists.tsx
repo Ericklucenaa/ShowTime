@@ -13,7 +13,6 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
   const [isCreating, setIsCreating] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [type, setType] = useState<'show' | 'movie' | 'mixed'>('mixed');
   const [loadingItems, setLoadingItems] = useState(false);
 
   // Load details and populated items when a list is selected
@@ -42,11 +41,10 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
     e.preventDefault();
     if (!name.trim()) return;
 
-    const success = await createList(name, description, type);
+    const success = await createList(name, description, 'mixed');
     if (success) {
       setName('');
       setDescription('');
-      setType('mixed');
       setIsCreating(false);
     }
   };
@@ -112,18 +110,6 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
                 rows={3}
                 style={{ width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', color: 'var(--text-primary)', outline: 'none', resize: 'vertical' }}
               />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>Tipo de Lista</label>
-              <select 
-                value={type}
-                onChange={e => setType(e.target.value as any)}
-                style={{ width: '100%', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', color: 'var(--text-primary)', outline: 'none' }}
-              >
-                <option value="mixed">Misto (Séries e Filmes)</option>
-                <option value="show">Apenas Séries</option>
-                <option value="movie">Apenas Filmes</option>
-              </select>
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'end' }}>
               <button type="button" onClick={() => setIsCreating(false)} className="st-btn-secondary">Cancelar</button>

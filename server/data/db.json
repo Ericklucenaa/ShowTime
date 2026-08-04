@@ -103,6 +103,38 @@
       "passwordHash": "$2a$10$Agx8T.ODGuuEWwsnsngLLOW/SYF6YdovsePCjq.d4SUiX0CxpDee2",
       "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdq870z",
       "createdAt": "2026-08-03T21:13:48.300Z"
+    },
+    {
+      "id": "u_510af7c2f6994e6f",
+      "username": "testsignup_msdv5lzn",
+      "email": "signup_msdv5lzn@test.com",
+      "passwordHash": "$2a$10$JxMLQagunGzUjDjjhnT7Su9jLSZi5Xr4CD/eldHs78MlZofLaH.Gy",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdv5lzn",
+      "createdAt": "2026-08-03T23:31:45.807Z"
+    },
+    {
+      "id": "u_ef468cc3686848c4",
+      "username": "testsignup_msdv69mu",
+      "email": "signup_msdv69mu@test.com",
+      "passwordHash": "$2a$10$DtKzBOWbJZqR67jUPd4x7uXm0Oqb7PQS6MNgOltK.6TL10/lqUv62",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdv69mu",
+      "createdAt": "2026-08-03T23:32:16.471Z"
+    },
+    {
+      "id": "u_bf2b9b04d1e14baa",
+      "username": "testsignup_msdvi1zk",
+      "email": "signup_msdvi1zk@test.com",
+      "passwordHash": "$2a$10$LJ5RaBu4uVNGF8kyGoTZi.cHNEpV./6nIwC3/24HGFMoHy71dxRbC",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdvi1zk",
+      "createdAt": "2026-08-03T23:41:26.413Z"
+    },
+    {
+      "id": "u_1508ed1d7d6f4659",
+      "username": "testsignup_msdvoupz",
+      "email": "signup_msdvoupz@test.com",
+      "passwordHash": "$2a$10$.di9mX7dVTAy2blVQMOLJ.Z0lhBNeWcvu9CCuXQ8qEuNMbR/prSGa",
+      "avatarUrl": "https://api.dicebear.com/7.x/adventurer/svg?seed=testsignup_msdvoupz",
+      "createdAt": "2026-08-03T23:46:43.585Z"
     }
   ],
   "shows": [
@@ -2929,6 +2961,34 @@
       "userId": "u_047792e2bfa94c1b",
       "movieId": "m1",
       "watchedAt": "2026-08-03T21:13:48.527Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_01c7fceceb4d44b9",
+      "userId": "u_510af7c2f6994e6f",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T23:31:46.047Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_5eb51fb78c0a4dc5",
+      "userId": "u_ef468cc3686848c4",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T23:32:16.705Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_bb206235f31848d7",
+      "userId": "u_bf2b9b04d1e14baa",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T23:41:26.659Z",
+      "isFavorite": false
+    },
+    {
+      "id": "wm_8024e06adcef4efe",
+      "userId": "u_1508ed1d7d6f4659",
+      "movieId": "m1",
+      "watchedAt": "2026-08-03T23:46:43.815Z",
       "isFavorite": false
     }
   ],
