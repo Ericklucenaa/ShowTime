@@ -748,7 +748,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
           marginLeft: '0',
           marginRight: '0',
           marginTop: '0',
-          backgroundImage: `linear-gradient(to top, var(--bg-dark) 15%, rgba(7, 7, 10, 0.85) 55%, rgba(0, 0, 0, 0.35) 100%), url(${getImageUrl(media.backdropPath, 'original')})`,
+          backgroundImage: `linear-gradient(to top, var(--bg-dark) 20%, rgba(0,0,0,0.72) 60%, rgba(0,0,0,0.45) 100%), url(${getImageUrl(media.backdropPath, 'original')})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center top',
           backgroundRepeat: 'no-repeat',
@@ -769,16 +769,16 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             className="show-poster-image"
             style={{ width: 'clamp(120px, 14vw, 180px)', aspectRatio: '2 / 3', height: 'auto', objectFit: 'contain', background: 'rgba(0,0,0,0.22)', borderRadius: 'var(--radius-md)', boxShadow: '0 12px 30px rgba(0,0,0,0.6)', border: '2px solid rgba(255,255,255,0.1)' }}
           />
-          <div style={{ flex: 1, minWidth: '240px' }}>
-            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 4px 20px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,1)' }}>{media.title}</h1>
+          <div style={{ flex: 1, minWidth: '240px', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
+            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>{media.title}</h1>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
               {media.genres?.map((g: string) => (
-                <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600', backdropFilter: 'blur(4px)' }}>
+                <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600' }}>
                   {g}
                 </span>
               ))}
             </div>
-            <p className="detail-overview" style={{ color: 'rgba(255,255,255,0.92)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6', textShadow: '0 1px 6px rgba(0,0,0,0.95), 0 2px 12px rgba(0,0,0,0.8)' }}>
+            <p className="detail-overview" style={{ color: 'rgba(255,255,255,0.92)', fontSize: '14px', maxWidth: '800px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.6' }}>
               {media.overview || "Sem sinopse disponível."}
             </p>
           </div>
