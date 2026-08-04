@@ -42,11 +42,13 @@ export const Lists: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie')
     e.preventDefault();
     if (!name.trim()) return;
 
-    await createList(name, description, type);
-    setName('');
-    setDescription('');
-    setType('mixed');
-    setIsCreating(false);
+    const success = await createList(name, description, type);
+    if (success) {
+      setName('');
+      setDescription('');
+      setType('mixed');
+      setIsCreating(false);
+    }
   };
 
   const handleDeleteList = async (listId: string, e: React.MouseEvent) => {

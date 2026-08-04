@@ -62,7 +62,7 @@ interface TrackingContextType {
   toggleWatchEpisode: (episodeId: string, showMetadata?: any, episodeMetadata?: any) => Promise<boolean>;
   toggleWatchMovie: (movieId: string, movieMetadata?: any) => Promise<boolean>;
   toggleFavoriteMovie: (movieId: string, movieMetadata?: any) => Promise<boolean>;
-  createList: (name: string, description: string, type: 'show' | 'movie' | 'mixed') => Promise<void>;
+  createList: (name: string, description: string, type: 'show' | 'movie' | 'mixed') => Promise<boolean>;
   deleteList: (listId: string) => Promise<void>;
   addToList: (listId: string, mediaType: 'show' | 'movie', mediaId: string, mediaMetadata?: any) => Promise<boolean>;
   removeFromList: (listId: string, mediaId: string) => Promise<boolean>;
@@ -605,10 +605,32 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const createList = async (name: string, description: string, type: 'show' | 'movie' | 'mixed') => {
-    if (!user) return;
+  const createList = async (name: string, description: string, type: 'show' | 'movie' | 'mixed'): Promise<boolean> => {
+    if (!user) return false;
 
     const listId = 'l_' + generateId();
+    const newList: CustomList = {
+      id: listId,
+      name,
+      description,
+      type,
+      itemCount: 0
+    };
+
+    const persistListLocally = () => {
+      setLists((prev) => {
+        const next = [newList, ...prev.filter((l) => l.id !== listId)];
+        setLocalData(`showtime_custom_lists_${user.id}`, next);
+        return next;
+      });
+      listItemsCacheRef.current[listId] = {
+        at: Date.now(),
+        data: {
+          list: newList,
+          items: []
+        }
+      };
+    };
 
     if (isFirebaseEnabled && db) {
       try {
@@ -622,28 +644,29 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           itemCount: 0,
           createdAt: new Date().toISOString()
         });
+        persistListLocally();
         listItemsCacheRef.current = {};
+        lastRefreshAtRef.current = 0;
         await refreshData();
         trackEvent('list_created', { listId, type });
         pushToast('success', 'Lista criada com sucesso.');
+        return true;
       } catch (e: any) {
+        if (isQuotaExceededError(e)) {
+          persistListLocally();
+          pushToast('info', 'Cota do Firebase no limite. Lista criada localmente por enquanto.');
+          return true;
+        }
         console.error('Error creating custom list in Firestore:', e);
         pushToast('error', 'Não foi possível criar a lista no Firebase.');
+        return false;
       }
     } else {
       // Offline fallback
-      const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
-      customLists.push({
-        id: listId,
-        name,
-        description,
-        type,
-        itemCount: 0
-      });
-      setLocalData(`showtime_custom_lists_${user.id}`, customLists);
-      setLists(customLists);
+      persistListLocally();
       trackEvent('list_created_offline', { listId, type });
       pushToast('success', 'Lista criada localmente.');
+      return true;
     }
   };
 
