@@ -246,14 +246,11 @@ export const Profile: React.FC = () => {
           <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
             {watchedMovies.map(m => (
               <div key={m.movieId} style={{ flexShrink: 0, width: '80px' }}>
-                <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', marginBottom: '6px', position: 'relative' }}>
-                  {m.posterPath
-                    ? <img src={getImageUrl(m.posterPath)} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Film size={20} color="var(--text-muted)" /></div>
-                  }
+                <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', marginBottom: '6px', position: 'relative', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Film size={24} color="var(--text-muted)" />
                   {m.isFavorite && <Heart size={14} fill="var(--secondary)" color="var(--secondary)" style={{ position: 'absolute', top: 4, right: 4 }} />}
                 </div>
-                <p style={{ fontSize: '10px', textAlign: 'center', lineHeight: 1.2, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.title}</p>
+                <p style={{ fontSize: '10px', textAlign: 'center', lineHeight: 1.2, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.movieTitle || m.movieId}</p>
               </div>
             ))}
           </div>

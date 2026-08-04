@@ -68,7 +68,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
   const [globalEvents, setGlobalEvents] = useState<any[]>([]);
-  const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
   const [rangeStartOffset, setRangeStartOffset] = useState(0);
 
