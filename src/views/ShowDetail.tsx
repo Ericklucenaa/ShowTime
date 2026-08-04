@@ -770,10 +770,10 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             style={{ width: 'clamp(120px, 14vw, 180px)', aspectRatio: '2 / 3', height: 'auto', objectFit: 'contain', background: 'rgba(0,0,0,0.22)', borderRadius: 'var(--radius-md)', boxShadow: '0 12px 30px rgba(0,0,0,0.6)', border: '2px solid rgba(255,255,255,0.1)' }}
           />
           <div style={{ flex: 1, minWidth: '240px', background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-md)', padding: '18px 20px' }}>
-            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 6px rgba(0,0,0,0.9)' }}>{media.title}</h1>
+            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 6px rgba(0,0,0,0.9)', color: 'rgba(255,255,255,0.92)' }}>{media.title}</h1>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
               {media.genres?.map((g: string) => (
-                <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600' }}>
+                <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.18)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600', color: 'rgba(255,255,255,0.92)' }}>
                   {g}
                 </span>
               ))}
