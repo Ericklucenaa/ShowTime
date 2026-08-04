@@ -160,13 +160,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         nextPersonal.sort((a, b) => a.airDateMs - b.airDateMs);
 
-        let nextGlobal: any[] = [];
-        try {
-          nextGlobal = [];
-        } catch {
-          nextGlobal = [];
-        }
-
         if (!disposed) {
           setPersonalEvents(nextPersonal);
           // Build followed shows data for "Minha Lista" visual grid
