@@ -1,5 +1,5 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { useTracking } from '../context/TrackingContext.js';
 import { fetchMediaDetails, fetchSeasonEpisodes, fetchTVMazeSchedule, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
@@ -67,7 +67,6 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
   const [selectedDateKey, setSelectedDateKey] = useState('');
   const [personalEvents, setPersonalEvents] = useState<PersonalEvent[]>([]);
   const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
-  const [globalEvents, setGlobalEvents] = useState<any[]>([]);
   const [reminders, setReminders] = useState<string[]>([]);
   const [rangeStartOffset, setRangeStartOffset] = useState(0);
   const [upcomingOffset, setUpcomingOffset] = useState(1);
