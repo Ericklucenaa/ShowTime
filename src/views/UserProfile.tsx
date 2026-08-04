@@ -3,7 +3,8 @@ import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore/lite';
 import { getImageUrl, fetchMediaDetails } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
-import { ArrowLeft, UserCheck, UserPlus, Tv, Star, Eye } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.js';
+import { ArrowLeft, UserCheck, UserPlus, Tv, Star, Eye, Lock, Users } from 'lucide-react';
 
 interface UserProfileProps {
   targetUserId: string;
@@ -13,6 +14,7 @@ interface UserProfileProps {
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUsername, onBack, onViewMedia }) => {
+  const { user } = useAuth();
   const { followedUsers, toggleFollowUser } = useTracking();
   const [profileData, setProfileData] = useState<any>(null);
   const [watchedShows, setWatchedShows] = useState<any[]>([]);
@@ -97,6 +99,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
   }
 
   const profile = profileData || { username: targetUsername, id: targetUserId };
+  const visibility = profile.profileVisibility || 'public';
+  const isOwnProfile = user?.id === targetUserId;
+  const viewerFollowsTarget = followedUsers.includes(targetUserId);
+
+  // Privacy gate
+  const isBlocked = !isOwnProfile && (
+    visibility === 'private' ||
+    (visibility === 'friends' && !viewerFollowsTarget)
+  );
 
   return (
     <div className="animate-fade-in">
@@ -118,24 +129,43 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
           style={{ width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary)', flexShrink: 0 }}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px' }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {profile.username}
+            {visibility === 'private' && <span style={{ fontSize: '12px', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Lock size={11} /> Privado</span>}
+            {visibility === 'friends' && <span style={{ fontSize: '12px', background: 'rgba(99,102,241,0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={11} /> Apenas Amigos</span>}
           </h2>
-          <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
-            <span><strong style={{ color: 'var(--text-primary)' }}>{watchedShows.length}</strong> séries assistidas</span>
-            <span><strong style={{ color: 'var(--text-primary)' }}>{followedShowsList.length}</strong> séries seguindo</span>
-          </div>
+          {!isBlocked && (
+            <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+              <span><strong style={{ color: 'var(--text-primary)' }}>{watchedShows.length}</strong> séries assistidas</span>
+              <span><strong style={{ color: 'var(--text-primary)' }}>{followedShowsList.length}</strong> séries seguindo</span>
+            </div>
+          )}
         </div>
-        <button
-          className={isFollowed ? 'btn-secondary' : 'btn-primary'}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none', flexShrink: 0 }}
-          onClick={() => toggleFollowUser(targetUserId)}
-        >
-          {isFollowed ? <UserCheck size={16} /> : <UserPlus size={16} />}
-          {isFollowed ? 'Seguindo' : 'Seguir'}
-        </button>
+        {!isOwnProfile && (
+          <button
+            className={isFollowed ? 'btn-secondary' : 'btn-primary'}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none', flexShrink: 0 }}
+            onClick={() => toggleFollowUser(targetUserId)}
+          >
+            {isFollowed ? <UserCheck size={16} /> : <UserPlus size={16} />}
+            {isFollowed ? 'Seguindo' : 'Seguir'}
+          </button>
+        )}
       </div>
 
+      {/* Privacy gate */}
+      {isBlocked ? (
+        <div className="glass-card" style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          <Lock size={40} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
+          <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-primary)' }}>Perfil {visibility === 'private' ? 'Privado' : 'Restrito a Amigos'}</h3>
+          <p style={{ fontSize: '14px' }}>
+            {visibility === 'private'
+              ? 'Este usuário mantém o perfil privado.'
+              : 'Siga este usuário para ver o conteúdo do perfil.'}
+          </p>
+        </div>
+      ) : (
+        <>
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '24px' }}>
         <button
@@ -237,6 +267,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
             ))}
           </div>
         )
+      )}
+        </>
       )}
     </div>
   );

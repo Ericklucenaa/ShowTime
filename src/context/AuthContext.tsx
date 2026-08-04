@@ -18,6 +18,7 @@ interface User {
   username: string;
   email: string;
   avatarUrl?: string;
+  profileVisibility?: 'public' | 'friends' | 'private';
 }
 
 interface AuthContextType {
@@ -30,6 +31,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updateAvatar: (avatarUrl: string) => Promise<boolean>;
+  updatePrivacy: (visibility: 'public' | 'friends' | 'private') => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }
@@ -65,22 +67,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fbToken = await fbUser.getIdToken();
         const mappedUser = mapFirebaseUser(fbUser);
 
-        // Prefer avatarUrl stored in Firestore (may be base64 from local upload)
+        // Prefer avatarUrl and privacy settings stored in Firestore
         let resolvedAvatarUrl = mappedUser.avatarUrl;
+        let profileVisibility: 'public' | 'friends' | 'private' = 'public';
         if (db) {
-          const profileRef = doc(db, 'profiles', fbUser.uid);
-          const profileSnap = await getDoc(profileRef);
+          const profileSnap = await getDoc(doc(db, 'profiles', fbUser.uid));
           if (profileSnap.exists()) {
-            const stored = profileSnap.data().avatarUrl;
-            if (stored) resolvedAvatarUrl = stored;
+            const stored = profileSnap.data();
+            if (stored.avatarUrl) resolvedAvatarUrl = stored.avatarUrl;
+            if (stored.profileVisibility) profileVisibility = stored.profileVisibility;
           }
         }
-        const finalUser = { ...mappedUser, avatarUrl: resolvedAvatarUrl };
+        const mergedUser: User = { ...mappedUser, avatarUrl: resolvedAvatarUrl, profileVisibility };
 
         localStorage.setItem('showtime_token', fbToken);
-        localStorage.setItem('showtime_user', JSON.stringify(finalUser));
+        localStorage.setItem('showtime_user', JSON.stringify(mergedUser));
         setToken(fbToken);
-        setUser(finalUser);
+        setUser(mergedUser);
 
         // Sync public profile — do not overwrite avatarUrl (may be base64 stored separately)
         if (db) {
@@ -313,8 +316,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearError = () => setError(null);
 
+  const updatePrivacy = async (visibility: 'public' | 'friends' | 'private'): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      if (isFirebaseEnabled && db) {
+        await setDoc(doc(db, 'profiles', user.id), { profileVisibility: visibility, updatedAt: new Date().toISOString() }, { merge: true });
+      }
+      const updated = { ...user, profileVisibility: visibility };
+      setUser(updated);
+      localStorage.setItem('showtime_user', JSON.stringify(updated));
+      return true;
+    } catch (e) {
+      console.error('Error updating privacy:', e);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, resetPassword, updateAvatar, logout, clearError }}>
+    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, resetPassword, updateAvatar, updatePrivacy, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,17 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
-import { BarChart3, LogOut, Camera, Upload } from 'lucide-react';
+import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock } from 'lucide-react';
 import { pushToast } from '../services/toast.js';
 
 export const Profile: React.FC = () => {
-  const { user, logout, updateAvatar, error: authError } = useAuth();
+  const { user, logout, updateAvatar, updatePrivacy, error: authError } = useAuth();
   const { watchedEpisodes, watchedMovies, genreCounts, totalGenresCount } = useTracking();
 
   // Avatar Picker State
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
+  const [privacyLoading, setPrivacyLoading] = useState(false);
   const devicePhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const avatarPresets = [
@@ -94,6 +95,14 @@ export const Profile: React.FC = () => {
   const totalMovTime = watchedMovies.length * 110; // avg 110m for movies
   const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
   const totalDays = (totalHours / 24).toFixed(1);
+
+  const handlePrivacyChange = async (v: 'public' | 'friends' | 'private') => {
+    if (v === user?.profileVisibility) return;
+    setPrivacyLoading(true);
+    const ok = await updatePrivacy(v);
+    pushToast(ok ? 'success' : 'error', ok ? 'Privacidade atualizada.' : 'Erro ao atualizar privacidade.');
+    setPrivacyLoading(false);
+  };
 
   return (
     <div className="profile-view animate-fade-in" style={{ paddingBottom: '60px' }}>
@@ -204,6 +213,34 @@ export const Profile: React.FC = () => {
             </form>
           </div>
         )}
+      </div>
+
+      {/* Privacy Settings */}
+      <div className="st-panel" style={{ padding: '24px', marginBottom: '30px' }}>
+        <h3 style={{ fontSize: '18px', fontFamily: 'var(--font-display)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Globe size={18} style={{ color: 'var(--primary)' }} />
+          Visibilidade do Perfil
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>Controle quem pode ver suas séries e atividade.</p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {(['public', 'friends', 'private'] as const).map(v => {
+            const active = (user?.profileVisibility ?? 'public') === v;
+            const label = v === 'public' ? 'Público' : v === 'friends' ? 'Apenas Amigos' : 'Privado';
+            const Icon = v === 'public' ? Globe : v === 'friends' ? Users : Lock;
+            return (
+              <button
+                key={v}
+                onClick={() => handlePrivacyChange(v)}
+                disabled={privacyLoading}
+                className={active ? 'st-btn-primary' : 'st-btn-secondary'}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', padding: '8px 18px', opacity: privacyLoading ? 0.6 : 1 }}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '30px' }} className="profile-grid">

@@ -3,7 +3,7 @@ import { searchMedia, getImageUrl, hasRealTmdbKey, rankMediaResults } from '../s
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { collection, getDocs, query as fsQuery, orderBy, startAt, endAt, limit } from 'firebase/firestore/lite';
 import { useTracking } from '../context/TrackingContext.js';
-import { Search as SearchIcon, Film, Tv, Star, AlertCircle, Users, UserPlus, UserCheck } from 'lucide-react';
+import { Search as SearchIcon, Film, Tv, Star, AlertCircle, Users, UserPlus, UserCheck, Lock } from 'lucide-react';
 import { trackEvent } from '../services/telemetry.js';
 
 interface SearchProps {
@@ -71,31 +71,13 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
             limit(20)
           );
 
-          const emailQuery = fsQuery(
-            collection(db, 'profiles'),
-            orderBy('emailLower'),
-            startAt(q),
-            endAt(`${q}\uf8ff`),
-            limit(20)
-          );
+          const snap = await getDocs(usernameQuery);
+          const results = snap.docs
+            .map(d => d.data())
+            .filter(p => p.profileVisibility !== 'private');
 
-          const [usernameSnap, emailSnap] = await Promise.all([
-            getDocs(usernameQuery),
-            getDocs(emailQuery)
-          ]);
-
-          const merged = new Map<string, any>();
-          usernameSnap.docs.forEach((d) => {
-            const data = d.data();
-            merged.set(data.id || d.id, data);
-          });
-          emailSnap.docs.forEach((d) => {
-            const data = d.data();
-            merged.set(data.id || d.id, data);
-          });
-
-          setUserResults(Array.from(merged.values()).slice(0, 20));
-          trackEvent('search_user_query', { queryLength: q.length, results: merged.size });
+          setUserResults(results.slice(0, 20));
+          trackEvent('search_user_query', { queryLength: q.length, results: results.length });
         } else {
           setUserResults([]);
         }
@@ -261,10 +243,15 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h4
-                        style={{ fontSize: '16px', cursor: 'pointer' }}
+                        style={{ fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                         onClick={() => onViewProfile?.(u.id, u.username)}
                       >
                         {u.username}
+                        {u.profileVisibility === 'friends' && (
+                          <span style={{ fontSize: '11px', background: 'rgba(99,102,241,0.15)', color: 'var(--primary)', padding: '2px 8px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Lock size={10} /> Amigos
+                          </span>
+                        )}
                       </h4>
                     </div>
                     <div className="search-user-actions" style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
