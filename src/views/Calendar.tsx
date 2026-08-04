@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { useTracking } from '../context/TrackingContext.js';
-import { fetchMediaDetails, fetchSeasonEpisodes, fetchTVMazeSchedule, getImageUrl } from '../services/api.js';
+import { fetchMediaDetails, fetchSeasonEpisodes, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 import { trackEvent } from '../services/telemetry.js';
 
@@ -162,15 +162,13 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
 
         let nextGlobal: any[] = [];
         try {
-          const schedule = await fetchTVMazeSchedule();
-          nextGlobal = schedule.slice(0, 40);
+          nextGlobal = [];
         } catch {
           nextGlobal = [];
         }
 
         if (!disposed) {
           setPersonalEvents(nextPersonal);
-          setGlobalEvents(nextGlobal);
           // Build followed shows data for "Minha Lista" visual grid
           const showsMap = new Map<string, any>();
           for (const ev of nextPersonal) {
