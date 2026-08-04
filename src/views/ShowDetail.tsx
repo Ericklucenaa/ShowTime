@@ -770,7 +770,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             style={{ width: 'clamp(120px, 14vw, 180px)', aspectRatio: '2 / 3', height: 'auto', objectFit: 'contain', background: 'rgba(0,0,0,0.22)', borderRadius: 'var(--radius-md)', boxShadow: '0 12px 30px rgba(0,0,0,0.6)', border: '2px solid rgba(255,255,255,0.1)' }}
           />
           <div style={{ flex: 1, minWidth: '240px' }}>
-            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}>{media.title}</h1>
+            <h1 className="detail-title" style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 44px)', marginBottom: '8px', lineHeight: '1.1', textShadow: '0 2px 8px rgba(0,0,0,0.95), 0 4px 20px rgba(0,0,0,0.9), 0 1px 3px rgba(0,0,0,1)' }}>{media.title}</h1>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
               {media.genres?.map((g: string) => (
                 <span key={g} style={{ fontSize: '11px', background: 'rgba(255,255,255,0.15)', padding: '4px 12px', borderRadius: 'var(--radius-full)', fontWeight: '600', backdropFilter: 'blur(4px)' }}>

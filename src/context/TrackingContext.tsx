@@ -674,6 +674,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user) return;
 
     if (isFirebaseEnabled && db) {
+      // Optimistic update: remove immediately from UI
+      setLists((prev) => prev.filter((l) => l.id !== listId));
       try {
         // Delete list document
         await deleteDoc(doc(db, 'custom_lists', listId));
@@ -685,11 +687,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         await batch.commit();
         delete listItemsCacheRef.current[listId];
-        await refreshData();
         trackEvent('list_deleted', { listId });
         pushToast('success', 'Lista removida.');
       } catch (e) {
         console.error('Error deleting list from Firestore:', e);
+        // Revert optimistic update on failure
+        await refreshData();
         pushToast('error', 'Erro ao remover lista.');
       }
     } else {
