@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { searchMedia, getImageUrl, hasRealTmdbKey, rankMediaResults } from '../services/api.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
-import { collection, getDocs, query as fsQuery, orderBy, startAt, endAt, limit } from 'firebase/firestore/lite';
+import { collection, getDocs } from 'firebase/firestore/lite';
 import { useTracking } from '../context/TrackingContext.js';
 import { Search as SearchIcon, Film, Tv, Star, AlertCircle, Users, UserPlus, UserCheck, Lock } from 'lucide-react';
 import { trackEvent } from '../services/telemetry.js';
@@ -63,20 +63,17 @@ export const Search: React.FC<SearchProps> = ({ onViewMedia, onViewProfile }) =>
         if (isFirebaseEnabled && db) {
           const q = query.trim().toLowerCase();
 
-          const usernameQuery = fsQuery(
-            collection(db, 'profiles'),
-            orderBy('usernameLower'),
-            startAt(q),
-            endAt(`${q}\uf8ff`),
-            limit(20)
-          );
-
-          const snap = await getDocs(usernameQuery);
+          const snap = await getDocs(collection(db, 'profiles'));
           const results = snap.docs
             .map(d => d.data())
-            .filter(p => p.profileVisibility !== 'private');
+            .filter(p =>
+              p.profileVisibility !== 'private' &&
+              p.usernameLower &&
+              p.usernameLower.includes(q)
+            )
+            .slice(0, 20);
 
-          setUserResults(results.slice(0, 20));
+          setUserResults(results);
           trackEvent('search_user_query', { queryLength: q.length, results: results.length });
         } else {
           setUserResults([]);
