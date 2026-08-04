@@ -1,7 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { auth as firebaseAuth, db, storage, isFirebaseEnabled } from '../services/firebase.js';
+import { auth as firebaseAuth, db, isFirebaseEnabled } from '../services/firebase.js';
 import { doc, setDoc, getDoc } from 'firebase/firestore/lite';
-import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
