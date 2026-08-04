@@ -707,14 +707,53 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addToList = async (listId: string, mediaType: 'show' | 'movie', mediaId: string, mediaMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
+    const localItemsKey = `showtime_list_items_${user.id}_${listId}`;
+    const localItems = getLocalData(localItemsKey, []);
+    const existsLocal = localItems.some((i: any) => i.mediaId === mediaId);
+    if (existsLocal) return false;
+
+    const localItem = {
+      id: 'li_' + generateId(),
+      mediaId,
+      mediaType,
+      details: {
+        id: mediaId,
+        title: mediaMetadata?.title || 'Título',
+        posterPath: mediaMetadata?.posterPath || mediaMetadata?.poster_path || '',
+        rating: mediaMetadata?.rating || mediaMetadata?.vote_average || 0
+      }
+    };
+
+    const applyLocalAdd = () => {
+      const refreshed = getLocalData(localItemsKey, []);
+      if (refreshed.some((i: any) => i.mediaId === mediaId)) {
+        return false;
+      }
+
+      const nextItems = [...refreshed, localItem];
+      setLocalData(localItemsKey, nextItems);
+      delete listItemsCacheRef.current[listId];
+
+      setLists((prev) => {
+        const next = prev.map((l) => (l.id === listId ? { ...l, itemCount: l.itemCount + 1 } : l));
+        setLocalData(`showtime_custom_lists_${user.id}`, next);
+        return next;
+      });
+      return true;
+    };
+
     if (isFirebaseEnabled && db) {
+      if (Date.now() < quotaCooldownUntilRef.current) {
+        const added = applyLocalAdd();
+        if (added) {
+          pushToast('info', 'Item adicionado localmente enquanto o Firebase está com limite de cota.');
+        }
+        return added;
+      }
+
       try {
         const itemRef = doc(db, 'custom_lists', listId, 'items', mediaId);
-        // Check if item already exists in subcollection
-        const docSnap = await getDoc(itemRef);
-        if (docSnap.exists()) return false;
-
-        // Save detailed metadata directly inside the document so lists load extremely fast without backend queries!
+        // Save detailed metadata directly; document id by mediaId keeps idempotent writes.
         await setDoc(itemRef, {
           id: 'li_' + generateId(),
           mediaId,
@@ -728,46 +767,33 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           }
         });
 
-        const current = lists.find((l) => l.id === listId)?.itemCount || 0;
-        const nextCount = current + 1;
+        const added = applyLocalAdd();
+        if (!added) return false;
+        const nextCount = (lists.find((l) => l.id === listId)?.itemCount || 0) + 1;
         await setDoc(doc(db, 'custom_lists', listId), { itemCount: nextCount }, { merge: true });
-        setLists((prev) => prev.map((l) => (l.id === listId ? { ...l, itemCount: nextCount } : l)));
-        delete listItemsCacheRef.current[listId];
         trackEvent('list_item_added', { listId, mediaType, mediaId });
         return true;
-      } catch (e) {
+      } catch (e: any) {
+        if (isQuotaExceededError(e)) {
+          const cooldownUntil = Date.now() + QUOTA_COOLDOWN_MS;
+          quotaCooldownUntilRef.current = cooldownUntil;
+          localStorage.setItem(QUOTA_COOLDOWN_STORAGE_KEY, String(cooldownUntil));
+          const added = applyLocalAdd();
+          if (added) {
+            pushToast('info', 'Item adicionado localmente (cota do Firebase excedida).');
+            trackEvent('list_item_added_offline_quota', { listId, mediaType, mediaId });
+          }
+          return added;
+        }
+
         console.error('Error adding list item to Firestore:', e);
         pushToast('error', 'Erro ao adicionar item na lista.');
         return false;
       }
     } else {
       // Offline fallback
-      const items = getLocalData(`showtime_list_items_${user.id}_${listId}`, []);
-      const exists = items.some((i: any) => i.mediaId === mediaId);
-      if (exists) return false;
-
-      items.push({
-        id: 'li_' + generateId(),
-        mediaId,
-        mediaType,
-        details: {
-          id: mediaId,
-          title: mediaMetadata?.title || 'Título',
-          posterPath: mediaMetadata?.posterPath || mediaMetadata?.poster_path || '',
-          rating: mediaMetadata?.rating || mediaMetadata?.vote_average || 0
-        }
-      });
-      setLocalData(`showtime_list_items_${user.id}_${listId}`, items);
-      delete listItemsCacheRef.current[listId];
-
-      // Update itemCount in lists state
-      const customLists = [...lists];
-      const lIndex = customLists.findIndex(l => l.id === listId);
-      if (lIndex > -1) {
-        customLists[lIndex].itemCount += 1;
-        setLocalData(`showtime_custom_lists_${user.id}`, customLists);
-        setLists(customLists);
-      }
+      const added = applyLocalAdd();
+      if (!added) return false;
       trackEvent('list_item_added_offline', { listId, mediaType, mediaId });
       return true;
     }
