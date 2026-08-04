@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth as firebaseAuth, db, storage, isFirebaseEnabled } from '../services/firebase.js';
-import { doc, setDoc } from 'firebase/firestore/lite';
+import { doc, setDoc, getDoc } from 'firebase/firestore/lite';
 import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
 import { 
   signInWithEmailAndPassword, 
@@ -65,12 +65,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const fbToken = await fbUser.getIdToken();
         const mappedUser = mapFirebaseUser(fbUser);
-        localStorage.setItem('showtime_token', fbToken);
-        localStorage.setItem('showtime_user', JSON.stringify(mappedUser));
-        setToken(fbToken);
-        setUser(mappedUser);
 
-        // Sync public profile
+        // Prefer avatarUrl stored in Firestore (may be base64 from local upload)
+        let resolvedAvatarUrl = mappedUser.avatarUrl;
+        if (db) {
+          const profileRef = doc(db, 'profiles', fbUser.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            const stored = profileSnap.data().avatarUrl;
+            if (stored) resolvedAvatarUrl = stored;
+          }
+        }
+        const finalUser = { ...mappedUser, avatarUrl: resolvedAvatarUrl };
+
+        localStorage.setItem('showtime_token', fbToken);
+        localStorage.setItem('showtime_user', JSON.stringify(finalUser));
+        setToken(fbToken);
+        setUser(finalUser);
+
+        // Sync public profile — do not overwrite avatarUrl (may be base64 stored separately)
         if (db) {
           const profileRef = doc(db, 'profiles', fbUser.uid);
           await setDoc(profileRef, {
@@ -79,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             usernameLower: mappedUser.username.toLowerCase(),
             email: mappedUser.email,
             emailLower: mappedUser.email.toLowerCase(),
-            avatarUrl: mappedUser.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`,
             updatedAt: new Date().toISOString()
           }, { merge: true });
         }
@@ -264,42 +276,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     if (isFirebaseEnabled && firebaseAuth && firebaseAuth.currentUser) {
       try {
-        let finalAvatarUrl = avatarUrl;
+        const uid = firebaseAuth.currentUser.uid;
 
-        // Firebase Auth enforces a short limit for photoURL; upload data URLs to Storage first.
         if (avatarUrl.startsWith('data:image/')) {
-          if (!storage) {
-            setError('Upload de imagem indisponível no momento.');
-            setLoading(false);
-            return false;
+          // Save compressed base64 directly to Firestore — no Storage needed
+          if (db) {
+            const profileRef = doc(db, 'profiles', uid);
+            await setDoc(profileRef, { avatarUrl, updatedAt: new Date().toISOString() }, { merge: true });
           }
-
-          const uid = firebaseAuth.currentUser.uid;
-          const path = `avatars/${uid}/${Date.now()}.jpg`;
-          const avatarRef = storageRef(storage, path);
-          const metadata = { contentType: 'image/jpeg' };
-
-          await uploadString(avatarRef, avatarUrl, 'data_url', metadata);
-          finalAvatarUrl = await getDownloadURL(avatarRef);
+          if (user) {
+            const updated = { ...user, avatarUrl };
+            setUser(updated);
+            localStorage.setItem('showtime_user', JSON.stringify(updated));
+          }
+          setLoading(false);
+          return true;
         }
 
-        await updateProfile(firebaseAuth.currentUser, { photoURL: finalAvatarUrl });
+        await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
         await handleAuthStateChange(firebaseAuth.currentUser);
         setLoading(false);
         return true;
       } catch (err: any) {
         console.error('Firebase avatar update error:', err);
-        let errMsg = 'Erro ao atualizar foto de perfil no Firebase.';
-        if (err?.code === 'storage/unauthorized') {
-          errMsg = 'Sem permissão para enviar imagem. Verifique as regras do Firebase Storage.';
-        } else if (
-          err?.code === 'storage/retry-limit-exceeded' || 
-          err?.code === 'storage/canceled' || 
-          (err?.message && (err.message.includes('CORS') || err.message.includes('retry-limit-exceeded')))
-        ) {
-          errMsg = 'Erro de CORS no Firebase Storage. Aplique a configuração cors.json no seu bucket do Google Cloud.';
-        }
-        setError(errMsg);
+        setError('Erro ao atualizar foto de perfil.');
         setLoading(false);
         return false;
       }

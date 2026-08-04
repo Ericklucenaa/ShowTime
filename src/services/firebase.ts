@@ -10,9 +10,18 @@ const normalizeStorageBucket = (bucket: string): string => {
   const cleaned = bucket.replace(/^gs:\/\//, '').replace(/\/$/, '');
   if (!cleaned) return `${projectId}.appspot.com`;
 
-  // The Web SDK expects bucket names (e.g. my-project.appspot.com), not HTTPS hosts.
-  if (cleaned.includes('firebasestorage.app')) {
-    return `${projectId}.appspot.com`;
+  // If they passed a full Firebase Storage HTTPS URL, extract the bucket name
+  if (cleaned.startsWith('http://') || cleaned.startsWith('https://')) {
+    try {
+      const url = new URL(cleaned);
+      const pathParts = url.pathname.split('/');
+      const bIndex = pathParts.indexOf('b');
+      if (bIndex !== -1 && pathParts[bIndex + 1]) {
+        return pathParts[bIndex + 1];
+      }
+    } catch (e) {
+      // fallback to cleaned
+    }
   }
 
   return cleaned;

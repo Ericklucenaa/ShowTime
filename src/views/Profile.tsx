@@ -46,36 +46,38 @@ export const Profile: React.FC = () => {
       return;
     }
 
-    const maxSizeMb = 4;
-    if (file.size > maxSizeMb * 1024 * 1024) {
-      pushToast('error', `A imagem deve ter no maximo ${maxSizeMb}MB.`);
-      return;
-    }
-
     setAvatarLoading(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const imageDataUrl = typeof reader.result === 'string' ? reader.result : '';
-      if (!imageDataUrl) {
-        pushToast('error', 'Falha ao ler a imagem selecionada.');
-        setAvatarLoading(false);
-        return;
-      }
+    try {
+      // Compress to 150x150 JPEG via canvas — no Firebase Storage needed
+      const compressed = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 150;
+          canvas.height = 150;
+          const ctx = canvas.getContext('2d')!;
+          const size = Math.min(img.width, img.height);
+          const sx = (img.width - size) / 2;
+          const sy = (img.height - size) / 2;
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 150, 150);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
 
-      const success = await updateAvatar(imageDataUrl);
+      const success = await updateAvatar(compressed);
       if (success) {
         setShowAvatarPicker(false);
-        pushToast('success', 'Foto enviada do dispositivo com sucesso.');
+        pushToast('success', 'Foto atualizada com sucesso.');
       } else {
         pushToast('error', authError || 'Não foi possível atualizar a foto de perfil.');
       }
+    } catch {
+      pushToast('error', 'Erro ao processar imagem.');
+    } finally {
       setAvatarLoading(false);
-    };
-    reader.onerror = () => {
-      pushToast('error', 'Erro ao processar imagem do dispositivo.');
-      setAvatarLoading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   // Math stats (improved estimation based on genres)
