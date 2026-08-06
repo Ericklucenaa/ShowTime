@@ -401,6 +401,7 @@ const AppContent: React.FC = () => {
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 'bold' }}>Nome de Usuário</label>
               <input 
                 type="text" 
+                name="username"
                 required
                 autoComplete="username"
                 placeholder="Ex: joaosilva"
@@ -415,6 +416,7 @@ const AppContent: React.FC = () => {
             <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 'bold' }}>E-mail</label>
             <input 
               type="email" 
+              name="email"
               required
               autoComplete="email"
               placeholder="Ex: joao@email.com"
@@ -429,6 +431,7 @@ const AppContent: React.FC = () => {
             <div style={{ position: 'relative' }}>
               <input 
                 type={showPassword ? "text" : "password"} 
+                name="password"
                 required
                 autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                 placeholder="Mínimo 8 caracteres"

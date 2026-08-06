@@ -83,11 +83,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         // Sync public profile (write only, no read)
         if (db) {
+          const safeAvatarUrl = mergedUser.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`;
+          const safePhotoUrl = fbUser.photoURL || safeAvatarUrl || null;
+
           const profileRef = doc(db, 'profiles', fbUser.uid);
           await setDoc(profileRef, {
             id: fbUser.uid,
             username: mappedUser.username,
             usernameLower: mappedUser.username.toLowerCase(),
+            avatarUrl: safeAvatarUrl,
+            photoUrl: safePhotoUrl,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+
+          // Also sync users collection if queried by external or legacy code
+          const userRef = doc(db, 'users', fbUser.uid);
+          await setDoc(userRef, {
+            id: fbUser.uid,
+            username: mappedUser.username,
+            email: mappedUser.email || '',
+            avatarUrl: safeAvatarUrl,
+            photoUrl: safePhotoUrl,
             updatedAt: new Date().toISOString()
           }, { merge: true });
         }
@@ -137,9 +153,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       } catch (err: any) {
         console.error('Firebase login error:', err);
-        const errMsg = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
-          ? 'E-mail ou senha inválidos.' 
-          : 'Erro ao conectar ao Firebase. Verifique suas credenciais.';
+        let errMsg = 'Erro ao conectar ao Firebase.';
+        if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+          errMsg = 'E-mail ou senha inválidos.';
+        } else if (err.code === 'auth/operation-not-allowed') {
+          errMsg = 'O login com E-mail/Senha está desativado no Firebase Console. Ative em Authentication > Sign-in method.';
+        } else if (err.code === 'auth/invalid-email') {
+          errMsg = 'Formato de e-mail inválido.';
+        } else if (err.code === 'auth/too-many-requests') {
+          errMsg = 'Muitas tentativas malsucedidas. Tente novamente mais tarde.';
+        } else if (err.code === 'auth/network-request-failed') {
+          errMsg = 'Falha na conexão de rede ao comunicar com o Firebase.';
+        } else if (err.message) {
+          errMsg = `Erro ao fazer login: ${err.message}`;
+        }
         setError(errMsg);
         setLoading(false);
         return false;
@@ -180,9 +207,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       } catch (err: any) {
         console.error('Firebase signup error:', err);
-        const errMsg = err.code === 'auth/email-already-in-use'
-          ? 'O endereço de e-mail já está em uso por outra conta.'
-          : 'Erro ao registrar no Firebase. Tente uma senha mais forte.';
+        let errMsg = 'Erro ao registrar no Firebase.';
+        if (err.code === 'auth/email-already-in-use') {
+          errMsg = 'O endereço de e-mail já está em uso por outra conta.';
+        } else if (err.code === 'auth/operation-not-allowed') {
+          errMsg = 'O cadastro com E-mail/Senha está desativado no Firebase Console. Ative em Authentication > Sign-in method.';
+        } else if (err.code === 'auth/invalid-email') {
+          errMsg = 'Formato de e-mail inválido.';
+        } else if (err.code === 'auth/weak-password') {
+          errMsg = 'A senha é muito fraca. Ela deve ter pelo menos 6 caracteres.';
+        } else if (err.code === 'auth/network-request-failed') {
+          errMsg = 'Falha na conexão de rede ao comunicar com o Firebase.';
+        } else if (err.message) {
+          errMsg = `Erro ao registrar: ${err.message}`;
+        }
         setError(errMsg);
         setLoading(false);
         return false;
