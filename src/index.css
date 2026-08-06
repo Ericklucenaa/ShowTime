@@ -125,6 +125,7 @@ button, input, select, textarea {
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
   border-radius: var(--radius-md);
+  max-width: 100%;
 }
 
 .st-card {
@@ -135,6 +136,7 @@ button, input, select, textarea {
   border-radius: var(--radius-md);
   transition: all var(--transition-normal);
   overflow: hidden;
+  max-width: 100%;
 }
 
 .st-card:hover {
@@ -144,14 +146,14 @@ button, input, select, textarea {
   transform: translateY(-4px);
 }
 
-/* Premium Buttons */
+/* Premium Buttons - Responsive & Wrapping Friendly */
 .st-btn-primary {
   background: linear-gradient(135deg, #f5c518 0%, #d4a912 100%);
   border: none;
   border-radius: var(--radius-full); /* Pills for primary actions */
   color: #000;
   font-weight: 700;
-  padding: 12px 24px;
+  padding: 10px 20px;
   cursor: pointer;
   box-shadow: 0 4px 14px var(--primary-glow);
   transition: all var(--transition-fast);
@@ -159,10 +161,15 @@ button, input, select, textarea {
   align-items: center;
   gap: 8px;
   justify-content: center;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  word-break: break-word;
+  user-select: none;
 }
 
 .st-btn-primary:hover {
-  transform: scale(1.03);
+  transform: scale(1.02);
   box-shadow: 0 6px 20px rgba(245, 197, 24, 0.6);
 }
 
@@ -176,13 +183,18 @@ button, input, select, textarea {
   border-radius: var(--radius-full);
   color: var(--text-primary);
   font-weight: 600;
-  padding: 12px 24px;
+  padding: 10px 20px;
   cursor: pointer;
   transition: all var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 8px;
   justify-content: center;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  word-break: break-word;
+  user-select: none;
 }
 
 .st-btn-secondary:hover {
@@ -196,12 +208,15 @@ button, input, select, textarea {
   border-radius: 50%;
   width: 40px;
   height: 40px;
+  min-width: 40px;
+  min-height: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   color: var(--text-primary);
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .st-btn-icon:hover {
@@ -212,12 +227,12 @@ button, input, select, textarea {
 }
 
 /* Old button classes mapped for compatibility while transitioning */
-.btn-primary { @extend .st-btn-primary; background: linear-gradient(135deg, var(--primary) 0%, #d4a912 100%); color: #000; border: none; border-radius: var(--radius-full); padding: 10px 20px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: all var(--transition-fast); }
-.btn-primary:hover { transform: scale(1.03); }
-.btn-secondary { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: var(--radius-full); color: var(--text-primary); font-weight: 500; padding: 10px 20px; cursor: pointer; transition: all var(--transition-fast); display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+.btn-primary { @extend .st-btn-primary; background: linear-gradient(135deg, var(--primary) 0%, #d4a912 100%); color: #000; border: none; border-radius: var(--radius-full); padding: 10px 20px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; justify-content: center; transition: all var(--transition-fast); max-width: 100%; }
+.btn-primary:hover { transform: scale(1.02); }
+.btn-secondary { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: var(--radius-full); color: var(--text-primary); font-weight: 500; padding: 10px 20px; cursor: pointer; transition: all var(--transition-fast); display: inline-flex; align-items: center; gap: 8px; justify-content: center; max-width: 100%; }
 .btn-secondary:hover { background: rgba(255, 255, 255, 0.1); border-color: var(--text-secondary); }
-.glass-panel { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: var(--radius-md); }
-.glass-card { background: var(--bg-card); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: all var(--transition-normal); }
+.glass-panel { background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); border-radius: var(--radius-md); max-width: 100%; }
+.glass-card { background: var(--bg-card); backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: var(--radius-md); transition: all var(--transition-normal); max-width: 100%; }
 
 /* Animations */
 @keyframes fadeIn {
@@ -283,7 +298,7 @@ button, input, select, textarea {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 50%);
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%);
   display: flex;
   align-items: flex-end;
   padding: 12px 10px 18px 10px; /* Leave room for progress bar */
@@ -318,30 +333,18 @@ button, input, select, textarea {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(180deg, rgba(18, 18, 26, 0.9) 0%, rgba(12, 12, 18, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(18, 18, 26, 0.95) 0%, rgba(12, 12, 18, 0.98) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border-color);
   z-index: 9999;
-  padding: 10px 10px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 10px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
   overflow-x: auto;
   overflow-y: hidden;
-  display: none;
-  gap: 8px;
+  gap: 6px;
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
-}
-
-.bottom-nav::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 28px;
-  height: 100%;
-  pointer-events: none;
-  background: linear-gradient(to left, rgba(12, 12, 18, 0.92) 18%, rgba(12, 12, 18, 0));
 }
 
 .bottom-nav::-webkit-scrollbar {
@@ -364,14 +367,14 @@ button, input, select, textarea {
   .desktop-sidebar { display: none; }
   .bottom-nav { 
     display: flex;
-    align-items: stretch;
+    align-items: center;
   }
   .app-container {
-    padding-bottom: 96px; /* Space for 1-row bottom nav */
+    padding-bottom: 84px; /* Generous bottom spacing so bottom nav never overlaps page actions */
   }
 
   .viewport {
-    padding: 18px 14px 20px !important;
+    padding: 16px 12px 24px !important;
   }
 
   .header-user-area {
@@ -394,27 +397,28 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   color: var(--text-secondary);
   text-decoration: none;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
-  padding: 7px 6px;
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
-  min-height: 52px;
+  min-height: 48px;
   justify-content: center;
   border: 1px solid rgba(255, 255, 255, 0.04);
   background: rgba(255, 255, 255, 0.02);
-  flex: 0 0 auto;
-  min-width: 86px;
+  flex: 1 0 auto;
+  min-width: 72px;
   scroll-snap-align: start;
+  text-align: center;
 }
 .nav-item.active {
   color: var(--text-primary);
-  background: linear-gradient(135deg, rgba(245, 197, 24, 0.22) 0%, rgba(245, 197, 24, 0.1) 100%);
-  border-color: rgba(245, 197, 24, 0.45);
+  background: linear-gradient(135deg, rgba(245, 197, 24, 0.25) 0%, rgba(245, 197, 24, 0.12) 100%);
+  border-color: rgba(245, 197, 24, 0.5);
   box-shadow: 0 4px 14px rgba(245, 197, 24, 0.24);
 }
 .nav-item:hover {
@@ -428,18 +432,20 @@ button, input, select, textarea {
   }
 
   .app-container {
-    padding-bottom: 94px;
+    padding-bottom: 84px;
   }
 }
 
 @media (max-width: 420px) {
   .nav-item {
-    min-height: 50px;
-    font-size: 8px;
+    min-height: 46px;
+    font-size: 9px;
+    padding: 5px 6px;
+    min-width: 64px;
   }
 
   .viewport {
-    padding: 14px 10px 18px !important;
+    padding: 12px 8px 20px !important;
   }
 }
 
