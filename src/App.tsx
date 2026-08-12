@@ -71,6 +71,69 @@ const ViewLoadingFallback: React.FC = () => (
   </div>
 );
 
+type ActiveTabType = 'dashboard' | 'following' | 'search' | 'calendar' | 'lists' | 'friends' | 'profile';
+
+interface RouteState {
+  tab: ActiveTabType;
+  selectedMedia: { id: string; type: 'show' | 'movie'; initialSeasonNum?: number; initialEpisodeNum?: number } | null;
+  viewingProfile: { userId: string; username: string } | null;
+}
+
+function parseHashRoute(hash: string): RouteState {
+  const clean = hash.replace(/^#\/?/, '').trim();
+  if (!clean || clean === 'inicio' || clean === 'dashboard') {
+    return { tab: 'dashboard', selectedMedia: null, viewingProfile: null };
+  }
+
+  if (clean.startsWith('media/')) {
+    const parts = clean.split('/');
+    const type = (parts[1] === 'movie' ? 'movie' : 'show') as 'show' | 'movie';
+    const idWithParams = parts[2] || '';
+    const [id, queryStr] = idWithParams.split('?');
+    const params = new URLSearchParams(queryStr || '');
+    const s = params.get('s') ? parseInt(params.get('s')!, 10) : undefined;
+    const ep = params.get('ep') ? parseInt(params.get('ep')!, 10) : undefined;
+    return {
+      tab: 'search',
+      selectedMedia: { id, type, initialSeasonNum: s, initialEpisodeNum: ep },
+      viewingProfile: null
+    };
+  }
+
+  if (clean.startsWith('user/')) {
+    const parts = clean.split('/');
+    const userId = parts[1] || '';
+    return {
+      tab: 'friends',
+      selectedMedia: null,
+      viewingProfile: { userId, username: userId }
+    };
+  }
+
+  if (clean === 'descobrir' || clean === 'search') return { tab: 'search', selectedMedia: null, viewingProfile: null };
+  if (clean === 'calendario' || clean === 'calendar') return { tab: 'calendar', selectedMedia: null, viewingProfile: null };
+  if (clean === 'biblioteca' || clean === 'following') return { tab: 'following', selectedMedia: null, viewingProfile: null };
+  if (clean === 'listas' || clean === 'lists') return { tab: 'lists', selectedMedia: null, viewingProfile: null };
+  if (clean === 'amigos' || clean === 'friends') return { tab: 'friends', selectedMedia: null, viewingProfile: null };
+  if (clean === 'perfil' || clean === 'profile') return { tab: 'profile', selectedMedia: null, viewingProfile: null };
+
+  return { tab: 'dashboard', selectedMedia: null, viewingProfile: null };
+}
+
+function buildTabHash(tab: ActiveTabType): string {
+  const slugMap: Record<ActiveTabType, string> = {
+    dashboard: '',
+    search: 'descobrir',
+    calendar: 'calendario',
+    following: 'biblioteca',
+    lists: 'listas',
+    friends: 'amigos',
+    profile: 'perfil'
+  };
+  const slug = slugMap[tab];
+  return slug ? `#/${slug}` : '#/';
+}
+
 const AppContent: React.FC = () => {
   const { user, login, register, loginWithGoogle, resetPassword, logout, error, clearError } = useAuth();
   
@@ -97,26 +160,59 @@ const AppContent: React.FC = () => {
     }
   }, [theme]);
 
-  // Navigation State
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'following' | 'search' | 'calendar' | 'lists' | 'friends' | 'profile'>('dashboard');
+  // URL Hash Routing & Navigation State
+  const [activeTab, setActiveTab] = useState<ActiveTabType>(() => {
+    if (typeof window !== 'undefined') {
+      return parseHashRoute(window.location.hash).tab;
+    }
+    return 'dashboard';
+  });
+
   const [selectedMedia, setSelectedMedia] = useState<{ 
     id: string; 
     type: 'show' | 'movie'; 
     initialSeasonNum?: number; 
     initialEpisodeNum?: number; 
-  } | null>(null);
-  const [previousTab, setPreviousTab] = useState<'dashboard' | 'following' | 'search' | 'calendar' | 'lists' | 'friends' | null>(null);
+  } | null>(() => {
+    if (typeof window !== 'undefined') {
+      return parseHashRoute(window.location.hash).selectedMedia;
+    }
+    return null;
+  });
 
+  const [viewingProfile, setViewingProfile] = useState<{ userId: string; username: string } | null>(() => {
+    if (typeof window !== 'undefined') {
+      return parseHashRoute(window.location.hash).viewingProfile;
+    }
+    return null;
+  });
+
+  const [activeChatFriend, setActiveChatFriend] = useState<ChatFriend | null>(null);
+
+  // Sync route on hash change (Browser Back / Forward buttons)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = parseHashRoute(window.location.hash);
+      setActiveTab(route.tab);
+      setSelectedMedia(route.selectedMedia);
+      setViewingProfile(route.viewingProfile);
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Event listener for opening media via custom events
   useEffect(() => {
     const handleOpenMedia = (e: Event) => {
       const customEvent = e as CustomEvent<{ id: string; type?: 'show' | 'movie'; seasonNumber?: number; episodeNumber?: number }>;
       if (customEvent.detail && customEvent.detail.id) {
-        setSelectedMedia({
-          id: customEvent.detail.id,
-          type: customEvent.detail.type || 'show',
-          initialSeasonNum: customEvent.detail.seasonNumber,
-          initialEpisodeNum: customEvent.detail.episodeNumber
-        });
+        handleViewMedia(
+          customEvent.detail.id, 
+          customEvent.detail.type || 'show',
+          customEvent.detail.seasonNumber,
+          customEvent.detail.episodeNumber
+        );
       }
     };
 
@@ -127,6 +223,33 @@ const AppContent: React.FC = () => {
       window.removeEventListener('showtime:open-media', handleOpenMedia);
     };
   }, []);
+
+  const handleTabNavigate = (tab: ActiveTabType) => {
+    trackEvent('tab_changed', { tab });
+    window.location.hash = buildTabHash(tab);
+  };
+
+  const handleViewMedia = (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => {
+    trackEvent('media_opened', { id, type, initialSeasonNum, initialEpisodeNum });
+    let hash = `#/media/${type}/${id}`;
+    if (initialSeasonNum && initialEpisodeNum) {
+      hash += `?s=${initialSeasonNum}&ep=${initialEpisodeNum}`;
+    }
+    window.location.hash = hash;
+  };
+
+  const handleViewProfile = (userId: string, username: string) => {
+    trackEvent('profile_opened', { userId, username });
+    window.location.hash = `#/user/${userId}`;
+  };
+
+  const handleBackNavigation = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.hash = buildTabHash(activeTab);
+    }
+  };
 
   // Auth Screen State
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -202,32 +325,8 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const [viewingProfile, setViewingProfile] = useState<{ userId: string; username: string } | null>(null);
-  const [activeChatFriend, setActiveChatFriend] = useState<ChatFriend | null>(null);
-
-  const handleViewMedia = (id: string, type: 'show' | 'movie', initialSeasonNum?: number, initialEpisodeNum?: number) => {
-    trackEvent('media_opened', { id, type, initialSeasonNum, initialEpisodeNum });
-    setViewingProfile(null);
-    setPreviousTab(activeTab as any);
-    setSelectedMedia({ id, type, initialSeasonNum, initialEpisodeNum });
-  };
-
-  const handleViewProfile = (userId: string, username: string) => {
-    trackEvent('profile_opened', { userId, username });
-    setSelectedMedia(null);
-    setViewingProfile({ userId, username });
-  };
-
-  const handleCloseMedia = () => {
-    setSelectedMedia(null);
-    if (previousTab) {
-      setActiveTab(previousTab as any);
-      setPreviousTab(null);
-    }
-  };
-
   // Nav Items definition
-  const navigationItems = [
+  const navigationItems: { id: ActiveTabType; label: string; icon: React.ReactNode }[] = [
     { id: 'dashboard', label: 'Início', icon: <Home size={17} /> },
     { id: 'search', label: 'Descobrir', icon: <SearchIcon size={17} /> },
     { id: 'calendar', label: 'Calendário', icon: <CalendarIcon size={17} /> },
@@ -257,7 +356,7 @@ const AppContent: React.FC = () => {
         }}>
           <div 
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', userSelect: 'none' }} 
-            onClick={() => { setSelectedMedia(null); setViewingProfile(null); setActiveTab('dashboard'); }}
+            onClick={() => handleTabNavigate('dashboard')}
           >
             <EpsyncLogo size={28} variant="full" />
           </div>
@@ -281,7 +380,7 @@ const AppContent: React.FC = () => {
             <img 
               src={user.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.username}`} 
               alt={user.username} 
-              onClick={() => { setSelectedMedia(null); setViewingProfile(null); setActiveTab('profile'); }}
+              onClick={() => handleTabNavigate('profile')}
               style={{ 
                 width: '32px', 
                 height: '32px', 
@@ -306,7 +405,7 @@ const AppContent: React.FC = () => {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => { setSelectedMedia(null); setViewingProfile(null); setActiveTab(tab.id as any); }}
+                  onClick={() => handleTabNavigate(tab.id)}
                   style={{ 
                     display: 'flex',
                     alignItems: 'center',
@@ -387,7 +486,7 @@ const AppContent: React.FC = () => {
                 <ShowDetail 
                   mediaId={selectedMedia.id} 
                   mediaType={selectedMedia.type} 
-                  onBack={handleCloseMedia} 
+                  onBack={handleBackNavigation} 
                   initialSeasonNum={selectedMedia.initialSeasonNum}
                   initialEpisodeNum={selectedMedia.initialEpisodeNum}
                 />
@@ -397,7 +496,7 @@ const AppContent: React.FC = () => {
                     <UserProfile
                       targetUserId={viewingProfile.userId}
                       targetUsername={viewingProfile.username}
-                      onBack={() => setViewingProfile(null)}
+                      onBack={handleBackNavigation}
                       onViewMedia={handleViewMedia}
                       onViewProfile={handleViewProfile}
                       onOpenChat={setActiveChatFriend}
@@ -410,7 +509,7 @@ const AppContent: React.FC = () => {
                       {activeTab === 'following' && <Following onViewMedia={handleViewMedia} />}
                       {activeTab === 'lists' && <Lists onViewMedia={handleViewMedia} />}
                       {activeTab === 'friends' && <Friends onViewProfile={handleViewProfile} onOpenChat={setActiveChatFriend} />}
-                      {activeTab === 'profile' && <Profile onViewProfile={handleViewProfile} />}
+                      {activeTab === 'profile' && <Profile onViewMedia={handleViewMedia} onViewProfile={handleViewProfile} />}
                     </>
                   )}
                 </>
@@ -419,7 +518,7 @@ const AppContent: React.FC = () => {
           </main>
         </div>
 
-        {/* Direct Chat Modal */}
+        {/* Floating Facebook Messenger Chat Box */}
         <DirectChatModal
           isOpen={Boolean(activeChatFriend)}
           onClose={() => setActiveChatFriend(null)}
@@ -434,7 +533,7 @@ const AppContent: React.FC = () => {
             return (
               <a
                 key={tab.id}
-                onClick={(e) => { e.preventDefault(); setSelectedMedia(null); setViewingProfile(null); setActiveTab(tab.id as any); }}
+                onClick={(e) => { e.preventDefault(); handleTabNavigate(tab.id); }}
                 className={`nav-item ${isActive ? 'active' : ''}`}
               >
                 {tab.icon}
@@ -459,97 +558,49 @@ const AppContent: React.FC = () => {
     }}>
       <div className="st-panel" style={{ 
         width: '100%', 
-        maxWidth: '400px', 
-        padding: '32px 28px', 
+        maxWidth: '420px', 
+        padding: '36px', 
         borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-        border: '1px solid var(--border-color)'
+        boxShadow: 'var(--shadow-lg)',
+        border: '1px solid var(--border-color)',
+        background: 'var(--bg-surface)'
       }}>
         
-        {/* Brand Logo */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '28px' }}>
-          <EpsyncLogo size={42} variant="icon" />
-          <span style={{ 
-            fontFamily: 'var(--font-display)', 
-            fontWeight: 800, 
-            fontSize: '28px', 
-            letterSpacing: '-0.03em',
-            color: 'var(--text-primary)'
-          }}>
+        {/* Header Branding */}
+        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+          <div style={{ display: 'inline-flex', marginBottom: '14px' }}>
+            <EpsyncLogo size={42} variant="icon" />
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', letterSpacing: '-0.02em', marginBottom: '8px' }}>
             Epsync
-          </span>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', textAlign: 'center', lineHeight: 1.4 }}>
-            Sua central definitiva para sincronizar séries, animes e filmes.
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
+            {isRegisterMode ? 'Crie sua conta e sincronize sua biblioteca' : 'Acesse seu universo de séries, filmes e animes'}
           </p>
         </div>
 
-        {/* Tab switch */}
-        <div style={{ 
-          display: 'flex', 
-          gap: '4px', 
-          background: 'var(--bg-dark)', 
-          padding: '4px', 
-          borderRadius: 'var(--radius-sm)', 
-          border: '1px solid var(--border-color)', 
-          marginBottom: '24px' 
-        }}>
-          <button 
-            onClick={() => { setIsRegisterMode(false); clearError(); setValidationError(null); }}
-            style={{ 
-              flex: 1, 
-              padding: '9px 0', 
-              border: 'none', 
-              borderRadius: 'var(--radius-xs)',
-              background: !isRegisterMode ? 'var(--primary)' : 'transparent',
-              color: !isRegisterMode ? '#FFFFFF' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
-          >
-            Entrar
-          </button>
-          <button 
-            onClick={() => { setIsRegisterMode(true); clearError(); setValidationError(null); }}
-            style={{ 
-              flex: 1, 
-              padding: '9px 0', 
-              border: 'none', 
-              borderRadius: 'var(--radius-xs)',
-              background: isRegisterMode ? 'var(--primary)' : 'transparent',
-              color: isRegisterMode ? '#FFFFFF' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '13px',
-              cursor: 'pointer',
-              transition: 'all var(--transition-fast)'
-            }}
-          >
-            Cadastrar
-          </button>
-        </div>
-
-        {/* Error Boxes */}
-        {(error || validationError) && (
+        {/* Error Alert */}
+        {(validationError || error) && (
           <div style={{ 
             display: 'flex', 
-            alignItems: 'start', 
+            alignItems: 'center', 
             gap: '10px', 
-            background: 'rgba(239, 68, 68, 0.1)', 
-            border: '1px solid rgba(239, 68, 68, 0.3)', 
             padding: '12px 14px', 
+            background: 'rgba(239, 68, 68, 0.1)', 
+            border: '1px solid rgba(239, 68, 68, 0.25)', 
             borderRadius: 'var(--radius-sm)', 
-            marginBottom: '20px', 
+            color: 'var(--error)', 
             fontSize: '13px', 
-            color: 'var(--error)' 
+            marginBottom: '20px' 
           }}>
-            <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '1px' }} />
+            <ShieldAlert size={18} style={{ flexShrink: 0 }} />
             <div>{validationError || error}</div>
           </div>
         )}
 
-        {/* Form Inputs */}
+        {/* Auth Form */}
         <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
           {isRegisterMode && (
             <div>
               <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
@@ -557,25 +608,21 @@ const AppContent: React.FC = () => {
               </label>
               <input 
                 type="text" 
-                name="username"
-                required
-                autoComplete="username"
+                required 
+                value={authUsername} 
+                onChange={(e) => setAuthUsername(e.target.value)}
                 placeholder="Ex: erick"
-                value={authUsername}
-                onChange={e => setAuthUsername(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  background: 'var(--bg-dark)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-sm)', 
-                  padding: '10px 14px', 
-                  color: 'var(--text-primary)', 
-                  fontSize: '13px',
-                  outline: 'none',
-                  transition: 'border-color var(--transition-fast)'
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  background: 'var(--bg-dark)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0 14px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none'
                 }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
               />
             </div>
           )}
@@ -586,113 +633,135 @@ const AppContent: React.FC = () => {
             </label>
             <input 
               type="email" 
-              name="email"
-              required
-              autoComplete="email"
+              required 
+              value={authEmail} 
+              onChange={(e) => setAuthEmail(e.target.value)}
               placeholder="seu@email.com"
-              value={authEmail}
-              onChange={e => setAuthEmail(e.target.value)}
-              style={{ 
-                width: '100%', 
-                background: 'var(--bg-dark)', 
-                border: '1px solid var(--border-color)', 
-                borderRadius: 'var(--radius-sm)', 
-                padding: '10px 14px', 
-                color: 'var(--text-primary)', 
-                fontSize: '13px',
-                outline: 'none',
-                transition: 'border-color var(--transition-fast)'
+              style={{
+                width: '100%',
+                height: '42px',
+                background: 'var(--bg-dark)',
+                border: '1px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '0 14px',
+                color: 'var(--text-primary)',
+                fontSize: '14px',
+                outline: 'none'
               }}
-              onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
-              onBlur={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px', fontWeight: 600 }}>
-              Senha
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Senha
+              </label>
+              {!isRegisterMode && (
+                <span 
+                  onClick={handleForgotPassword}
+                  style={{ fontSize: '11px', color: 'var(--primary)', cursor: 'pointer' }}
+                >
+                  Esqueceu a senha?
+                </span>
+              )}
+            </div>
             <div style={{ position: 'relative' }}>
               <input 
-                type={showPassword ? "text" : "password"} 
-                name="password"
-                required
-                autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                type={showPassword ? 'text' : 'password'} 
+                required 
+                value={authPassword} 
+                onChange={(e) => setAuthPassword(e.target.value)}
                 placeholder="Mínimo 8 caracteres"
-                value={authPassword}
-                onChange={e => setAuthPassword(e.target.value)}
-                style={{ 
-                  width: '100%', 
-                  background: 'var(--bg-dark)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-sm)', 
-                  padding: '10px 42px 10px 14px', 
-                  color: 'var(--text-primary)', 
-                  fontSize: '13px',
-                  outline: 'none',
-                  transition: 'border-color var(--transition-fast)'
+                style={{
+                  width: '100%',
+                  height: '42px',
+                  background: 'var(--bg-dark)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0 40px 0 14px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none'
                 }}
-                onFocus={e => e.currentTarget.style.borderColor = 'var(--border-focus)'}
-                onBlur={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
               />
               <button 
-                type="button"
+                type="button" 
                 onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex'
+                }}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          {!isRegisterMode && (
-            <div style={{ textAlign: 'right', marginTop: '-4px' }}>
-              <button 
-                type="button"
-                onClick={handleForgotPassword}
-                style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '12px', cursor: 'pointer', outline: 'none' }}
-                onMouseOver={e => e.currentTarget.style.textDecoration = 'underline'}
-                onMouseOut={e => e.currentTarget.style.textDecoration = 'none'}
-              >
-                Esqueci minha senha
-              </button>
-            </div>
-          )}
-
-          <button type="submit" className="st-btn-primary" style={{ marginTop: '8px', height: '40px', fontSize: '14px', width: '100%' }}>
-            {isRegisterMode ? 'Criar Minha Conta' : 'Entrar no Epsync'}
+          <button 
+            type="submit" 
+            className="st-btn-primary" 
+            style={{ 
+              width: '100%', 
+              height: '42px', 
+              justifyContent: 'center', 
+              fontSize: '14px', 
+              fontWeight: 600, 
+              marginTop: '8px' 
+            }}
+          >
+            {isRegisterMode ? 'Criar Conta no Epsync' : 'Entrar no Epsync'}
           </button>
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '22px 0', color: 'var(--text-muted)', fontSize: '12px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
-          <span style={{ padding: '0 12px' }}>ou</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }}></div>
+        {/* Google Login Alternative */}
+        <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>ou</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--border-color)' }} />
         </div>
 
         <button 
           onClick={loginWithGoogle}
-          className="st-btn-secondary"
-          style={{ width: '100%', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: 600, fontSize: '13px' }}
+          className="st-btn-secondary" 
+          style={{ 
+            width: '100%', 
+            height: '42px', 
+            justifyContent: 'center', 
+            fontSize: '13px', 
+            fontWeight: 600,
+            gap: '10px'
+          }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22c-.24-.63-.37-1.3-.38-2.08c0-.79.13-1.46.38-2.09z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+          <svg width="18" height="18" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
           </svg>
           Continuar com o Google
         </button>
 
-        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
-          epsync.com.br • Entretenimento e organização inteligente
+        {/* Toggle Mode */}
+        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+          {isRegisterMode ? (
+            <span>Já tem uma conta? <button onClick={() => { setIsRegisterMode(false); clearError(); }} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}>Entrar</button></span>
+          ) : (
+            <span>Não tem uma conta? <button onClick={() => { setIsRegisterMode(true); clearError(); }} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer' }}>Cadastre-se</button></span>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default function App() {
+export const App: React.FC = () => {
   return (
     <AuthProvider>
       <TrackingProvider>
@@ -703,4 +772,6 @@ export default function App() {
       </TrackingProvider>
     </AuthProvider>
   );
-}
+};
+
+export default App;

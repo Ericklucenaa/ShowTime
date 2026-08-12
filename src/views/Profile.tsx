@@ -5,13 +5,20 @@ import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart 
 import { fetchMediaDetails, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 
-export const Profile: React.FC = () => {
+interface ProfileProps {
+  onViewMedia?: (id: string, type: 'show' | 'movie') => void;
+  onViewProfile?: (userId: string, username: string) => void;
+}
+
+export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const { user, logout, updateAvatar, updatePrivacy, error: authError } = useAuth();
   const { watchedEpisodes, watchedMovies, genreCounts, totalGenresCount, followedShows } = useTracking();
 
   const [bannerUrl, setBannerUrl] = useState('');
   const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
+  const [watchedMoviesData, setWatchedMoviesData] = useState<any[]>([]);
   const [loadingShows, setLoadingShows] = useState(false);
+  const [loadingMovies, setLoadingMovies] = useState(false);
 
   // Avatar Picker State
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
@@ -48,7 +55,7 @@ export const Profile: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      pushToast('error', 'Selecione um arquivo de imagem valido.');
+      pushToast('error', 'Selecione um arquivo de imagem válido.');
       return;
     }
 
@@ -82,22 +89,8 @@ export const Profile: React.FC = () => {
     }
   };
 
-  // Math stats (improved estimation based on genres)
-  let totalEpTime = 0;
-  watchedEpisodes.forEach(ep => {
-    const g = ep.genres || [];
-    if (g.includes('Animation') || g.includes('Animação')) {
-      totalEpTime += 24; // Anime / Cartoons
-    } else if (g.includes('Comedy') || g.includes('Comédia') || g.includes('Sitcom')) {
-      totalEpTime += 25; // Sitcoms
-    } else if (g.includes('Drama') || g.includes('Crime') || g.includes('Action') || g.includes('Ação')) {
-      totalEpTime += 50; // Heavy Dramas / Action
-    } else {
-      totalEpTime += 40; // Default average
-    }
-  });
-
-  const totalMovTime = watchedMovies.length * 110; // avg 110m for movies
+  const totalEpTime = watchedEpisodes.length * 40;
+  const totalMovTime = watchedMovies.length * 110;
   const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
   const totalDays = (totalHours / 24).toFixed(1);
 
@@ -128,6 +121,31 @@ export const Profile: React.FC = () => {
     return () => { cancelled = true; };
   }, [followedShows.join(',')]);
 
+  // Load watched movies details and posters
+  useEffect(() => {
+    if (!watchedMovies.length) { setWatchedMoviesData([]); return; }
+    let cancelled = false;
+    setLoadingMovies(true);
+    (async () => {
+      const results = await Promise.allSettled(
+        watchedMovies.slice(0, 30).map(async (m) => {
+          const detail = await fetchMediaDetails(m.movieId, 'movie');
+          return {
+            ...m,
+            posterPath: detail?.posterPath || (m as any).posterPath,
+            title: detail?.title || m.movieTitle || m.movieId,
+            year: detail?.releaseDate ? new Date(detail.releaseDate).getFullYear() : undefined
+          };
+        })
+      );
+      if (cancelled) return;
+      const movies = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
+      setWatchedMoviesData(movies);
+      setLoadingMovies(false);
+    })();
+    return () => { cancelled = true; };
+  }, [watchedMovies]);
+
   return (
     <div className="profile-view animate-fade-in" style={{ paddingBottom: '60px' }}>
       
@@ -135,7 +153,7 @@ export const Profile: React.FC = () => {
       <div style={{ position: 'relative', height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '0', background: 'var(--bg-card)' }}>
         {bannerUrl
           ? <img src={bannerUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }} />
-          : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(245,197,24,0.15) 0%, rgba(99,102,241,0.15) 100%)' }} />
+          : <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, rgba(124,92,255,0.2) 0%, rgba(255,122,89,0.15) 100%)' }} />
         }
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)' }} />
 
@@ -161,7 +179,7 @@ export const Profile: React.FC = () => {
       {/* Username + actions row */}
       <div style={{ paddingLeft: '120px', paddingRight: '16px', minHeight: '60px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-display)' }}>@{user?.username}</h2>
+          <h2 style={{ fontSize: '22px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em' }}>@{user?.username}</h2>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={() => devicePhotoInputRef.current?.click()} className="st-btn-secondary" style={{ padding: '7px 14px', fontSize: '12px', display: 'inline-flex', gap: '5px' }} disabled={avatarLoading}>
@@ -196,7 +214,7 @@ export const Profile: React.FC = () => {
 
       {/* Avatar picker */}
       {showAvatarPicker && (
-        <div className="st-card animate-fade-in" style={{ padding: '20px', marginBottom: '20px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.15)' }}>
+        <div className="st-card animate-fade-in" style={{ padding: '20px', marginBottom: '20px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
           <h4 style={{ fontSize: '14px', marginBottom: '12px', color: 'var(--text-secondary)' }}>Escolha um Avatar ou insira um link</h4>
           <button type="button" onClick={() => devicePhotoInputRef.current?.click()} className="st-btn-secondary" style={{ marginBottom: '12px', width: '100%', justifyContent: 'center', fontSize: '13px' }} disabled={avatarLoading}>
             <Upload size={15} /> Carregar do dispositivo
@@ -209,7 +227,7 @@ export const Profile: React.FC = () => {
             ))}
           </div>
           <form className="avatar-url-form" onSubmit={e => { e.preventDefault(); if (customAvatarUrl.trim()) handleSelectAvatar(customAvatarUrl.trim()); }} style={{ display: 'flex', gap: '8px' }}>
-            <input type="url" required placeholder="URL de imagem..." value={customAvatarUrl} onChange={e => setCustomAvatarUrl(e.target.value)} style={{ flex: 1, background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} />
+            <input type="url" required placeholder="URL de imagem..." value={customAvatarUrl} onChange={e => setCustomAvatarUrl(e.target.value)} style={{ flex: 1, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} />
             <button type="submit" className="st-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} disabled={avatarLoading}>{avatarLoading ? '...' : 'Salvar'}</button>
           </form>
         </div>
@@ -219,17 +237,21 @@ export const Profile: React.FC = () => {
       {(followedShowsData.length > 0 || loadingShows) && (
         <div style={{ marginBottom: '28px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Tv size={16} style={{ color: 'var(--primary)' }} /> Séries que estou assistindo
+            <Tv size={16} style={{ color: 'var(--primary)' }} /> Séries que estou acompanhando
           </h3>
           {loadingShows
-            ? <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Carregando...</div>
-            : <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+            ? <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Carregando séries...</div>
+            : <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
                 {followedShowsData.map(show => (
-                  <div key={show.id} style={{ flexShrink: 0, width: '90px' }}>
-                    <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', marginBottom: '6px' }}>
+                  <div
+                    key={show.id}
+                    style={{ flexShrink: 0, width: '100px', cursor: onViewMedia ? 'pointer' : 'default' }}
+                    onClick={() => onViewMedia?.(show.id, 'show')}
+                  >
+                    <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 14px rgba(0,0,0,0.4)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
                       <img src={getImageUrl(show.posterPath)} alt={show.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                    <p style={{ fontSize: '11px', textAlign: 'center', lineHeight: 1.2, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{show.title}</p>
+                    <p style={{ fontSize: '11px', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{show.title}</p>
                   </div>
                 ))}
               </div>
@@ -238,22 +260,39 @@ export const Profile: React.FC = () => {
       )}
 
       {/* Filmes assistidos */}
-      {watchedMovies.length > 0 && (
+      {(watchedMovies.length > 0 || loadingMovies) && (
         <div style={{ marginBottom: '28px' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Film size={16} style={{ color: 'var(--accent)' }} /> Filmes Assistidos
+            <Film size={16} style={{ color: 'var(--secondary)' }} /> Filmes Assistidos
           </h3>
-          <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
-            {watchedMovies.map(m => (
-              <div key={m.movieId} style={{ flexShrink: 0, width: '80px' }}>
-                <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', marginBottom: '6px', position: 'relative', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Film size={24} color="var(--text-muted)" />
-                  {m.isFavorite && <Heart size={14} fill="var(--secondary)" color="var(--secondary)" style={{ position: 'absolute', top: 4, right: 4 }} />}
-                </div>
-                <p style={{ fontSize: '10px', textAlign: 'center', lineHeight: 1.2, color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{m.movieTitle || m.movieId}</p>
+          {loadingMovies && watchedMoviesData.length === 0
+            ? <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Carregando filmes...</div>
+            : <div style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px' }}>
+                {watchedMoviesData.map(m => (
+                  <div
+                    key={m.movieId}
+                    style={{ flexShrink: 0, width: '100px', cursor: onViewMedia ? 'pointer' : 'default' }}
+                    onClick={() => onViewMedia?.(m.movieId, 'movie')}
+                  >
+                    <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 4px 14px rgba(0,0,0,0.4)', marginBottom: '6px', position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {m.posterPath ? (
+                        <img src={getImageUrl(m.posterPath)} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <Film size={26} color="var(--text-muted)" />
+                      )}
+                      {m.isFavorite && (
+                        <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', borderRadius: '50%', padding: '3px' }}>
+                          <Heart size={12} fill="var(--secondary)" color="var(--secondary)" />
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, textAlign: 'center', lineHeight: 1.2, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {m.title || m.movieTitle || m.movieId}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+          }
         </div>
       )}
 

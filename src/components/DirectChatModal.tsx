@@ -3,7 +3,7 @@ import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore/lite';
 import { useAuth, formatLastActive } from '../context/AuthContext.js';
 import { useNotifications } from '../context/NotificationContext.js';
-import { X, Send, Paperclip, CheckCheck, Maximize2, Loader2 } from 'lucide-react';
+import { X, Send, Paperclip, CheckCheck, Maximize2, Loader2, Minus, ChevronUp } from 'lucide-react';
 import { pushToast } from '../services/toast.js';
 
 export interface ChatFriend {
@@ -46,6 +46,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -56,143 +57,130 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
 
   // Scroll to bottom
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (!isMinimized) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
-  // Load messages
+  // Reset minimized when changing friend
   useEffect(() => {
-    if (!isOpen || !chatId || !user) return;
+    if (friend) {
+      setIsMinimized(false);
+    }
+  }, [friend?.id]);
 
-    const localKey = `epsync_dm_${chatId}`;
-    const cachedStr = localStorage.getItem(localKey) || localStorage.getItem(`showtime_dm_${chatId}`);
-    if (cachedStr) {
+  // Load messages from Firestore / LocalStorage
+  const loadMessages = async () => {
+    if (!chatId || !user || !friend) return;
+
+    // Read local cache first
+    const cacheKey = `epsync_dm_${chatId}`;
+    const legacyKey = `showtime_dm_${chatId}`;
+    const cached = localStorage.getItem(cacheKey) || localStorage.getItem(legacyKey);
+    if (cached) {
       try {
-        setMessages(JSON.parse(cachedStr));
+        setMessages(JSON.parse(cached));
       } catch (_) {}
     }
 
-    const loadMessages = async () => {
-      if (!isFirebaseEnabled || !db) return;
-      setLoading(true);
+    if (isFirebaseEnabled && db) {
       try {
         const q = query(
           collection(db, 'direct_messages'),
           where('chatId', '==', chatId)
         );
-        const snap = await getDocs(q);
-        const loaded: DirectMessage[] = snap.docs.map(d => {
-          const data = d.data();
-          return {
-            id: d.id,
-            chatId: data.chatId,
-            senderId: data.senderId,
-            senderUsername: data.senderUsername,
-            senderAvatarUrl: data.senderAvatarUrl,
-            receiverId: data.receiverId,
-            text: data.text,
-            imageUrl: data.imageUrl,
-            createdAt: data.createdAt,
-            read: data.read ?? true
-          };
-        });
+        const snapshot = await getDocs(q);
+        const loaded: DirectMessage[] = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() } as DirectMessage))
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-        loaded.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         setMessages(loaded);
-        localStorage.setItem(localKey, JSON.stringify(loaded));
-      } catch (err) {
-        console.warn('Error loading direct messages:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+        localStorage.setItem(cacheKey, JSON.stringify(loaded));
 
-    loadMessages();
-    const interval = setInterval(loadMessages, 3000);
-    return () => clearInterval(interval);
-  }, [isOpen, chatId, user]);
+        // Mark unread messages sent to me as read
+        const unreadForMe = loaded.filter(m => m.receiverId === user.id && !m.read);
+        if (unreadForMe.length > 0) {
+          unreadForMe.forEach(async msg => {
+            try {
+              await setDoc(doc(db, 'direct_messages', msg.id), { ...msg, read: true });
+            } catch (_) {}
+          });
+        }
+      } catch (err) {
+        console.warn('Error loading Firestore messages:', err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && friend) {
+      setLoading(true);
+      loadMessages().finally(() => {
+        setLoading(false);
+        setTimeout(scrollToBottom, 150);
+      });
+
+      // Clear notifications from this friend
+      const notifsFromFriend = notifications.filter(
+        n => n.type === 'direct_message' && n.senderId === friend.id && !n.read
+      );
+      notifsFromFriend.forEach(n => markAsRead(n.id));
+
+      // Poll periodically
+      const interval = setInterval(() => {
+        loadMessages();
+      }, 5000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, chatId, notifications]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, attachedImage]);
+  }, [messages, isMinimized]);
 
-  // Mark unread direct message notifications from this friend as read
-  useEffect(() => {
-    if (!isOpen || !friend || !user) return;
-    const unreadDmNotifs = notifications.filter(
-      n => (n.type === 'direct_message' || n.type === 'comment_reply') && n.senderId === friend.id && !n.read
-    );
-    unreadDmNotifs.forEach(n => {
-      markAsRead(n.id);
-    });
-  }, [isOpen, friend, user, notifications, markAsRead]);
-
-  // Compress image helper
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-        const maxDimension = 900;
-        if (width > maxDimension || height > maxDimension) {
-          if (width > height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-          } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject('No canvas context');
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.72));
-      };
-      img.onerror = reject;
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  // Handle file select
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle image upload & compression
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = '';
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      pushToast('error', 'Selecione um formato de imagem válido.');
+      pushToast('error', 'Selecione um arquivo de imagem válido.');
       return;
     }
 
-    try {
-      const compressed = await compressImage(file);
-      setAttachedImage(compressed);
-    } catch {
-      pushToast('error', 'Erro ao processar imagem.');
-    }
-  };
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 800;
+        let w = img.width;
+        let h = img.height;
 
-  // Handle screenshot paste (Ctrl+V)
-  const handlePaste = async (e: React.ClipboardEvent) => {
-    const items = e.clipboardData.items;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) {
-          e.preventDefault();
-          try {
-            const compressed = await compressImage(file);
-            setAttachedImage(compressed);
-            pushToast('info', 'Print anexado ao chat.');
-          } catch {
-            pushToast('error', 'Erro ao anexar print.');
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
           }
-          return;
         }
-      }
-    }
+
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setAttachedImage(compressedDataUrl);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   // Send message
@@ -200,9 +188,8 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
     if (e) e.preventDefault();
     if ((!inputText.trim() && !attachedImage) || !user || !friend || sending) return;
 
-    const messageText = inputText.trim();
-    const messageImage = attachedImage;
-    const msgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    setSending(true);
+    const msgId = 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     const newMsg: DirectMessage = {
       id: msgId,
       chatId,
@@ -210,68 +197,47 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
       senderUsername: user.username,
       senderAvatarUrl: user.avatarUrl,
       receiverId: friend.id,
-      text: messageText || undefined,
-      imageUrl: messageImage || undefined,
+      text: inputText.trim() || undefined,
+      imageUrl: attachedImage || undefined,
       createdAt: new Date().toISOString(),
       read: false
     };
 
-    // Optimistic UI
-    setMessages(prev => [...prev, newMsg]);
+    // Optimistic UI update
+    const updated = [...messages, newMsg];
+    setMessages(updated);
     setInputText('');
     setAttachedImage(null);
+    localStorage.setItem(`epsync_dm_${chatId}`, JSON.stringify(updated));
 
-    const localKey = `epsync_dm_${chatId}`;
-    localStorage.setItem(localKey, JSON.stringify([...messages, newMsg]));
-
-    const firestoreData: Record<string, any> = {
-      id: msgId,
-      chatId,
-      senderId: user.id,
-      senderUsername: user.username,
-      receiverId: friend.id,
-      createdAt: new Date().toISOString(),
-      read: false
-    };
-
-    if (user.avatarUrl) {
-      firestoreData.senderAvatarUrl = user.avatarUrl;
-    }
-    if (messageText) {
-      firestoreData.text = messageText;
-    }
-    if (messageImage) {
-      firestoreData.imageUrl = messageImage;
-    }
-
-    setSending(true);
     if (isFirebaseEnabled && db) {
       try {
-        await setDoc(doc(db, 'direct_messages', msgId), firestoreData);
+        await setDoc(doc(db, 'direct_messages', msgId), newMsg);
 
-        // Dispatch / update generic notification to friend (avoiding multiple notification spam/pollution)
-        const notifId = `notif_dm_${friend.id}_from_${user.id}`;
-        const notifData: Record<string, any> = {
+        // Send notification to receiver
+        const notifId = 'notif_dm_' + msgId;
+        await setDoc(doc(db, 'notifications', notifId), {
           id: notifId,
           userId: friend.id,
+          title: `Nova mensagem de @${user.username}`,
+          message: newMsg.text || '📷 Enviou uma foto',
           type: 'direct_message',
-          title: `Mensagem de @${user.username}`,
-          message: 'Enviou uma mensagem para você.',
           read: false,
           createdAt: new Date().toISOString(),
-          senderId: user.id,
-          senderUsername: user.username
-        };
-        if (user.avatarUrl) {
-          notifData.senderAvatarUrl = user.avatarUrl;
-        }
-
-        setDoc(doc(db, 'notifications', notifId), notifData).catch(() => {});
+          data: {
+            chatId,
+            senderId: user.id,
+            senderUsername: user.username,
+            senderAvatarUrl: user.avatarUrl
+          }
+        });
       } catch (err) {
-        console.error('Error sending direct message to Firestore:', err);
+        console.error('Error sending message to Firebase:', err);
       }
     }
+
     setSending(false);
+    setTimeout(scrollToBottom, 50);
   };
 
   if (!isOpen || !friend || !user) return null;
@@ -280,328 +246,355 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
 
   return (
     <>
+      {/* Floating Bottom-Right Messenger Box (Facebook Style) */}
       <div
+        className="fb-chat-dock animate-fade-in"
         style={{
           position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          right: '24px',
+          width: '350px',
+          maxWidth: 'calc(100vw - 32px)',
+          height: isMinimized ? '48px' : '480px',
+          maxHeight: 'calc(100vh - 80px)',
+          zIndex: 11000,
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1100,
-          padding: '16px'
+          flexDirection: 'column',
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          borderBottom: 'none',
+          borderRadius: '12px 12px 0 0',
+          boxShadow: '0 -4px 30px rgba(0, 0, 0, 0.5)',
+          overflow: 'hidden',
+          transition: 'height 0.25s cubic-bezier(0.2, 0, 0, 1)'
         }}
-        onClick={onClose}
+        onClick={e => e.stopPropagation()}
       >
+        {/* Header Bar */}
         <div
-          className="st-panel animate-fade-in"
           style={{
-            width: '100%',
-            maxWidth: '520px',
-            height: '620px',
-            maxHeight: '90vh',
+            padding: '10px 14px',
+            borderBottom: isMinimized ? 'none' : '1px solid var(--border-color)',
             display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-            border: '1px solid var(--border-color)'
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: 'var(--bg-elevated)',
+            cursor: 'pointer',
+            userSelect: 'none'
           }}
-          onClick={e => e.stopPropagation()}
+          onClick={() => setIsMinimized(!isMinimized)}
         >
-          {/* Header */}
           <div
-            style={{
-              padding: '12px 16px',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'var(--bg-elevated)'
+            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+            onClick={(e) => {
+              if (onViewProfile && !isMinimized) {
+                e.stopPropagation();
+                onClose();
+                onViewProfile(friend.id, friend.username);
+              }
             }}
           >
-            <div
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: onViewProfile ? 'pointer' : 'default' }}
-              onClick={() => {
-                if (onViewProfile) {
-                  onClose();
-                  onViewProfile(friend.id, friend.username);
-                }
-              }}
-            >
-              <div style={{ position: 'relative' }}>
-                <img
-                  src={friend.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friend.username}`}
-                  alt={friend.username}
-                  style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+            <div style={{ position: 'relative' }}>
+              <img
+                src={friend.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friend.username}`}
+                alt={friend.username}
+                style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+              />
+              {presence.isOnline && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: '9px',
+                    height: '9px',
+                    backgroundColor: 'var(--accent)',
+                    borderRadius: '50%',
+                    border: '2px solid var(--bg-elevated)'
+                  }}
                 />
-                {presence.isOnline && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      right: 0,
-                      width: '10px',
-                      height: '10px',
-                      backgroundColor: 'var(--accent)',
-                      borderRadius: '50%',
-                      border: '2px solid var(--bg-elevated)'
-                    }}
-                  />
-                )}
-              </div>
-
-              <div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  @{friend.username}
-                </h3>
-                <span style={{ fontSize: '11px', color: presence.isOnline ? 'var(--accent)' : 'var(--text-muted)' }}>
-                  {presence.text}
-                </span>
-              </div>
+              )}
             </div>
 
+            <div>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                @{friend.username}
+              </h3>
+              <span style={{ fontSize: '10px', color: presence.isOnline ? 'var(--accent)' : 'var(--text-muted)' }}>
+                {presence.text}
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setIsMinimized(!isMinimized)}
+              className="st-btn-icon"
+              style={{ width: '28px', height: '28px', color: 'var(--text-secondary)' }}
+              title={isMinimized ? "Expandir" : "Minimizar"}
+            >
+              {isMinimized ? <ChevronUp size={15} /> : <Minus size={15} />}
+            </button>
             <button
               onClick={onClose}
               className="st-btn-icon"
-              style={{ width: '30px', height: '30px', color: 'var(--text-secondary)' }}
+              style={{ width: '28px', height: '28px', color: 'var(--text-secondary)' }}
               title="Fechar chat"
             >
-              <X size={16} />
+              <X size={15} />
             </button>
           </div>
+        </div>
 
-          {/* Messages Body */}
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              background: 'var(--bg-dark)'
-            }}
-          >
-            {loading && messages.length === 0 ? (
-              <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                Carregando histórico...
-              </div>
-            ) : messages.length === 0 ? (
-              <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                <p style={{ margin: '0 0 6px' }}>Nenhuma mensagem ainda.</p>
-                <span style={{ fontSize: '11px' }}>Diga olá ou envie um print para @{friend.username}!</span>
-              </div>
-            ) : (
-              messages.map(msg => {
-                const isMine = msg.senderId === user.id;
-                const time = new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-                return (
-                  <div
-                    key={msg.id}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: isMine ? 'flex-end' : 'flex-start',
-                      width: '100%'
-                    }}
-                  >
-                    <div
-                      style={{
-                        maxWidth: '80%',
-                        padding: msg.imageUrl ? '6px 6px 8px 6px' : '8px 12px',
-                        borderRadius: 'var(--radius-sm)',
-                        background: isMine ? 'var(--bg-elevated)' : 'var(--bg-surface)',
-                        border: '1px solid',
-                        borderColor: isMine ? 'var(--border-color)' : 'var(--border-subtle)',
-                        color: 'var(--text-primary)',
-                        fontSize: '13px',
-                        lineHeight: '1.4',
-                        boxShadow: 'var(--shadow-sm)'
-                      }}
-                    >
-                      {/* Attached Image */}
-                      {msg.imageUrl && (
-                        <div
-                          style={{ position: 'relative', cursor: 'pointer', borderRadius: 'var(--radius-xs)', overflow: 'hidden', marginBottom: msg.text ? '6px' : '0' }}
-                          onClick={() => setPreviewImage(msg.imageUrl || null)}
-                        >
-                          <img
-                            src={msg.imageUrl}
-                            alt="print"
-                            style={{ width: '100%', maxHeight: '240px', objectFit: 'cover', display: 'block', borderRadius: 'var(--radius-xs)' }}
-                          />
-                          <div style={{ position: 'absolute', top: '6px', right: '6px', background: 'rgba(0,0,0,0.6)', padding: '3px', borderRadius: 'var(--radius-xs)' }}>
-                            <Maximize2 size={12} color="#fff" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Text */}
-                      {msg.text && (
-                        <div style={{ padding: msg.imageUrl ? '2px 6px' : 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                          {msg.text}
-                        </div>
-                      )}
-
-                      {/* Timestamp */}
-                      <div
-                        style={{
-                          fontSize: '10px',
-                          color: 'var(--text-muted)',
-                          textAlign: 'right',
-                          marginTop: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          gap: '4px'
-                        }}
-                      >
-                        <span>{time}</span>
-                        {isMine && <CheckCheck size={11} color="var(--primary)" />}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Image Preview before send */}
-          {attachedImage && (
+        {/* Messages Body */}
+        {!isMinimized && (
+          <>
             <div
               style={{
-                padding: '8px 14px',
-                background: 'var(--bg-elevated)',
-                borderTop: '1px solid var(--border-subtle)',
+                flex: 1,
+                overflowY: 'auto',
+                padding: '14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                background: 'var(--bg-dark)'
+              }}
+            >
+              {loading && messages.length === 0 ? (
+                <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                  Carregando histórico...
+                </div>
+              ) : messages.length === 0 ? (
+                <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <p style={{ margin: '0 0 4px', fontWeight: 600 }}>Nenhuma mensagem ainda.</p>
+                  <span style={{ fontSize: '11px' }}>Diga olá para @{friend.username}! 👋</span>
+                </div>
+              ) : (
+                messages.map(msg => {
+                  const isMine = msg.senderId === user.id;
+                  const time = new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                  return (
+                    <div
+                      key={msg.id}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: isMine ? 'flex-end' : 'flex-start',
+                        width: '100%'
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: '82%',
+                          padding: msg.imageUrl ? '4px 4px 6px 4px' : '8px 12px',
+                          borderRadius: isMine ? '14px 14px 2px 14px' : '14px 14px 14px 2px',
+                          background: isMine ? 'var(--primary)' : 'var(--bg-surface)',
+                          border: isMine ? 'none' : '1px solid var(--border-color)',
+                          color: isMine ? '#FFFFFF' : 'var(--text-primary)',
+                          fontSize: '13px',
+                          lineHeight: '1.4',
+                          boxShadow: 'var(--shadow-sm)'
+                        }}
+                      >
+                        {/* Attached Image */}
+                        {msg.imageUrl && (
+                          <div
+                            style={{ position: 'relative', cursor: 'pointer', borderRadius: 'var(--radius-xs)', overflow: 'hidden', marginBottom: msg.text ? '4px' : '0' }}
+                            onClick={() => setPreviewImage(msg.imageUrl || null)}
+                          >
+                            <img
+                              src={msg.imageUrl}
+                              alt="print"
+                              style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', display: 'block', borderRadius: 'var(--radius-xs)' }}
+                            />
+                            <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.6)', padding: '3px', borderRadius: 'var(--radius-xs)' }}>
+                              <Maximize2 size={11} color="#fff" />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Text */}
+                        {msg.text && (
+                          <div style={{ padding: msg.imageUrl ? '2px 4px' : 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {msg.text}
+                          </div>
+                        )}
+
+                        {/* Timestamp */}
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            color: isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)',
+                            textAlign: 'right',
+                            marginTop: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: '3px'
+                          }}
+                        >
+                          <span>{time}</span>
+                          {isMine && (
+                            <CheckCheck size={11} color={msg.read ? 'var(--accent)' : 'rgba(255,255,255,0.7)'} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Attached Image Preview before send */}
+            {attachedImage && (
+              <div
+                style={{
+                  padding: '8px 12px',
+                  background: 'var(--bg-elevated)',
+                  borderTop: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+              >
+                <div style={{ position: 'relative', width: '48px', height: '48px', borderRadius: 'var(--radius-xs)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+                  <img src={attachedImage} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    onClick={() => setAttachedImage(null)}
+                    style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', color: '#fff', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Imagem pronta para envio</span>
+              </div>
+            )}
+
+            {/* Input Bar */}
+            <form
+              onSubmit={handleSend}
+              style={{
+                padding: '10px',
+                background: 'var(--bg-surface)',
+                borderTop: '1px solid var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px'
+                gap: '8px'
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <img
-                  src={attachedImage}
-                  alt="preview"
-                  style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-xs)', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                />
-                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Print anexado</span>
-              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleImageSelect}
+                style={{ display: 'none' }}
+              />
+
               <button
-                onClick={() => setAttachedImage(null)}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
                 className="st-btn-icon"
-                style={{ width: '24px', height: '24px', color: 'var(--error)' }}
-                title="Remover anexo"
+                style={{ width: '32px', height: '32px', color: 'var(--text-secondary)', flexShrink: 0 }}
+                title="Anexar print/imagem"
               >
-                <X size={14} />
+                <Paperclip size={16} />
               </button>
-            </div>
-          )}
 
-          {/* Footer Input Bar */}
-          <form
-            onSubmit={handleSend}
-            onPaste={handlePaste}
-            style={{
-              padding: '12px 14px',
-              borderTop: '1px solid var(--border-color)',
-              background: 'var(--bg-surface)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
+              <input
+                type="text"
+                placeholder="Escreva uma mensagem..."
+                value={inputText}
+                onChange={e => setInputText(e.target.value)}
+                style={{
+                  flex: 1,
+                  height: '34px',
+                  background: 'var(--bg-dark)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '0 12px',
+                  fontSize: '13px',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="st-btn-icon"
-              title="Anexar print ou foto"
-              style={{ color: 'var(--text-secondary)', flexShrink: 0 }}
-            >
-              <Paperclip size={16} />
-            </button>
-
-            <input
-              type="text"
-              placeholder="Digite uma mensagem ou cole um print (Ctrl+V)..."
-              value={inputText}
-              onChange={e => setInputText(e.target.value)}
-              style={{
-                flex: 1,
-                height: '36px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                padding: '0 12px',
-                fontSize: '13px',
-                color: 'var(--text-primary)',
-                outline: 'none'
-              }}
-            />
-
-            <button
-              type="submit"
-              disabled={(!inputText.trim() && !attachedImage) || sending}
-              className="st-btn-primary"
-              style={{ height: '36px', width: '36px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-              title="Enviar mensagem"
-            >
-              {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-            </button>
-          </form>
-        </div>
+              <button
+                type="submit"
+                disabled={(!inputText.trim() && !attachedImage) || sending}
+                className="st-btn-primary"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  opacity: (!inputText.trim() && !attachedImage) || sending ? 0.4 : 1
+                }}
+              >
+                {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              </button>
+            </form>
+          </>
+        )}
       </div>
 
-      {/* Lightbox / Fullscreen image preview */}
+      {/* Fullscreen Photo Lightbox */}
       {previewImage && (
         <div
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 12000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1200,
             padding: '20px'
           }}
           onClick={() => setPreviewImage(null)}
         >
-          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
-            <img
-              src={previewImage}
-              alt="fullscreen preview"
-              style={{ width: '100%', maxHeight: '85vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }}
-            />
-            <button
-              onClick={() => setPreviewImage(null)}
-              className="st-btn-icon"
-              style={{ position: 'absolute', top: '-14px', right: '-14px', background: 'var(--bg-elevated)', color: 'var(--text-primary)', width: '32px', height: '32px' }}
-              title="Fechar"
-            >
-              <X size={18} />
-            </button>
-          </div>
+          <img
+            src={previewImage}
+            alt="full preview"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 'var(--radius-md)' }}
+          />
+          <button
+            onClick={() => setPreviewImage(null)}
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              color: '#fff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer'
+            }}
+          >
+            <X size={20} />
+          </button>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 600px) {
+          .fb-chat-dock {
+            right: 8px !important;
+            width: calc(100vw - 16px) !important;
+            bottom: 64px !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

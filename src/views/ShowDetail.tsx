@@ -16,7 +16,7 @@ import {
   where, 
   limit 
 } from 'firebase/firestore/lite';
-import { ChevronLeft, CheckCircle, Heart, Calendar, Clock, Plus, Send, Bell } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Heart, Calendar, Clock, Plus, Send, Bell, Check } from 'lucide-react';
 import { pushToast } from '../services/toast.js';
 import { trackEvent } from '../services/telemetry.js';
 
@@ -93,6 +93,27 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   
   // Custom List management state
   const [showListDropdown, setShowListDropdown] = useState(false);
+  const [listsWithThisMedia, setListsWithThisMedia] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!user || !media?.id || !lists.length) {
+      setListsWithThisMedia([]);
+      return;
+    }
+    const matching: string[] = [];
+    lists.forEach(l => {
+      const raw = localStorage.getItem(`epsync_list_items_${user.id}_${l.id}`) || localStorage.getItem(`showtime_list_items_${user.id}_${l.id}`);
+      if (raw) {
+        try {
+          const items = JSON.parse(raw);
+          if (Array.isArray(items) && items.some((i: any) => String(i.mediaId) === String(media.id))) {
+            matching.push(l.id);
+          }
+        } catch (_) {}
+      }
+    });
+    setListsWithThisMedia(matching);
+  }, [media?.id, lists, user]);
 
   // Comments and Reactions State
   const [comments, setComments] = useState<any[]>([]);
@@ -308,20 +329,22 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   };
 
   const handleListToggle = async (listId: string) => {
-    // Add or remove from custom list
-    // Normally we'd check if it's already in the list, for simplicity we just attempt to add.
-    // If it fails (already in list), we can offer a way to remove it in the backend lists view.
-    const success = await addToList(listId, mediaType, media.id, media);
-    if (success) {
-      pushToast('success', 'Adicionado com sucesso à lista.');
-      trackEvent('detail_list_item_added', { listId, mediaType, mediaId: media.id });
-    } else {
-      // Toggle remove
+    const isAlreadyInList = listsWithThisMedia.includes(listId);
+    if (isAlreadyInList) {
       await removeFromList(listId, media.id);
+      setListsWithThisMedia(prev => prev.filter(id => id !== listId));
       pushToast('info', 'Removido da lista.');
       trackEvent('detail_list_item_removed', { listId, mediaType, mediaId: media.id });
+    } else {
+      const success = await addToList(listId, mediaType, media.id, media);
+      if (success) {
+        setListsWithThisMedia(prev => [...prev, listId]);
+        pushToast('success', 'Adicionado na lista com sucesso!');
+        trackEvent('detail_list_item_added', { listId, mediaType, mediaId: media.id });
+      } else {
+        pushToast('info', 'Este item já está presente na lista.');
+      }
     }
-    setShowListDropdown(false);
   };
 
   const handleEpisodeWatchClick = async (e: React.MouseEvent, ep: any, epId: string, watched: boolean) => {
@@ -842,36 +865,77 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             <div style={{ position: 'relative' }}>
               <button 
                 onClick={() => setShowListDropdown(!showListDropdown)}
-                className="st-btn-secondary"
+                className={listsWithThisMedia.length > 0 ? "st-btn-primary" : "st-btn-secondary"}
+                style={{
+                  background: listsWithThisMedia.length > 0 ? 'linear-gradient(135deg, var(--accent) 0%, #00B4D8 100%)' : undefined,
+                  borderColor: listsWithThisMedia.length > 0 ? 'var(--accent)' : undefined,
+                  color: '#FFFFFF'
+                }}
               >
-                <Plus size={20} />
-                Adicionar à Lista
+                {listsWithThisMedia.length > 0 ? <CheckCircle size={18} /> : <Plus size={18} />}
+                {listsWithThisMedia.length > 0 ? `Adicionado na Lista (${listsWithThisMedia.length})` : 'Adicionar à Lista'}
               </button>
               {showListDropdown && (
-                <div className="st-panel" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 10, width: '220px', padding: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+                <div className="st-panel" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 10, width: '250px', padding: '8px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px 8px', borderBottom: '1px solid var(--border-color)', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>Minhas Listas</span>
+                    <button onClick={handleQuickCreateList} style={{ background: 'transparent', border: 'none', color: 'var(--primary)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>+ Criar</button>
+                  </div>
                   {safeLists.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Você não possui listas.</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Você ainda não criou listas.</div>
                       <button 
                         onClick={handleQuickCreateList}
-                        className="btn-primary"
+                        className="st-btn-primary"
                         style={{ width: '100%', fontSize: '12px', padding: '6px 10px', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }}
                       >
-                        Criar Nova Lista
+                        Criar Primeira Lista
                       </button>
                     </div>
                   ) : (
-                    safeLists.map(list => (
-                      <button 
-                        key={list.id} 
-                        onClick={() => handleListToggle(list.id)}
-                        style={{ display: 'block', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', padding: '8px 12px', fontSize: '13px', borderRadius: 'var(--radius-sm)', cursor: 'pointer', transition: 'background var(--transition-fast)' }}
-                        onMouseOver={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                      >
-                        {list.name}
-                      </button>
-                    ))
+                    <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {safeLists.map(list => {
+                        const inThisList = listsWithThisMedia.includes(list.id);
+                        return (
+                          <button 
+                            key={list.id} 
+                            onClick={() => handleListToggle(list.id)}
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between',
+                              width: '100%', 
+                              textAlign: 'left', 
+                              background: inThisList ? 'rgba(0, 245, 212, 0.08)' : 'transparent', 
+                              border: inThisList ? '1px solid rgba(0, 245, 212, 0.25)' : '1px solid transparent', 
+                              padding: '8px 10px', 
+                              fontSize: '13px', 
+                              borderRadius: 'var(--radius-sm)', 
+                              cursor: 'pointer', 
+                              transition: 'background var(--transition-fast)',
+                              marginBottom: '4px'
+                            }}
+                            onMouseOver={e => {
+                              if (!inThisList) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                            }}
+                            onMouseOut={e => {
+                              if (!inThisList) e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            <span style={{ fontWeight: inThisList ? 600 : 400, color: inThisList ? 'var(--accent)' : 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                              {list.name}
+                            </span>
+                            {inThisList ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--accent)', fontWeight: 700, background: 'rgba(0,245,212,0.15)', padding: '2px 6px', borderRadius: 'var(--radius-xs)' }}>
+                                <Check size={11} /> Na Lista
+                              </span>
+                            ) : (
+                              <Plus size={14} style={{ color: 'var(--text-muted)' }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
