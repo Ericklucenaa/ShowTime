@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
+import { useNotifications } from '../context/NotificationContext.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { doc, getDoc } from 'firebase/firestore/lite';
 import { MessageCircle, Search } from 'lucide-react';
@@ -40,11 +41,21 @@ function formatRelativeTime(dateString?: string): string {
 export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) => {
   const { user } = useAuth();
   const { followedUsers } = useTracking();
+  const { notifications, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [friendsList, setFriendsList] = useState<ChatFriend[]>([]);
   const [searchFilter, setSearchFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Filter direct message notifications specifically
+  const directMessageNotifications = useMemo(() => {
+    return notifications.filter(n => n.type === 'direct_message');
+  }, [notifications]);
+
+  const totalUnreadMessages = useMemo(() => {
+    return directMessageNotifications.filter(n => !n.read).length;
+  }, [directMessageNotifications]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -125,6 +136,11 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
               } catch (_) {}
             }
 
+            // Unread count from direct message notifications
+            const unreadCount = directMessageNotifications.filter(
+              n => (n.senderId === uid || (n as any).data?.senderId === uid) && !n.read
+            ).length;
+
             loaded.push({
               id: uid,
               username,
@@ -132,7 +148,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
               lastActiveAt,
               lastMessage: lastMessage || 'Iniciar conversa...',
               lastMessageTime,
-              unreadCount: 0
+              unreadCount
             });
           } catch (err) {
             console.warn('Error loading friend for messages:', err);
@@ -158,7 +174,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
     };
 
     loadConversations();
-  }, [user, followedUsers, isOpen]);
+  }, [user, followedUsers, isOpen, directMessageNotifications]);
 
   const filteredFriends = useMemo(() => {
     if (!searchFilter.trim()) return friendsList;
@@ -166,9 +182,21 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
     return friendsList.filter(f => f.username.toLowerCase().includes(q));
   }, [friendsList, searchFilter]);
 
-  const totalUnread = useMemo(() => {
-    return friendsList.reduce((acc, f) => acc + (f.unreadCount || 0), 0);
-  }, [friendsList]);
+  const handleSelectFriend = (friend: ChatFriend) => {
+    // Mark unread messages from this friend as read
+    const unreadFromThisFriend = directMessageNotifications.filter(
+      n => (n.senderId === friend.id || (n as any).data?.senderId === friend.id) && !n.read
+    );
+    unreadFromThisFriend.forEach(n => markAsRead(n.id));
+
+    setIsOpen(false);
+    onOpenChat({
+      id: friend.id,
+      username: friend.username,
+      avatarUrl: friend.avatarUrl,
+      lastActiveAt: friend.lastActiveAt
+    });
+  };
 
   return (
     <div className="messages-center-wrapper" ref={containerRef} style={{ position: 'relative' }}>
@@ -179,36 +207,36 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
         className="st-btn-icon"
         style={{
           position: 'relative',
-          color: isOpen ? 'var(--primary)' : 'var(--text-secondary)',
-          borderColor: isOpen ? 'var(--primary)' : 'var(--border-color)',
+          color: totalUnreadMessages > 0 || isOpen ? 'var(--primary)' : 'var(--text-secondary)',
+          borderColor: totalUnreadMessages > 0 || isOpen ? 'rgba(124, 92, 255, 0.3)' : 'var(--border-color)',
           background: isOpen ? 'var(--bg-elevated)' : 'var(--bg-surface)'
         }}
         title="Mensagens & Conversas"
         aria-label="Abrir Mensagens"
       >
-        <MessageCircle size={16} />
-        {totalUnread > 0 && (
+        <MessageCircle size={15} />
+        {totalUnreadMessages > 0 && (
           <span
             style={{
               position: 'absolute',
-              top: '-4px',
-              right: '-4px',
-              background: 'var(--primary)',
+              top: '-3px',
+              right: totalUnreadMessages > 9 ? '-6px' : '-3px',
+              background: 'var(--secondary)',
               color: '#FFFFFF',
-              fontSize: '10px',
+              fontSize: totalUnreadMessages > 99 ? '8px' : totalUnreadMessages > 9 ? '9px' : '10px',
               fontWeight: 800,
-              minWidth: '16px',
-              height: '16px',
-              borderRadius: 'var(--radius-full)',
+              minWidth: '15px',
+              height: '15px',
+              padding: totalUnreadMessages > 9 ? '0 3.5px' : '0',
+              borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '0 4px',
-              border: '2px solid var(--bg-dark)',
-              boxShadow: '0 0 6px var(--primary-glow)'
+              lineHeight: 1,
+              boxShadow: '0 0 0 1.5px var(--bg-surface)'
             }}
           >
-            {totalUnread > 9 ? '9+' : totalUnread}
+            {totalUnreadMessages > 99 ? '99+' : totalUnreadMessages}
           </span>
         )}
       </button>
@@ -248,9 +276,11 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
               <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}>
                 Mensagens
               </span>
-              <span style={{ fontSize: '11px', background: 'rgba(124, 92, 255, 0.15)', color: 'var(--primary)', padding: '1px 7px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
-                {friendsList.length}
-              </span>
+              {totalUnreadMessages > 0 && (
+                <span style={{ fontSize: '11px', background: 'var(--secondary)', color: '#FFFFFF', padding: '1px 7px', borderRadius: 'var(--radius-full)', fontWeight: 700 }}>
+                  {totalUnreadMessages} novas
+                </span>
+              )}
             </div>
           </div>
 
@@ -296,7 +326,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                   Nenhuma conversa encontrada
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Siga amigos na aba <strong>Amigos</strong> ou <strong>Descobrir</strong> para iniciar bate-papos!
+                  Siga amigos na aba <strong>Amigos</strong> para iniciar bate-papos!
                 </p>
               </div>
             ) : (
@@ -304,14 +334,12 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                 const isOnline = friend.lastActiveAt 
                   ? (Date.now() - new Date(friend.lastActiveAt).getTime()) < 5 * 60 * 1000 
                   : false;
+                const hasUnread = (friend.unreadCount || 0) > 0;
 
                 return (
                   <div
                     key={friend.id}
-                    onClick={() => {
-                      setIsOpen(false);
-                      onOpenChat(friend);
-                    }}
+                    onClick={() => handleSelectFriend(friend)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -319,16 +347,17 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                       padding: '10px 14px',
                       cursor: 'pointer',
                       transition: 'all var(--transition-fast)',
-                      borderLeft: '3px solid transparent',
+                      borderLeft: hasUnread ? '3px solid var(--secondary)' : '3px solid transparent',
+                      background: hasUnread ? 'rgba(255, 122, 89, 0.06)' : 'transparent',
                       position: 'relative'
                     }}
                     onMouseOver={e => {
                       e.currentTarget.style.background = 'var(--bg-elevated)';
-                      e.currentTarget.style.borderLeftColor = 'var(--primary)';
+                      if (!hasUnread) e.currentTarget.style.borderLeftColor = 'var(--primary)';
                     }}
                     onMouseOut={e => {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.borderLeftColor = 'transparent';
+                      e.currentTarget.style.background = hasUnread ? 'rgba(255, 122, 89, 0.06)' : 'transparent';
+                      if (!hasUnread) e.currentTarget.style.borderLeftColor = 'transparent';
                     }}
                   >
                     {/* Avatar with active dot */}
@@ -354,7 +383,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                             width: '11px',
                             height: '11px',
                             borderRadius: '50%',
-                            background: '#10B981',
+                            background: 'var(--accent)',
                             border: '2px solid var(--bg-surface)'
                           }}
                           title="Online agora"
@@ -365,7 +394,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                     {/* Friend metadata & snippet */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '13px', fontWeight: hasUnread ? 700 : 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           @{friend.username}
                         </span>
                         {friend.lastMessageTime && (
@@ -378,8 +407,8 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
                         <p style={{
                           fontSize: '12px',
-                          color: friend.unreadCount ? 'var(--text-primary)' : 'var(--text-secondary)',
-                          fontWeight: friend.unreadCount ? 600 : 400,
+                          color: hasUnread ? 'var(--text-primary)' : 'var(--text-secondary)',
+                          fontWeight: hasUnread ? 600 : 400,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -387,8 +416,8 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                         }}>
                           {friend.lastMessage}
                         </p>
-                        {friend.unreadCount ? (
-                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0 }} />
+                        {hasUnread ? (
+                          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--secondary)', flexShrink: 0 }} />
                         ) : null}
                       </div>
                     </div>
@@ -409,7 +438,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
             }}
           >
             <span style={{ color: 'var(--text-muted)' }}>
-              Conversas criptografadas e sincronizadas em tempo real
+              Conversas diretas em tempo real
             </span>
           </div>
         </div>

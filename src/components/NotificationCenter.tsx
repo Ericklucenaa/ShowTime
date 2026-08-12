@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNotifications, type NotificationItem } from '../context/NotificationContext.js';
-import { Bell, UserPlus, MessageSquare, CheckCheck, Info, MessageCircle } from 'lucide-react';
+import { Bell, UserPlus, MessageSquare, CheckCheck, Info } from 'lucide-react';
 
 interface NotificationCenterProps {
   onViewMedia: (id: string, type: 'show' | 'movie', seasonNum?: number, episodeNum?: number) => void;
@@ -26,20 +26,33 @@ function formatRelativeTime(dateString: string): string {
 
 export const NotificationCenter: React.FC<NotificationCenterProps> = ({
   onViewMedia,
-  onViewProfile,
-  onOpenChat
+  onViewProfile
 }) => {
   const { 
     notifications, 
-    unreadCount, 
     markAsRead, 
-    markAllAsRead, 
     browserNotificationPermission, 
     requestNotificationPermission,
     reminders 
   } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Filter out direct message notifications (they appear exclusively in the messages center)
+  const standardNotifications = useMemo(() => {
+    return notifications.filter(n => n.type !== 'direct_message');
+  }, [notifications]);
+
+  const unreadCount = useMemo(() => {
+    return standardNotifications.filter(n => !n.read).length;
+  }, [standardNotifications]);
+
+  const handleMarkAllAsRead = async () => {
+    const unread = standardNotifications.filter(n => !n.read);
+    for (const item of unread) {
+      await markAsRead(item.id);
+    }
+  };
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -63,17 +76,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     }
     setIsOpen(false);
 
-    if (notif.type === 'direct_message' && notif.senderId) {
-      if (onOpenChat) {
-        onOpenChat({
-          id: notif.senderId,
-          username: notif.senderUsername || 'usuário',
-          avatarUrl: notif.senderAvatarUrl
-        });
-      } else if (onViewProfile) {
-        onViewProfile(notif.senderId, notif.senderUsername || 'usuário');
-      }
-    } else if ((notif.type === 'episode_release' || notif.type === 'episode_reminder') && notif.mediaId) {
+    if ((notif.type === 'episode_release' || notif.type === 'episode_reminder') && notif.mediaId) {
       onViewMedia(notif.mediaId, notif.mediaType || 'show', notif.seasonNumber, notif.episodeNumber);
     } else if (notif.type === 'new_follower' && notif.senderId && onViewProfile) {
       onViewProfile(notif.senderId, notif.senderUsername || 'usuário');
@@ -89,8 +92,6 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         return <Bell size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />;
       case 'new_follower':
         return <UserPlus size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />;
-      case 'direct_message':
-        return <MessageCircle size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />;
       case 'comment_reply':
         return <MessageSquare size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />;
       default:
@@ -104,7 +105,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="st-btn-icon"
-        title="Notificações"
+        title="Notificações de Lançamentos e Atividades"
         style={{ position: 'relative', color: unreadCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)' }}
       >
         <Bell size={15} />
@@ -117,7 +118,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               top: '-3px',
               right: unreadCount > 9 ? '-6px' : '-3px',
               background: 'var(--primary)',
-              color: '#000',
+              color: '#FFFFFF',
               fontSize: unreadCount > 99 ? '8px' : unreadCount > 9 ? '9px' : '10px',
               fontWeight: 800,
               minWidth: '15px',
@@ -175,7 +176,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     fontSize: '10px',
                     fontWeight: 700,
                     background: 'var(--primary)',
-                    color: '#000',
+                    color: '#FFFFFF',
                     padding: '1px 6px',
                     borderRadius: 'var(--radius-xs)'
                   }}
@@ -187,7 +188,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
             {unreadCount > 0 && (
               <button
-                onClick={markAllAsRead}
+                onClick={handleMarkAllAsRead}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -214,8 +215,8 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             <div
               style={{
                 padding: '8px 12px',
-                background: 'rgba(234, 179, 8, 0.08)',
-                borderBottom: '1px solid rgba(234, 179, 8, 0.2)',
+                background: 'rgba(124, 92, 255, 0.08)',
+                borderBottom: '1px solid rgba(124, 92, 255, 0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -238,7 +239,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
           {/* Notifications Scrollable List */}
           <div style={{ maxHeight: '360px', overflowY: 'auto' }}>
-            {notifications.length === 0 ? (
+            {standardNotifications.length === 0 ? (
               <div
                 style={{
                   padding: '32px 16px',
@@ -255,7 +256,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                 )}
               </div>
             ) : (
-              notifications.map((notif) => (
+              standardNotifications.map((notif) => (
                 <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
@@ -266,11 +267,11 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '10px',
-                    background: notif.read ? 'transparent' : 'rgba(234, 179, 8, 0.04)',
+                    background: notif.read ? 'transparent' : 'rgba(124, 92, 255, 0.06)',
                     transition: 'background var(--transition-fast)'
                   }}
                   onMouseOver={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-                  onMouseOut={e => e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(234, 179, 8, 0.04)'}
+                  onMouseOut={e => e.currentTarget.style.background = notif.read ? 'transparent' : 'rgba(124, 92, 255, 0.06)'}
                 >
                   <div style={{ marginTop: '2px' }}>
                     {renderIcon(notif.type)}
@@ -298,7 +299,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
                         overflow: 'hidden'
                       }}
                     >
-                      {notif.type === 'direct_message' ? 'Enviou uma mensagem para você.' : notif.message}
+                      {notif.message}
                     </p>
                   </div>
 
@@ -324,5 +325,3 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
     </div>
   );
 };
-
-
