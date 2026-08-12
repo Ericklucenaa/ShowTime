@@ -3,18 +3,18 @@ import { createPortal } from 'react-dom';
 import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes, fetchWatchProviders } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { useAuth } from '../context/AuthContext.js';
+import { useNotifications } from '../context/NotificationContext.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { 
   collection, 
   doc, 
   setDoc, 
-  getDoc,
+  getDoc, 
   deleteDoc, 
   getDocs, 
   query, 
-  where,
-  orderBy,
-  limit
+  where, 
+  limit 
 } from 'firebase/firestore/lite';
 import { ChevronLeft, CheckCircle, Heart, Calendar, Clock, Plus, Send, Bell } from 'lucide-react';
 import { pushToast } from '../services/toast.js';
@@ -68,6 +68,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
     watchAllEpisodesOfShow,
     watchAllEpisodesOfSeason
   } = useTracking();
+  const { isReminderActive, toggleEpisodeReminder, requestNotificationPermission, browserNotificationPermission } = useNotifications();
 
   const [media, setMedia] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -502,7 +503,6 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
       const q = query(
         collection(db, 'live_chats'),
         where('episodeId', '==', epId),
-        orderBy('createdAt', 'asc'),
         limit(50)
       );
 
@@ -513,7 +513,9 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
           const snapshot = await getDocs(q);
           if (!mounted) return;
 
-          const msgs = snapshot.docs.map((snap) => snap.data() as any);
+          const msgs = snapshot.docs
+            .map((snap) => snap.data() as any)
+            .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
           setChatMessages(msgs);
 
           setTimeout(() => {
@@ -523,12 +525,17 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
             }
           }, 100);
         } catch (error) {
-          console.error('Live chat polling error:', error);
+          // Fallback to local storage on firestore error / index requirement
+          const key = `chat_${epId}`;
+          const saved = localStorage.getItem(key);
+          if (saved && mounted) {
+            setChatMessages(JSON.parse(saved));
+          }
         }
       };
 
       loadMessages();
-      const interval = window.setInterval(loadMessages, 4000);
+      const interval = window.setInterval(loadMessages, 5000);
 
       return () => {
         mounted = false;
@@ -1018,6 +1025,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                     const isExpanded = expandedEpisodeNum === ep.episodeNumber;
                     const released = isEpisodeReleased(ep.airDate);
                     const isLatestReleased = Boolean(latestReleasedEpisode) && released && latestReleasedEpisode.episodeNumber === ep.episodeNumber;
+                    const epReminderActive = isReminderActive(media.id, selectedSeasonNum, ep.episodeNumber);
 
                     return (
                       <div 
@@ -1028,7 +1036,9 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                             ? '4px solid var(--accent)'
                             : isLatestReleased
                               ? '4px solid var(--primary)'
-                              : '1px solid var(--border-color)',
+                              : epReminderActive
+                                ? '4px solid var(--primary)'
+                                : '1px solid var(--border-color)',
                           overflow: 'hidden',
                           background: isLatestReleased ? 'rgba(245, 197, 24, 0.06)' : undefined
                         }}
@@ -1046,7 +1056,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                           </button>
                           
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div className="episode-header-info" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                            <div className="episode-header-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                               <h4 style={{ fontSize: '14px', fontWeight: 'bold' }}>
                                 Ep {ep.episodeNumber.toString().padStart(2, '0')} - {ep.title}
                                 {isLatestReleased && (
@@ -1060,9 +1070,51 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
                                   </span>
                                 )}
                               </h4>
-                              <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Calendar size={10} /> {ep.airDate}</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {ep.duration} min</span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                                <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Calendar size={10} /> {ep.airDate || 'Sem data'}</span>
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}><Clock size={10} /> {ep.duration} min</span>
+                                </div>
+                                {!released && (
+                                  <button
+                                    type="button"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (browserNotificationPermission === 'default') {
+                                        requestNotificationPermission();
+                                      }
+                                      await toggleEpisodeReminder({
+                                        showId: media.id,
+                                        showTitle: media.title,
+                                        posterPath: media.posterPath,
+                                        seasonNumber: selectedSeasonNum,
+                                        episodeNumber: ep.episodeNumber,
+                                        episodeTitle: ep.title,
+                                        airDate: ep.airDate
+                                      });
+                                    }}
+                                    className={epReminderActive ? 'btn-primary' : 'btn-secondary'}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '5px',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      padding: '3px 8px',
+                                      borderRadius: 'var(--radius-xs)',
+                                      height: '24px',
+                                      cursor: 'pointer',
+                                      border: epReminderActive ? 'none' : '1px solid var(--border-color)',
+                                      background: epReminderActive ? 'var(--primary)' : 'rgba(255, 255, 255, 0.05)',
+                                      color: epReminderActive ? '#000' : 'var(--text-primary)',
+                                      transition: 'all var(--transition-fast)'
+                                    }}
+                                    title={epReminderActive ? "Lembrete ativo para este lançamento" : "Lembrar no dia do lançamento"}
+                                  >
+                                    <Bell size={11} fill={epReminderActive ? '#000' : 'none'} />
+                                    {epReminderActive ? 'Lembrete ativo' : 'Lembrar lançamento'}
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>

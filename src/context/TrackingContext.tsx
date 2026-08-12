@@ -78,7 +78,8 @@ const TrackingContext = createContext<TrackingContextType | undefined>(undefined
 
 // LocalStorage helpers for offline/mock mode
 const getLocalData = (key: string, defaultVal: any) => {
-  const data = localStorage.getItem(key);
+  const legacyKey = key.startsWith('epsync_') ? key.replace(/^epsync_/, 'showtime_') : key;
+  const data = localStorage.getItem(key) || localStorage.getItem(legacyKey);
   return data ? JSON.parse(data) : defaultVal;
 };
 
@@ -106,7 +107,7 @@ function isEpisodeReleased(airDateValue?: string): boolean {
 const REFRESH_MIN_INTERVAL_MS = 8000;
 const QUOTA_COOLDOWN_MS = 10 * 60 * 1000;
 const LIST_ITEMS_CACHE_TTL_MS = 60000;
-const QUOTA_COOLDOWN_STORAGE_KEY = 'showtime_firestore_quota_cooldown_until';
+const QUOTA_COOLDOWN_STORAGE_KEY = 'epsync_firestore_quota_cooldown_until';
 
 function isQuotaExceededError(err: any): boolean {
   const code = String(err?.code || '').toLowerCase();
@@ -138,11 +139,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const listItemsCacheRef = useRef<Record<string, { at: number; data: any }>>({});
 
   const hydrateTrackingSnapshot = useCallback((uid: string) => {
-    const eps = getLocalData(`showtime_watch_episodes_${uid}`, []);
-    const movs = getLocalData(`showtime_watch_movies_${uid}`, []);
-    const customLists = getLocalData(`showtime_custom_lists_${uid}`, []);
-    const follows = getLocalData(`showtime_followed_shows_${uid}`, []);
-    const followsUsers = getLocalData(`showtime_followed_users_${uid}`, []);
+    const eps = getLocalData(`epsync_watch_episodes_${uid}`, []);
+    const movs = getLocalData(`epsync_watch_movies_${uid}`, []);
+    const customLists = getLocalData(`epsync_custom_lists_${uid}`, []);
+    const follows = getLocalData(`epsync_followed_shows_${uid}`, []);
+    const followsUsers = getLocalData(`epsync_followed_users_${uid}`, []);
 
     setWatchedEpisodes(eps);
     setWatchedMovies(movs);
@@ -301,11 +302,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           calculateEngagementStats(eps, movs);
 
           // Keep local snapshot updated for quota fallback mode.
-          setLocalData(`showtime_watch_episodes_${user.id}`, eps);
-          setLocalData(`showtime_watch_movies_${user.id}`, movs);
-          setLocalData(`showtime_custom_lists_${user.id}`, loadedLists);
-          setLocalData(`showtime_followed_shows_${user.id}`, follows);
-          setLocalData(`showtime_followed_users_${user.id}`, followsUsers);
+          setLocalData(`epsync_watch_episodes_${user.id}`, eps);
+          setLocalData(`epsync_watch_movies_${user.id}`, movs);
+          setLocalData(`epsync_custom_lists_${user.id}`, loadedLists);
+          setLocalData(`epsync_followed_shows_${user.id}`, follows);
+          setLocalData(`epsync_followed_users_${user.id}`, followsUsers);
 
           if (quotaCooldownUntilRef.current > 0) {
             quotaCooldownUntilRef.current = 0;
@@ -420,7 +421,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      setLocalData(`showtime_watch_episodes_${user.id}`, newEps);
+      setLocalData(`epsync_watch_episodes_${user.id}`, newEps);
       return !isWatched;
     }
   };
@@ -480,7 +481,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           episodeTitle: ep.title
         });
       });
-      setLocalData(`showtime_watch_episodes_${user.id}`, eps);
+      setLocalData(`epsync_watch_episodes_${user.id}`, eps);
       setWatchedEpisodes(eps);
       calculateGenreStats(eps, watchedMovies);
       setLoading(false);
@@ -542,7 +543,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      setLocalData(`showtime_watch_movies_${user.id}`, newMovs);
+      setLocalData(`epsync_watch_movies_${user.id}`, newMovs);
       return !isWatched;
     }
   };
@@ -600,7 +601,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      setLocalData(`showtime_watch_movies_${user.id}`, newMovs);
+      setLocalData(`epsync_watch_movies_${user.id}`, newMovs);
       return newFavoriteStatus;
     }
   };
@@ -620,7 +621,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const persistListLocally = () => {
       setLists((prev) => {
         const next = [newList, ...prev.filter((l) => l.id !== listId)];
-        setLocalData(`showtime_custom_lists_${user.id}`, next);
+        setLocalData(`epsync_custom_lists_${user.id}`, next);
         return next;
       });
       listItemsCacheRef.current[listId] = {
@@ -697,10 +698,10 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
+      const customLists = getLocalData(`epsync_custom_lists_${user.id}`, []);
       const updated = customLists.filter((l: any) => l.id !== listId);
-      localStorage.removeItem(`showtime_list_items_${user.id}_${listId}`);
-      setLocalData(`showtime_custom_lists_${user.id}`, updated);
+      localStorage.removeItem(`epsync_list_items_${user.id}_${listId}`);
+      setLocalData(`epsync_custom_lists_${user.id}`, updated);
       setLists(updated);
       trackEvent('list_deleted_offline', { listId });
       pushToast('success', 'Lista removida localmente.');
@@ -710,7 +711,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addToList = async (listId: string, mediaType: 'show' | 'movie', mediaId: string, mediaMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const localItemsKey = `showtime_list_items_${user.id}_${listId}`;
+    const localItemsKey = `epsync_list_items_${user.id}_${listId}`;
     const localItems = getLocalData(localItemsKey, []);
     const existsLocal = localItems.some((i: any) => i.mediaId === mediaId);
     if (existsLocal) return false;
@@ -739,7 +740,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       setLists((prev) => {
         const next = prev.map((l) => (l.id === listId ? { ...l, itemCount: l.itemCount + 1 } : l));
-        setLocalData(`showtime_custom_lists_${user.id}`, next);
+        setLocalData(`epsync_custom_lists_${user.id}`, next);
         return next;
       });
       return true;
@@ -824,16 +825,16 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      const items = getLocalData(`showtime_list_items_${user.id}_${listId}`, []);
+      const items = getLocalData(`epsync_list_items_${user.id}_${listId}`, []);
       const filtered = items.filter((i: any) => i.mediaId !== mediaId);
-      setLocalData(`showtime_list_items_${user.id}_${listId}`, filtered);
+      setLocalData(`epsync_list_items_${user.id}_${listId}`, filtered);
       delete listItemsCacheRef.current[listId];
 
       const customLists = [...lists];
       const lIndex = customLists.findIndex(l => l.id === listId);
       if (lIndex > -1) {
         customLists[lIndex].itemCount = Math.max(0, customLists[lIndex].itemCount - 1);
-        setLocalData(`showtime_custom_lists_${user.id}`, customLists);
+        setLocalData(`epsync_custom_lists_${user.id}`, customLists);
         setLists(customLists);
       }
       trackEvent('list_item_removed_offline', { listId, mediaId });
@@ -874,11 +875,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      const customLists = getLocalData(`showtime_custom_lists_${user.id}`, []);
+      const customLists = getLocalData(`epsync_custom_lists_${user.id}`, []);
       const list = customLists.find((l: any) => l.id === listId);
       if (!list) return null;
       
-      const items = getLocalData(`showtime_list_items_${user.id}_${listId}`, []);
+      const items = getLocalData(`epsync_list_items_${user.id}_${listId}`, []);
       const payload = {
         list,
         items
@@ -928,7 +929,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      setLocalData(`showtime_followed_shows_${user.id}`, newFollows);
+      setLocalData(`epsync_followed_shows_${user.id}`, newFollows);
       trackEvent('show_follow_toggled_offline', { showId, followed: !isFollowed });
       return !isFollowed;
     }
@@ -999,7 +1000,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             });
           }
         });
-        setLocalData(`showtime_watch_episodes_${user.id}`, eps);
+        setLocalData(`epsync_watch_episodes_${user.id}`, eps);
         setWatchedEpisodes(eps);
         calculateGenreStats(eps, watchedMovies);
         calculateEngagementStats(eps, watchedMovies);
@@ -1084,8 +1085,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     } else {
       // Offline fallback
-      const eps = getLocalData(`showtime_watch_episodes_${user.id}`, []);
-      const movs = getLocalData(`showtime_watch_movies_${user.id}`, []);
+      const eps = getLocalData(`epsync_watch_episodes_${user.id}`, []);
+      const movs = getLocalData(`epsync_watch_movies_${user.id}`, []);
 
       episodes.forEach(item => {
         const showIdStr = item.tmdbId ? item.tmdbId.toString() : `s_${generateId()}`;
@@ -1119,17 +1120,17 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         movCount++;
       });
 
-      const follows = getLocalData(`showtime_followed_shows_${user.id}`, []);
+      const follows = getLocalData(`epsync_followed_shows_${user.id}`, []);
       uniqueShowsToFollow.forEach(showId => {
         if (!follows.includes(showId)) {
           follows.push(showId);
         }
       });
-      setLocalData(`showtime_followed_shows_${user.id}`, follows);
+      setLocalData(`epsync_followed_shows_${user.id}`, follows);
       setFollowedShows(follows);
 
-      setLocalData(`showtime_watch_episodes_${user.id}`, eps);
-      setLocalData(`showtime_watch_movies_${user.id}`, movs);
+      setLocalData(`epsync_watch_episodes_${user.id}`, eps);
+      setLocalData(`epsync_watch_movies_${user.id}`, movs);
       setWatchedEpisodes(eps);
       setWatchedMovies(movs);
       calculateGenreStats(eps, movs);
@@ -1172,7 +1173,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return false;
       }
     } else {
-      setLocalData(`showtime_followed_users_${user.id}`, newFollows);
+      setLocalData(`epsync_followed_users_${user.id}`, newFollows);
       trackEvent('user_follow_toggled_offline', { targetUserId, followed: !isFollowed });
       return !isFollowed;
     }

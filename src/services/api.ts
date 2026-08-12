@@ -1,16 +1,17 @@
 import axios from 'axios';
 
-// LocalStorage key for user token
-const TMDB_KEY_KEY = 'showtime_tmdb_key';
+const TMDB_KEY_KEY = 'epsync_tmdb_key';
+const LEGACY_TMDB_KEY = 'showtime_tmdb_key';
 
 // TMDB API Client configuration
-const getTmdbKey = () => localStorage.getItem(TMDB_KEY_KEY) || import.meta.env.VITE_TMDB_API_KEY || '';
+const getTmdbKey = () => localStorage.getItem(TMDB_KEY_KEY) || localStorage.getItem(LEGACY_TMDB_KEY) || import.meta.env.VITE_TMDB_API_KEY || '';
 
 export const setTmdbKey = (key: string) => {
   if (key) {
     localStorage.setItem(TMDB_KEY_KEY, key);
   } else {
     localStorage.removeItem(TMDB_KEY_KEY);
+    localStorage.removeItem(LEGACY_TMDB_KEY);
   }
 };
 

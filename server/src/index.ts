@@ -89,7 +89,7 @@ app.use('/api', commentsRouter);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'ShowTime backend is running' });
+  res.json({ status: 'OK', message: 'EpSync backend is running' });
 });
 
 // Error handling middleware
@@ -106,7 +106,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 const server = app.listen(PORT, () => {
-  console.log(`ShowTime Express server running on port ${PORT}`);
+  console.log(`EpSync Express server running on port ${PORT}`);
 });
 
 export default app;

@@ -2,7 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Profiles: anyone authenticated can read non-private profiles
+    // Profiles: anyone authenticated can read
     match /profiles/{userId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == userId;
@@ -10,7 +10,8 @@ service cloud.firestore {
 
     // Custom lists: owner only
     match /custom_lists/{listId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
 
       match /items/{itemId} {
@@ -21,34 +22,65 @@ service cloud.firestore {
     // Watch episodes: owner can write; others can read (for public profiles)
     match /watch_episodes/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
-    // Followed shows: same pattern
+    // Watch movies: owner can write; others can read (for public profiles)
+    match /watch_movies/{docId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Followed shows: owner can write; others can read
     match /followed_shows/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
-    // Followed users
+    // Followed users (support both followed_users and profile_follows)
     match /followed_users/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == resource.data.followerId;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.followerId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.followerId;
+    }
+
+    match /profile_follows/{docId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.followerId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.followerId;
+    }
+
+    // Notifications: recipient can read and update (mark read/delete), any authenticated user can create
+    match /notifications/{notifId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
+    }
+
+    // Direct Messages (1-on-1 DM between users)
+    match /direct_messages/{msgId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.senderId;
+      allow update, delete: if request.auth != null && (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.receiverId);
     }
 
     // Comments and reactions: authenticated read/write
     match /comments/{docId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
 
     match /reactions/{docId} {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
+    }
+
+    match /live_chats/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
 
     match /live_chat/{docId} {

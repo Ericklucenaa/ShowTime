@@ -1,7 +1,7 @@
 {
-  "name": "showtime-server",
+  "name": "epsync-server",
   "version": "1.0.0",
-  "description": "Express backend for ShowTime TV tracking app",
+  "description": "Express backend for EpSync TV tracking app",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

@@ -7,7 +7,8 @@ export interface ToastMessage {
   durationMs?: number;
 }
 
-const TOAST_EVENT = 'showtime:toast';
+const TOAST_EVENT = 'epsync:toast';
+const LEGACY_TOAST_EVENT = 'showtime:toast';
 
 function generateId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -35,8 +36,10 @@ export function onToast(listener: (toast: ToastMessage) => void) {
   };
 
   window.addEventListener(TOAST_EVENT, handler);
+  window.addEventListener(LEGACY_TOAST_EVENT, handler);
 
   return () => {
     window.removeEventListener(TOAST_EVENT, handler);
+    window.removeEventListener(LEGACY_TOAST_EVENT, handler);
   };
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTracking } from '../context/TrackingContext.js';
+import { useNotifications } from '../context/NotificationContext.js';
 import { fetchMediaDetails, getImageUrl } from '../services/api.js';
-import { Play, Check, Clock, Film, Tv, Trophy } from 'lucide-react';
+import { Play, Check, Clock, Film, Tv, Flame, Bell, Sparkles } from 'lucide-react';
 
 interface ContinueWatchingItem {
   showId: string;
@@ -16,14 +17,14 @@ interface ContinueWatchingItem {
   fullEpisodeData: any;
 }
 
-export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie') => void }> = ({ onViewMedia }) => {
+export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie', seasonNum?: number, episodeNum?: number) => void }> = ({ onViewMedia }) => {
   const { watchedEpisodes, watchedMovies, toggleWatchEpisode, streakDays, lastWatchedAt, favoriteGenres, totalWatchEvents } = useTracking();
+  const { reminders } = useNotifications();
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Calculate stats
-  const totalEpTime = watchedEpisodes.length * 40; // Assume avg 40 mins per episode
-  // Look up actual movie durations if available, otherwise assume 120 mins
+  const totalEpTime = watchedEpisodes.length * 40;
   const totalMovTime = watchedMovies.length * 120;
   const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
   const daysWithoutWatching = lastWatchedAt
@@ -39,11 +40,8 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
       }
 
       setLoading(true);
-      // Group watched episodes by show
       const showProgress: Record<string, { lastSeason: number; lastEpisode: number }> = {};
       watchedEpisodes.forEach(ev => {
-        // Extract season/episode details from episodeId or database metadata if possible
-        // For simplicity, we parse our standard id format "ep_s{X}_{S}_{E}" or fetch show details
         const parts = ev.episodeId.split('_');
         if (parts.length >= 4) {
           const showId = ev.showId;
@@ -60,8 +58,6 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
             }
           }
         } else {
-          // Default fallback if ID format is different (e.g. imported)
-          // We can group and fetch
           if (!showProgress[ev.showId]) {
             showProgress[ev.showId] = { lastSeason: 1, lastEpisode: 1 };
           }
@@ -80,10 +76,8 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
           let nextSeasonNum = progress.lastSeason;
           let nextEpNum = progress.lastEpisode + 1;
 
-          // Find the season
           let currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
           
-          // If episode number exceeds episodes in this season, move to next season
           if (currentSeason && nextEpNum > currentSeason.episodeCount) {
             nextSeasonNum += 1;
             nextEpNum = 1;
@@ -91,10 +85,7 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
           }
 
           if (currentSeason) {
-            // Find episode metadata
             const nextEp = currentSeason.episodes?.find((e: any) => e.episodeNumber === nextEpNum);
-            
-            // Generate standard episode ID
             const nextEpId = `ep_${show.id}_${nextSeasonNum}_${nextEpNum}`;
 
             items.push({
@@ -123,11 +114,10 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
   }, [watchedEpisodes]);
 
   const handleQuickWatch = async (e: React.MouseEvent, item: ContinueWatchingItem) => {
-    e.stopPropagation(); // Prevent opening show detail
+    e.stopPropagation();
     await toggleWatchEpisode(item.nextEpisodeId, item.fullShowData, item.fullEpisodeData);
   };
 
-  // Get last 4 watch events for display
   const sortedRecentEpisodes = [...watchedEpisodes]
     .sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime())
     .slice(0, 3);
@@ -141,80 +131,102 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
       
       {/* Welcome Banner & Quick Stats */}
       <div
-        className="welcome-banner glass-panel"
+        className="welcome-banner st-panel"
         style={{
-          padding: '24px',
-          marginBottom: '24px',
+          padding: '24px 28px',
+          marginBottom: '28px',
           display: 'grid',
-          gap: '18px',
-          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%)',
-          border: '1px solid rgba(255, 255, 255, 0.1)'
+          gap: '20px',
+          background: 'linear-gradient(135deg, rgba(124, 92, 255, 0.08) 0%, rgba(255, 122, 89, 0.05) 50%, var(--bg-surface) 100%)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-lg)'
         }}
       >
         <div className="welcome-copy">
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', marginBottom: '6px' }}>Olá, Bem-vindo ao ShowTime!</h2>
-          <p style={{ color: 'var(--text-secondary)' }}>Acompanhe suas séries e filmes preferidos em um só lugar.</p>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+            <Sparkles size={14} />
+            <span>Painel Principal</span>
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', letterSpacing: '-0.02em' }}>
+            Olá, Bem-vindo ao Epsync!
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.4 }}>
+            Sua central para sincronizar e acompanhar tudo o que você assiste em um só lugar.
+          </p>
           {lastWatchedAt && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '6px' }}>
-              Última atividade: {new Date(lastWatchedAt).toLocaleDateString('pt-BR')} {daysWithoutWatching > 0 ? `• ${daysWithoutWatching} dia(s) sem assistir` : '• em dia'}
+            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px' }}>
+              Última atividade: {new Date(lastWatchedAt).toLocaleDateString('pt-BR')} {daysWithoutWatching > 0 ? `• ${daysWithoutWatching} dia(s) sem assistir` : '• tudo em dia 🔥'}
             </p>
           )}
         </div>
+
         <div className="welcome-stats-grid">
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-            <Clock size={24} style={{ color: 'var(--primary)' }} />
+          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(124, 92, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Clock size={20} style={{ color: 'var(--primary)' }} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{totalHours}h</div>
+              <div style={{ fontSize: '19px', fontWeight: 700 }}>{totalHours}h</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tempo Assistido</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-            <Tv size={24} style={{ color: 'var(--secondary)' }} />
+
+          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 122, 89, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Tv size={20} style={{ color: 'var(--secondary)' }} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{watchedEpisodes.length}</div>
+              <div style={{ fontSize: '19px', fontWeight: 700 }}>{watchedEpisodes.length}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-            <Film size={24} style={{ color: 'var(--accent)' }} />
+
+          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Film size={20} style={{ color: 'var(--accent)' }} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{watchedMovies.length}</div>
+              <div style={{ fontSize: '19px', fontWeight: 700 }}>{watchedMovies.length}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
             </div>
           </div>
-          <div className="stat-badge" style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '12px 14px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-            <Trophy size={24} style={{ color: 'var(--primary)' }} />
+
+          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(245, 158, 11, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Flame size={20} style={{ color: 'var(--warning)' }} />
+            </div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{streakDays}</div>
+              <div style={{ fontSize: '19px', fontWeight: 700 }}>{streakDays} dias</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Streak Atual</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }} className="dashboard-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px' }} className="dashboard-grid">
         
         {/* Main Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
           
           {/* Continue Watching Section */}
           <section>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Play size={20} style={{ color: 'var(--primary)' }} />
-              Continuar Assistindo
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '19px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Play size={18} style={{ color: 'var(--primary)' }} />
+                Continuar Assistindo
+              </h3>
+            </div>
 
             {loading ? (
               <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>Carregando episódios pendentes...</div>
             ) : continueWatching.length === 0 ? (
-              <div className="glass-card" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                <p>Nenhuma série em andamento.</p>
-                <p style={{ fontSize: '13px', marginTop: '6px' }}>Busque por uma série e marque um episódio para começar a acompanhar!</p>
+              <div className="st-panel" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Nenhuma série em andamento.</p>
+                <p style={{ fontSize: '13px' }}>Descubra uma série e marque o primeiro episódio para acompanhar seu progresso aqui!</p>
               </div>
             ) : (
               <div className="media-carousel">
                 {continueWatching.map(item => {
-                  // Calculate dummy progress percentage based on next episode number vs total
                   const totalEps = item.fullEpisodeData?.seasonNumber ? (item.fullEpisodeData.episodeCount || 10) : 10;
                   const progressPct = Math.min(100, Math.max(10, ((item.nextEpisodeNumber - 1) / totalEps) * 100));
                   
@@ -232,7 +244,7 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
                       <div className="carousel-item-overlay">
                         <span className="carousel-item-title">
                           {item.showTitle}<br/>
-                          <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--secondary)', fontWeight: 600 }}>
                             S{item.nextSeasonNumber.toString().padStart(2, '0')} E{item.nextEpisodeNumber.toString().padStart(2, '0')}
                           </span>
                         </span>
@@ -242,10 +254,10 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleQuickWatch(e, item); }}
                         className="st-btn-primary"
-                        style={{ position: 'absolute', top: '10px', right: '10px', width: '36px', height: '36px', padding: 0, minWidth: '36px' }}
-                        title="Marcar como assistido"
+                        style={{ position: 'absolute', top: '8px', right: '8px', width: '32px', height: '32px', padding: 0, minWidth: '32px', borderRadius: 'var(--radius-full)' }}
+                        title="Marcar episódio como assistido"
                       >
-                        <Check size={16} />
+                        <Check size={15} />
                       </button>
 
                       <div className="carousel-progress-bar-bg">
@@ -258,22 +270,25 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
             )}
           </section>
 
-          <section className="glass-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '14px' }}>
+          {/* Smart Timeline Section */}
+          <section className="st-panel" style={{ padding: '22px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px' }}>
               Linha do Tempo Inteligente
             </h3>
-            <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Eventos de Watch</div>
-                <div style={{ fontSize: '22px', fontWeight: 700 }}>{totalWatchEvents}</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: 'var(--primary)' }}>{totalWatchEvents}</div>
               </div>
-              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Dias Sem Assistir</div>
-                <div style={{ fontSize: '22px', fontWeight: 700 }}>{daysWithoutWatching}</div>
+                <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px' }}>{daysWithoutWatching}</div>
               </div>
-              <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Gêneros em Alta</div>
-                <div style={{ fontSize: '14px', fontWeight: 700 }}>{favoriteGenres.length > 0 ? favoriteGenres.join(' • ') : 'Sem dados ainda'}</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '6px', color: 'var(--text-secondary)' }}>
+                  {favoriteGenres.length > 0 ? favoriteGenres.join(' • ') : 'Sem dados ainda'}
+                </div>
               </div>
             </div>
           </section>
@@ -281,28 +296,77 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
         </div>
 
         {/* Sidebar Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
           
+          {/* Active Reminders Card */}
+          {reminders.length > 0 && (
+            <section className="st-panel" style={{ padding: '20px' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Bell size={17} style={{ color: 'var(--secondary)' }} />
+                Lembretes Ativos ({reminders.length})
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {reminders.slice(0, 4).map(rem => (
+                  <div
+                    key={rem.id}
+                    onClick={() => onViewMedia(rem.showId, 'show', rem.seasonNumber, rem.episodeNumber)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '10px 12px',
+                      background: 'var(--bg-dark)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-color)',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                    onMouseOver={e => {
+                      e.currentTarget.style.background = 'var(--bg-elevated)';
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                    }}
+                    onMouseOut={e => {
+                      e.currentTarget.style.background = 'var(--bg-dark)';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {rem.showTitle}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        T{rem.seasonNumber} E{rem.episodeNumber} {rem.airDate ? `• ${rem.airDate}` : ''}
+                      </div>
+                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary)', background: 'rgba(124, 92, 255, 0.12)', padding: '2px 8px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(124, 92, 255, 0.25)' }}>
+                      Ativo
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Recently Watched */}
-          <section className="glass-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Trophy size={18} style={{ color: 'var(--secondary)' }} />
+          <section className="st-panel" style={{ padding: '20px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Flame size={17} style={{ color: 'var(--secondary)' }} />
               Atividades Recentes
             </h3>
 
             {sortedRecentEpisodes.length === 0 && sortedRecentMovies.length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px 0', fontSize: '13px' }}>
+              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px 0', fontSize: '13px' }}>
                 Nenhuma atividade recente registrada.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {sortedRecentEpisodes.map((ev, i) => {
                   const parts = ev.episodeId.split('_');
                   const s = parts[2] || '1';
                   const e = parts[3] || '1';
                   return (
-                    <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentEpisodes.length - 1 || sortedRecentMovies.length > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', marginTop: '5px' }}></div>
+                    <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentEpisodes.length - 1 || sortedRecentMovies.length > 0 ? '1px solid var(--border-color)' : 'none' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', marginTop: '6px', flexShrink: 0 }}></div>
                       <div>
                         <div>Assistiu o episódio <strong>T{s}E{e}</strong></div>
                         <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
@@ -313,8 +377,8 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
                   );
                 })}
                 {sortedRecentMovies.map((ev, i) => (
-                  <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentMovies.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '5px' }}></div>
+                  <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentMovies.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '6px', flexShrink: 0 }}></div>
                     <div>
                       <div>Assistiu o filme <strong>{ev.movieTitle || 'Filme'}</strong></div>
                       <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
@@ -331,11 +395,10 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
 
       </div>
 
-      {/* CSS overrides inside Dashboard view for smaller layouts */}
       <style>{`
         .welcome-banner {
           grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-          align-items: start;
+          align-items: center;
         }
 
         .welcome-copy {
@@ -350,28 +413,19 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
           align-self: stretch;
         }
 
-        .stat-badge {
-          min-height: 84px;
-        }
-
         @media (max-width: 800px) {
           .welcome-banner {
             grid-template-columns: 1fr;
-            padding: 18px !important;
+            padding: 20px !important;
           }
 
           .welcome-copy h2 {
-            font-size: 24px !important;
-            line-height: 1.1;
+            font-size: 22px !important;
           }
 
           .welcome-stats-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
-          }
-
-          .stat-badge {
-            min-height: 78px;
           }
 
           .dashboard-grid {
@@ -381,27 +435,13 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
         }
 
         @media (max-width: 420px) {
-          .welcome-copy h2 {
-            font-size: 21px !important;
+          .welcome-stats-grid {
+            grid-template-columns: 1fr 1fr;
           }
 
           .stat-badge {
-            padding: 10px 10px !important;
+            padding: 10px !important;
             gap: 8px !important;
-            min-height: 74px;
-          }
-
-          .stat-badge svg {
-            width: 20px;
-            height: 20px;
-          }
-
-          .stat-badge > div > div:first-child {
-            font-size: 16px !important;
-          }
-
-          .stat-badge > div > div:last-child {
-            font-size: 11px !important;
           }
         }
       `}</style>

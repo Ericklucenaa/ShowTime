@@ -29,11 +29,11 @@ export function getJwtSecret(): string {
 }
 
 export function getJwtIssuer(): string {
-  return process.env.JWT_ISSUER?.trim() || 'showtime-api';
+  return process.env.JWT_ISSUER?.trim() || 'epsync-api';
 }
 
 export function getJwtAudience(): string {
-  return process.env.JWT_AUDIENCE?.trim() || 'showtime-client';
+  return process.env.JWT_AUDIENCE?.trim() || 'epsync-client';
 }
 
 export function getAllowedOrigins(): string[] {

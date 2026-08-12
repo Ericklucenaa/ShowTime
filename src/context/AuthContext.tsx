@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { auth as firebaseAuth, db, isFirebaseEnabled } from '../services/firebase.js';
-import { doc, setDoc } from 'firebase/firestore/lite';
+import { doc, setDoc, getDoc } from 'firebase/firestore/lite';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -55,6 +55,46 @@ const generateMockToken = () => {
   return `mock-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
 };
 
+export function formatLastActive(lastActiveAt?: string): { text: string; isOnline: boolean } {
+  if (!lastActiveAt) {
+    return { text: 'Offline', isOnline: false };
+  }
+  try {
+    const date = new Date(lastActiveAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 3) {
+      return { text: 'Online agora', isOnline: true };
+    }
+    if (diffMinutes < 60) {
+      return { text: `Visto há ${diffMinutes} min`, isOnline: false };
+    }
+
+    const hours = String(date.getHours()).padStart(2, '0');
+    const mins = String(date.getMinutes()).padStart(2, '0');
+
+    const isToday = date.toDateString() === now.toDateString();
+    if (isToday) {
+      return { text: `Visto hoje às ${hours}:${mins}`, isOnline: false };
+    }
+
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    if (isYesterday) {
+      return { text: `Visto ontem às ${hours}:${mins}`, isOnline: false };
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return { text: `Visto em ${day}/${month} às ${hours}:${mins}`, isOnline: false };
+  } catch {
+    return { text: 'Offline', isOnline: false };
+  }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -67,13 +107,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const fbToken = await fbUser.getIdToken();
         const mappedUser = mapFirebaseUser(fbUser);
 
-        // Restore cached extras (avatarUrl, privacy) from localStorage to avoid a Firestore read on every login
+        let savedAvatarUrl: string | null = null;
+        let savedVisibility: 'public' | 'friends' | 'private' = 'public';
+
+        if (db) {
+          try {
+            const pSnap = await getDoc(doc(db, 'profiles', fbUser.uid));
+            if (pSnap.exists()) {
+              const pData = pSnap.data();
+              if (pData.avatarUrl) savedAvatarUrl = pData.avatarUrl;
+              if (pData.profileVisibility) savedVisibility = pData.profileVisibility;
+            }
+          } catch (errP) {
+            console.warn('Could not read user profile from Firestore:', errP);
+          }
+        }
+
         const cached = localStorage.getItem('showtime_user');
         const cachedParsed = cached ? JSON.parse(cached) : null;
+        const cachedAvatar = cachedParsed?.id === fbUser.uid ? cachedParsed?.avatarUrl : null;
+
+        const finalAvatarUrl = savedAvatarUrl || cachedAvatar || fbUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`;
+
         const mergedUser: User = {
           ...mappedUser,
-          avatarUrl: (cachedParsed?.id === fbUser.uid ? cachedParsed?.avatarUrl : null) || mappedUser.avatarUrl,
-          profileVisibility: (cachedParsed?.id === fbUser.uid ? cachedParsed?.profileVisibility : null) ?? 'public',
+          avatarUrl: finalAvatarUrl,
+          profileVisibility: (savedVisibility || (cachedParsed?.id === fbUser.uid ? cachedParsed?.profileVisibility : null)) ?? 'public',
         };
 
         localStorage.setItem('showtime_token', fbToken);
@@ -81,29 +140,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(fbToken);
         setUser(mergedUser);
 
-        // Sync public profile (write only, no read)
+        // Sync public profile in Firestore with lastActiveAt
         if (db) {
-          const safeAvatarUrl = mergedUser.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`;
-          const safePhotoUrl = fbUser.photoURL || safeAvatarUrl || null;
-
           const profileRef = doc(db, 'profiles', fbUser.uid);
           await setDoc(profileRef, {
             id: fbUser.uid,
             username: mappedUser.username,
             usernameLower: mappedUser.username.toLowerCase(),
-            avatarUrl: safeAvatarUrl,
-            photoUrl: safePhotoUrl,
-            updatedAt: new Date().toISOString()
-          }, { merge: true });
-
-          // Also sync users collection if queried by external or legacy code
-          const userRef = doc(db, 'users', fbUser.uid);
-          await setDoc(userRef, {
-            id: fbUser.uid,
-            username: mappedUser.username,
-            email: mappedUser.email || '',
-            avatarUrl: safeAvatarUrl,
-            photoUrl: safePhotoUrl,
+            avatarUrl: finalAvatarUrl,
+            profileVisibility: mergedUser.profileVisibility,
+            lastActiveAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }, { merge: true });
         }
@@ -117,6 +163,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
     }
   };
+
+  // Heartbeat to keep lastActiveAt updated while user is active
+  useEffect(() => {
+    if (!user || !isFirebaseEnabled || !db) return;
+
+    const updatePresence = async () => {
+      try {
+        await setDoc(doc(db, 'profiles', user.id), {
+          lastActiveAt: new Date().toISOString()
+        }, { merge: true });
+      } catch (_) {}
+    };
+
+    updatePresence();
+    const interval = setInterval(updatePresence, 120000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   useEffect(() => {
     if (isFirebaseEnabled && firebaseAuth) {
@@ -307,42 +370,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateAvatar = async (avatarUrl: string): Promise<boolean> => {
     setError(null);
-    if (isFirebaseEnabled && firebaseAuth && firebaseAuth.currentUser) {
-      try {
-        const uid = firebaseAuth.currentUser.uid;
-
-        if (avatarUrl.startsWith('data:image/')) {
-          // Save compressed base64 directly to Firestore — no Storage needed
-          if (db) {
-            const profileRef = doc(db, 'profiles', uid);
-            await setDoc(profileRef, { avatarUrl, updatedAt: new Date().toISOString() }, { merge: true });
-          }
-          if (user) {
-            const updated = { ...user, avatarUrl };
-            setUser(updated);
-            localStorage.setItem('showtime_user', JSON.stringify(updated));
-          }
-          return true;
-        }
-
-        setLoading(true);
-        await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
-        await handleAuthStateChange(firebaseAuth.currentUser);
-        setLoading(false);
-        return true;
-      } catch (err: any) {
-        console.error('Firebase avatar update error:', err);
-        setError('Erro ao atualizar foto de perfil.');
-        setLoading(false);
-        return false;
+    if (!user) return false;
+    try {
+      if (isFirebaseEnabled && db) {
+        const profileRef = doc(db, 'profiles', user.id);
+        await setDoc(profileRef, { avatarUrl, updatedAt: new Date().toISOString() }, { merge: true });
       }
-    } else {
-      if (user) {
-        const mockUser = { ...user, avatarUrl };
-        localStorage.setItem('showtime_user', JSON.stringify(mockUser));
-        setUser(mockUser);
+
+      if (firebaseAuth && firebaseAuth.currentUser && !avatarUrl.startsWith('data:')) {
+        try {
+          await updateProfile(firebaseAuth.currentUser, { photoURL: avatarUrl });
+        } catch (_) {}
       }
+
+      const updated = { ...user, avatarUrl };
+      setUser(updated);
+      localStorage.setItem('showtime_user', JSON.stringify(updated));
       return true;
+    } catch (err: any) {
+      console.error('Firebase avatar update error:', err);
+      setError('Erro ao atualizar foto de perfil.');
+      return false;
     }
   };
 
