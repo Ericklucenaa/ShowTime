@@ -16,7 +16,9 @@ import {
   Sparkles, 
   ChevronLeft, 
   ChevronRight, 
-  Check
+  Check,
+  Clock,
+  PlaySquare
 } from 'lucide-react';
 import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
@@ -575,21 +577,26 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   }, [strictlyWatchedMovies]);
 
   return (
-    <div className="profile-view animate-fade-in" style={{ paddingBottom: '70px', maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="profile-view animate-fade-in" style={{ padding: '12px 14px 80px 14px', maxWidth: '1100px', margin: '0 auto', boxSizing: 'border-box' }}>
       
       {/* 1. Profile Header Container (Banner + Overlapping Avatar) */}
-      <div style={{ position: 'relative', marginBottom: '52px' }}>
+      <div style={{ position: 'relative', marginBottom: '48px' }}>
         
-        {/* Cover Banner with overflow hidden */}
-        <div style={{ 
-          position: 'relative', 
-          height: 'clamp(140px, 32vw, 220px)', 
-          borderRadius: 'var(--radius-lg)', 
-          overflow: 'hidden', 
-          background: 'linear-gradient(135deg, #1E1A38 0%, #11101E 100%)',
-          border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-md)'
-        }}>
+        {/* Cover Banner */}
+        <div 
+          onClick={() => setShowBannerPicker(true)}
+          title="Clique para alterar a capa"
+          style={{ 
+            position: 'relative', 
+            height: 'clamp(140px, 34vw, 220px)', 
+            borderRadius: 'var(--radius-lg)', 
+            overflow: 'hidden', 
+            background: 'linear-gradient(135deg, #1E1A38 0%, #11101E 100%)',
+            border: '1px solid var(--border-color)',
+            boxShadow: 'var(--shadow-md)',
+            cursor: 'pointer'
+          }}
+        >
           {user?.bannerUrl ? (
             <img 
               src={user.bannerUrl} 
@@ -608,27 +615,31 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <div style={{ 
             position: 'absolute', 
             inset: 0, 
-            background: 'linear-gradient(to top, rgba(13,13,18,0.9) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.4) 100%)' 
+            background: 'linear-gradient(to top, rgba(13,13,18,0.85) 0%, rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.3) 100%)' 
           }} />
 
           {/* Single "Alterar Capa" Button on Cover Banner */}
           <button
             type="button"
-            onClick={() => setShowBannerPicker(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowBannerPicker(true);
+            }}
             aria-label="Alterar Capa"
+            title="Alterar Capa do Perfil"
             style={{
               position: 'absolute',
-              top: '12px',
+              bottom: '12px',
               right: '12px',
               padding: '7px 14px',
               fontSize: '12px',
               fontWeight: 600,
-              background: 'rgba(13, 13, 18, 0.85)',
+              background: 'rgba(13, 13, 18, 0.88)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255, 255, 255, 0.25)',
               borderRadius: 'var(--radius-full)',
               color: '#FFFFFF',
-              zIndex: 10,
+              zIndex: 20,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -636,10 +647,10 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               cursor: 'pointer',
               transition: 'transform var(--transition-fast), background var(--transition-fast)'
             }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(124, 92, 255, 0.8)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(13, 13, 18, 0.85)'}
+            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(124, 92, 255, 0.9)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(13, 13, 18, 0.88)'}
           >
-            <Camera size={14} /> Alterar Capa
+            <Camera size={13} /> Alterar Capa
           </button>
         </div>
 
@@ -760,38 +771,50 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '12px',
+          gap: '10px',
           width: '100%',
           boxSizing: 'border-box',
-          marginBottom: '32px'
+          marginBottom: '28px'
         }}
       >
-        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)' }}>
+            <Tv size={16} />
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Séries Seguidas</span>
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
             {(followedShows || []).length}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Séries Seguidas</div>
         </div>
 
-        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent)' }}>
+            <PlaySquare size={16} />
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Episódios Vistos</span>
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
             {(watchedEpisodes || []).length}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Episódios Vistos</div>
         </div>
 
-        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--secondary)' }}>
+            <Film size={16} />
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Filmes Vistos</span>
+          </div>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
             {strictlyWatchedMovies.length}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Filmes Vistos</div>
         </div>
 
-        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
-            {totalDays}
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--warning)' }}>
+            <Clock size={16} />
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dias Assistidos</span>
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Dias Assistidos</div>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)', lineHeight: 1.1 }}>
+            {totalDays}d
+          </div>
         </div>
       </div>
 
