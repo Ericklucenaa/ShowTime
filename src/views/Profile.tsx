@@ -5,6 +5,8 @@ import { useTracking } from '../context/TrackingContext.js';
 import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
+import { db, isFirebaseEnabled } from '../services/firebase.js';
+import { doc, setDoc } from 'firebase/firestore/lite';
 
 interface ProfileProps {
   onViewMedia?: (id: string, type: 'show' | 'movie') => void;
@@ -242,8 +244,13 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     let cancelled = false;
     setLoadingMovies(true);
     (async () => {
+      // Sort watchedMovies by watchedAt descending so newly watched/imported movies are shown first
+      const sortedMovies = [...watchedMovies].sort((a, b) => {
+        return new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime();
+      });
+
       const results = await Promise.allSettled(
-        watchedMovies.slice(0, 40).map(async (m) => {
+        sortedMovies.slice(0, 40).map(async (m) => {
           if (m.posterPath) {
             return {
               movieId: m.movieId,
@@ -258,10 +265,28 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           try {
             const detail = await fetchMediaDetails(m.movieId, 'movie');
             if (detail && (detail.posterPath || detail.poster_path)) {
+              const poster = detail.posterPath || detail.poster_path;
+              const title = detail.title || m.movieTitle || 'Filme';
+              
+              // Persist/Cache this details back to database so we don't query TMDB next time
+              if (isFirebaseEnabled && db && user) {
+                const docRef = doc(db, 'watch_movies', `${user.id}_${m.movieId}`);
+                setDoc(docRef, { posterPath: poster, movieTitle: title }, { merge: true }).catch(() => {});
+              } else if (!isFirebaseEnabled && user) {
+                const uid = user.id;
+                const local = JSON.parse(localStorage.getItem(`epsync_watch_movies_${uid}`) || '[]');
+                const idx = local.findIndex((w: any) => w.movieId === m.movieId);
+                if (idx > -1) {
+                  local[idx].posterPath = poster;
+                  local[idx].movieTitle = title;
+                  localStorage.setItem(`epsync_watch_movies_${uid}`, JSON.stringify(local));
+                }
+              }
+
               return {
                 movieId: m.movieId,
-                title: detail.title || m.movieTitle || 'Filme',
-                posterPath: detail.posterPath || detail.poster_path,
+                title: title,
+                posterPath: poster,
                 isFavorite: m.isFavorite,
                 watchedAt: m.watchedAt
               };
@@ -279,10 +304,30 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               const searchResults = await searchMedia(cleanQuery);
               const found = searchResults.find(r => r.mediaType === 'movie' && (r.posterPath || r.poster_path)) || searchResults[0];
               if (found) {
+                const poster = found.posterPath || found.poster_path;
+                const title = found.title || cleanQuery;
+                const newId = found.id || m.movieId;
+
+                // Persist/Cache this details back to database so we don't query TMDB next time
+                if (isFirebaseEnabled && db && user) {
+                  const docRef = doc(db, 'watch_movies', `${user.id}_${m.movieId}`);
+                  setDoc(docRef, { posterPath: poster, movieTitle: title, movieId: newId }, { merge: true }).catch(() => {});
+                } else if (!isFirebaseEnabled && user) {
+                  const uid = user.id;
+                  const local = JSON.parse(localStorage.getItem(`epsync_watch_movies_${uid}`) || '[]');
+                  const idx = local.findIndex((w: any) => w.movieId === m.movieId);
+                  if (idx > -1) {
+                    local[idx].posterPath = poster;
+                    local[idx].movieTitle = title;
+                    local[idx].movieId = newId;
+                    localStorage.setItem(`epsync_watch_movies_${uid}`, JSON.stringify(local));
+                  }
+                }
+
                 return {
-                  movieId: found.id || m.movieId,
-                  title: found.title || cleanQuery,
-                  posterPath: found.posterPath || found.poster_path,
+                  movieId: newId,
+                  title: title,
+                  posterPath: poster,
                   isFavorite: m.isFavorite,
                   watchedAt: m.watchedAt
                 };
@@ -405,6 +450,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
 
       {/* 3 Action Buttons - Always 3 equal columns across the entire width */}
       <div 
+        className="profile-header-actions"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
