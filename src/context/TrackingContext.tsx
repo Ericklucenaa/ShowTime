@@ -33,6 +33,7 @@ export interface WatchMovieEvent {
   movieId: string;
   watchedAt: string;
   isFavorite: boolean;
+  isWatched?: boolean;
   movieTitle?: string;
   posterPath?: string;
   genres?: string[];
@@ -174,7 +175,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const calculateEngagementStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
-    const events = [...eps, ...movs].sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
+    const validWatchedMovies = movs.filter(m => m.isWatched !== false && Boolean(m.watchedAt));
+    const events = [...eps, ...validWatchedMovies].sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime());
     setTotalWatchEvents(events.length);
     setLastWatchedAt(events.length > 0 ? events[0].watchedAt : null);
 
@@ -206,7 +208,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         genreCounter[g] = (genreCounter[g] || 0) + 1;
       });
     });
-    movs.forEach((ev) => {
+    validWatchedMovies.forEach((ev) => {
       (ev.genres || []).forEach((g) => {
         genreCounter[g] = (genreCounter[g] || 0) + 1;
       });
@@ -234,7 +236,8 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
     });
 
-    movs.forEach(m => {
+    const validWatchedMovies = movs.filter(m => m.isWatched !== false && Boolean(m.watchedAt));
+    validWatchedMovies.forEach(m => {
       if (m.genres && Array.isArray(m.genres)) {
         m.genres.forEach(g => {
           counts[g] = (counts[g] || 0) + 1;
@@ -525,56 +528,86 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleWatchMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const cleanId = (id: string) => id.replace(/^[sm]_/, '');
+    const cleanId = (id?: string) => id ? String(id).replace(/^[sm]_/, '') : '';
     const cleanTargetId = cleanId(movieId);
-    const alreadyWatchedIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
-    const isWatched = alreadyWatchedIndex > -1;
+    const existingIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
+    const existing = existingIndex > -1 ? watchedMovies[existingIndex] : null;
+    const isCurrentlyWatched = Boolean(existing && existing.isWatched !== false && existing.watchedAt);
+    const willBeWatched = !isCurrentlyWatched;
 
     // Optimistic Update
     let newMovs = [...watchedMovies];
-    if (isWatched) {
-      newMovs.splice(alreadyWatchedIndex, 1);
+    const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || existing?.posterPath || undefined;
+    const title = movieMetadata?.title || movieMetadata?.name || existing?.movieTitle || 'Filme';
+    const genres = movieMetadata?.genres || movieMetadata?.genre || existing?.genres || [];
+
+    if (existing) {
+      if (willBeWatched) {
+        newMovs[existingIndex] = {
+          ...existing,
+          isWatched: true,
+          watchedAt: existing.watchedAt || new Date().toISOString(),
+          posterPath: poster,
+          movieTitle: title,
+          genres
+        };
+      } else {
+        if (existing.isFavorite) {
+          newMovs[existingIndex] = {
+            ...existing,
+            isWatched: false,
+            watchedAt: ''
+          };
+        } else {
+          newMovs.splice(existingIndex, 1);
+        }
+      }
     } else {
-      const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
-      const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
       newMovs.push({
         id: 'wm_' + generateId(),
         userId: user.id,
         movieId,
         watchedAt: new Date().toISOString(),
+        isWatched: true,
         isFavorite: false,
         movieTitle: title,
         posterPath: poster,
-        genres: movieMetadata?.genres || movieMetadata?.genre || []
+        genres
       });
     }
+
     setWatchedMovies(newMovs);
     calculateGenreStats(watchedEpisodes, newMovs);
     calculateEngagementStats(watchedEpisodes, newMovs);
-    trackEvent('watch_movie_toggled', { movieId, watched: !isWatched, mediaType: 'movie' });
+    trackEvent('watch_movie_toggled', { movieId, watched: willBeWatched, mediaType: 'movie' });
 
     if (isFirebaseEnabled && db) {
       try {
-        if (isWatched) {
-          const docId = watchedMovies[alreadyWatchedIndex].id || `${user.id}_${movieId}`;
+        const docId = existing?.id || `${user.id}_${cleanTargetId}`;
+        if (!willBeWatched && !existing?.isFavorite) {
           await deleteDoc(doc(db, 'watch_movies', docId));
         } else {
-          const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
-          const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
-          const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
-          const newEvent: WatchMovieEvent = {
-            id: 'wm_' + generateId(),
-            userId: user.id,
-            movieId,
-            watchedAt: new Date().toISOString(),
-            isFavorite: false,
-            movieTitle: title,
-            posterPath: poster,
-            genres: movieMetadata?.genres || movieMetadata?.genre || []
-          };
-          await setDoc(docRef, newEvent);
+          const docRef = doc(db, 'watch_movies', docId);
+          if (willBeWatched) {
+            await setDoc(docRef, {
+              id: docId,
+              userId: user.id,
+              movieId,
+              watchedAt: new Date().toISOString(),
+              isWatched: true,
+              isFavorite: existing?.isFavorite || false,
+              movieTitle: title,
+              posterPath: poster || null,
+              genres
+            }, { merge: true });
+          } else {
+            await setDoc(docRef, {
+              isWatched: false,
+              watchedAt: ''
+            }, { merge: true });
+          }
         }
-        return !isWatched;
+        return willBeWatched;
       } catch (e) {
         console.error('Error toggling Firestore watch movie:', e);
         // Rollback
@@ -587,61 +620,71 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       // Offline fallback
       setLocalData(`epsync_watch_movies_${user.id}`, newMovs);
-      return !isWatched;
+      return willBeWatched;
     }
   };
 
   const toggleFavoriteMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const cleanId = (id: string) => id.replace(/^[sm]_/, '');
+    const cleanId = (id?: string) => id ? String(id).replace(/^[sm]_/, '') : '';
     const cleanTargetId = cleanId(movieId);
-    const movieIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
-    const isWatched = movieIndex > -1;
+    const existingIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
+    const existing = existingIndex > -1 ? watchedMovies[existingIndex] : null;
+    const isCurrentlyFav = Boolean(existing && existing.isFavorite);
+    const newFavoriteStatus = !isCurrentlyFav;
 
     // Optimistic Update
     let newMovs = [...watchedMovies];
-    let newFavoriteStatus = true;
-    if (isWatched) {
-      newFavoriteStatus = !watchedMovies[movieIndex].isFavorite;
-      newMovs[movieIndex] = { ...newMovs[movieIndex], isFavorite: newFavoriteStatus };
+    const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || existing?.posterPath || undefined;
+    const title = movieMetadata?.title || movieMetadata?.name || existing?.movieTitle || 'Filme';
+    const genres = movieMetadata?.genres || movieMetadata?.genre || existing?.genres || [];
+
+    if (existing) {
+      if (!newFavoriteStatus && existing.isWatched === false) {
+        newMovs.splice(existingIndex, 1);
+      } else {
+        newMovs[existingIndex] = { ...existing, isFavorite: newFavoriteStatus };
+      }
     } else {
-      const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
-      const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
       newMovs.push({
         id: 'wm_' + generateId(),
         userId: user.id,
         movieId,
-        watchedAt: new Date().toISOString(),
+        watchedAt: '',
+        isWatched: false,
         isFavorite: true,
         movieTitle: title,
         posterPath: poster,
-        genres: movieMetadata?.genres || movieMetadata?.genre || []
+        genres
       });
     }
+
     setWatchedMovies(newMovs);
     trackEvent('movie_favorite_toggled', { movieId, favorite: newFavoriteStatus });
 
     if (isFirebaseEnabled && db) {
       try {
-        if (isWatched) {
-          const docId = watchedMovies[movieIndex].id || `${user.id}_${movieId}`;
-          await setDoc(doc(db, 'watch_movies', docId), { isFavorite: newFavoriteStatus }, { merge: true });
+        const docId = existing?.id || `${user.id}_${cleanTargetId}`;
+        if (!newFavoriteStatus && existing?.isWatched === false) {
+          await deleteDoc(doc(db, 'watch_movies', docId));
         } else {
-          const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
-          const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
-          const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
-          const newEvent: WatchMovieEvent = {
-            id: 'wm_' + generateId(),
-            userId: user.id,
-            movieId,
-            watchedAt: new Date().toISOString(),
-            isFavorite: true,
-            movieTitle: title,
-            posterPath: poster,
-            genres: movieMetadata?.genres || movieMetadata?.genre || []
-          };
-          await setDoc(docRef, newEvent);
+          const docRef = doc(db, 'watch_movies', docId);
+          if (existing) {
+            await setDoc(docRef, { isFavorite: newFavoriteStatus }, { merge: true });
+          } else {
+            await setDoc(docRef, {
+              id: docId,
+              userId: user.id,
+              movieId,
+              watchedAt: '',
+              isWatched: false,
+              isFavorite: true,
+              movieTitle: title,
+              posterPath: poster || null,
+              genres
+            }, { merge: true });
+          }
         }
         return newFavoriteStatus;
       } catch (e) {

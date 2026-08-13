@@ -300,7 +300,7 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
   // Check watch statuses
   const isMovieWatched = (watchedMovies || []).some(m => {
     const cleanWatchedId = cleanId(m.movieId);
-    return cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId);
+    return (cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId)) && m.isWatched !== false && Boolean(m.watchedAt);
   });
   const isMovieFavorite = (watchedMovies || []).find(m => {
     const cleanWatchedId = cleanId(m.movieId);

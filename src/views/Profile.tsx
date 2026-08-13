@@ -1,8 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
-import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { 
+  BarChart3, 
+  LogOut, 
+  Camera, 
+  Upload, 
+  Globe, 
+  Users, 
+  Lock, 
+  Tv, 
+  Film, 
+  Heart, 
+  Sparkles, 
+  ChevronLeft, 
+  ChevronRight, 
+  Settings, 
+  Check, 
+  ImageIcon
+} from 'lucide-react';
 import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
@@ -13,36 +30,103 @@ interface ProfileProps {
   onViewProfile?: (userId: string, username: string) => void;
 }
 
-// Custom hook for smooth touch & mouse drag horizontal scrolling
-function useDragScroll() {
-  const ref = useRef<HTMLDivElement | null>(null);
+// Clean TMDB ID helper (removes m_ or s_ prefix)
+const cleanId = (id?: string | number) => id ? String(id).replace(/^[sm]_/, '') : '';
+
+// Smooth Horizontal Carousel Component with Touch Swipe & Mouse Drag
+interface CarouselProps {
+  title: string;
+  count: number;
+  icon: React.ReactNode;
+  loading: boolean;
+  emptyText: string;
+  children: React.ReactNode;
+}
+
+const MediaCarousel: React.FC<CarouselProps> = ({
+  title,
+  count,
+  icon,
+  loading,
+  emptyText,
+  children
+}) => {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setShowLeftArrow(scrollLeft > 10);
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+  };
 
   useEffect(() => {
-    const el = ref.current;
+    const el = scrollRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
+    };
+  }, [children, loading]);
+
+  // Mouse Drag to Scroll handler for desktop
+  useEffect(() => {
+    const el = scrollRef.current;
     if (!el) return;
 
     let isDown = false;
     let startX = 0;
     let scrollLeft = 0;
+    let hasMoved = false;
 
     const onMouseDown = (e: MouseEvent) => {
+      // Don't drag if clicking buttons or specific interactive controls
+      if ((e.target as HTMLElement).closest('button')) return;
       isDown = true;
+      hasMoved = false;
       startX = e.pageX - el.offsetLeft;
       scrollLeft = el.scrollLeft;
+      el.style.cursor = 'grabbing';
+      el.style.userSelect = 'none';
     };
 
     const onMouseLeave = () => {
+      if (!isDown) return;
       isDown = false;
+      el.style.cursor = 'grab';
+      el.style.removeProperty('user-select');
     };
 
     const onMouseUp = () => {
+      if (!isDown) return;
       isDown = false;
+      el.style.cursor = 'grab';
+      el.style.removeProperty('user-select');
+      // If we dragged more than a tiny bit, prevent accidental click event
+      if (hasMoved) {
+        const preventClick = (clickEvent: MouseEvent) => {
+          clickEvent.stopPropagation();
+          clickEvent.preventDefault();
+          window.removeEventListener('click', preventClick, true);
+        };
+        window.addEventListener('click', preventClick, true);
+      }
     };
 
     const onMouseMove = (e: MouseEvent) => {
       if (!isDown) return;
+      e.preventDefault();
       const x = e.pageX - el.offsetLeft;
       const walk = (x - startX) * 1.5;
+      if (Math.abs(walk) > 4) {
+        hasMoved = true;
+      }
       el.scrollLeft = scrollLeft - walk;
     };
 
@@ -59,8 +143,114 @@ function useDragScroll() {
     };
   }, []);
 
-  return ref;
-}
+  const handleScroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distance = el.clientWidth * 0.75;
+    el.scrollBy({
+      left: direction === 'left' ? -distance : distance,
+      behavior: 'smooth'
+    });
+  };
+
+  return (
+    <div style={{ marginBottom: '32px' }}>
+      {/* Section Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+        <h3 style={{ 
+          fontSize: '17px', 
+          fontWeight: 700, 
+          margin: 0, 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          color: 'var(--text-primary)'
+        }}>
+          {icon} {title} <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>({count})</span>
+        </h3>
+
+        {/* Carousel Navigation Arrows (Desktop) */}
+        {count > 0 && (
+          <div style={{ display: 'flex', gap: '6px' }} className="carousel-nav-arrows">
+            <button
+              type="button"
+              onClick={() => handleScroll('left')}
+              disabled={!showLeftArrow}
+              aria-label="Rolar para a esquerda"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-color)',
+                color: showLeftArrow ? 'var(--text-primary)' : 'var(--text-muted)',
+                opacity: showLeftArrow ? 1 : 0.4,
+                cursor: showLeftArrow ? 'pointer' : 'default',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleScroll('right')}
+              disabled={!showRightArrow}
+              aria-label="Rolar para a direita"
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-color)',
+                color: showRightArrow ? 'var(--text-primary)' : 'var(--text-muted)',
+                opacity: showRightArrow ? 1 : 0.4,
+                cursor: showRightArrow ? 'pointer' : 'default',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      {count === 0 && !loading ? (
+        <div className="st-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+          {emptyText}
+        </div>
+      ) : (
+        <div
+          ref={scrollRef}
+          className="horizontal-scroll-container"
+        >
+          {loading ? (
+            <div style={{ display: 'flex', gap: '12px', padding: '10px 0' }}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <div 
+                  key={n} 
+                  className="horizontal-scroll-item" 
+                  style={{ opacity: 0.5, animation: 'pulse 1.5s infinite' }}
+                >
+                  <div style={{ aspectRatio: '2/3', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', marginBottom: '6px' }} />
+                  <div style={{ height: '12px', background: 'var(--bg-card)', borderRadius: '4px', width: '80%' }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            children
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const { user, logout, updateAvatar, updateBanner, updatePrivacy, error: authError } = useAuth();
@@ -71,9 +261,10 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const [loadingShows, setLoadingShows] = useState(false);
   const [loadingMovies, setLoadingMovies] = useState(false);
 
-  // Avatar & Banner Picker States
+  // Avatar, Banner & Edit Modals State
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showBannerPicker, setShowBannerPicker] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [customBannerUrl, setCustomBannerUrl] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
@@ -82,8 +273,17 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
 
   const devicePhotoInputRef = useRef<HTMLInputElement | null>(null);
   const deviceBannerInputRef = useRef<HTMLInputElement | null>(null);
-  const showsScrollRef = useDragScroll();
-  const moviesScrollRef = useDragScroll();
+
+  // Filter strictly watched movies (only movies that have watchedAt and isWatched !== false)
+  const strictlyWatchedMovies = useMemo(() => {
+    return (watchedMovies || []).filter(m => m.isWatched !== false && Boolean(m.watchedAt));
+  }, [watchedMovies]);
+
+  // Engagement stats
+  const totalEpTime = (watchedEpisodes || []).length * 40;
+  const totalMovTime = strictlyWatchedMovies.length * 110;
+  const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
+  const totalDays = (totalHours / 24).toFixed(1);
 
   const avatarPresets = [
     `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username || 'user'}_1`,
@@ -144,21 +344,21 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = 160;
-          canvas.height = 160;
+          canvas.width = 180;
+          canvas.height = 180;
           const ctx = canvas.getContext('2d')!;
           const size = Math.min(img.width, img.height);
           const sx = (img.width - size) / 2;
           const sy = (img.height - size) / 2;
-          ctx.drawImage(img, sx, sy, size, size, 0, 0, 160, 160);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          ctx.drawImage(img, sx, sy, size, size, 0, 0, 180, 180);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
       });
 
       const success = await updateAvatar(compressed);
-      pushToast(success ? 'success' : 'error', success ? 'Foto atualizada com sucesso.' : 'Não foi possível atualizar a foto de perfil.');
+      pushToast(success ? 'success' : 'error', success ? 'Foto atualizada com sucesso.' : 'Não foi possível atualizar a foto.');
       if (success) setShowAvatarPicker(false);
     } catch {
       pushToast('error', 'Erro ao processar imagem.');
@@ -187,7 +387,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           canvas.height = 400;
           const ctx = canvas.getContext('2d')!;
           ctx.drawImage(img, 0, 0, 1200, 400);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
         img.onerror = reject;
         img.src = URL.createObjectURL(file);
@@ -203,31 +403,26 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     }
   };
 
-  const totalEpTime = watchedEpisodes.length * 40;
-  const totalMovTime = watchedMovies.length * 110;
-  const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
-  const totalDays = (totalHours / 24).toFixed(1);
-
   const handlePrivacyChange = async (v: 'public' | 'friends' | 'private') => {
     if (v === user?.profileVisibility) return;
     setPrivacyLoading(true);
     const success = await updatePrivacy(v);
     if (success) {
-      pushToast('success', 'Privacidade atualizada.');
+      pushToast('success', 'Privacidade atualizada com sucesso.');
     } else {
       pushToast('error', 'Erro ao atualizar privacidade.');
     }
     setPrivacyLoading(false);
   };
 
-  // Load user's followed shows
+  // Load followed shows details
   useEffect(() => {
     let cancelled = false;
     setLoadingShows(true);
     (async () => {
       const results = await Promise.allSettled(
-        followedShows.slice(0, 35).map(async (sid) => {
-          const detail = await fetchMediaDetails(sid, 'show');
+        (followedShows || []).slice(0, 40).map(async (sid) => {
+          const detail = await fetchMediaDetails(cleanId(sid), 'show');
           return detail;
         })
       );
@@ -239,21 +434,33 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     return () => { cancelled = true; };
   }, [followedShows]);
 
-  // Load user's watched movies with auto fallback search for imported movies
+  // Load strictly watched movies details (Deduplicated & with TMDB fallback)
   useEffect(() => {
     let cancelled = false;
     setLoadingMovies(true);
     (async () => {
-      // Sort watchedMovies by watchedAt descending so newly watched/imported movies are shown first
-      const sortedMovies = [...watchedMovies].sort((a, b) => {
+      // 1. Sort watchedMovies by watchedAt descending
+      const sorted = [...strictlyWatchedMovies].sort((a, b) => {
         return new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime();
       });
 
+      // 2. Deduplicate by clean movieId
+      const seen = new Set<string>();
+      const uniqueMovies: typeof strictlyWatchedMovies = [];
+      for (const m of sorted) {
+        const cId = cleanId(m.movieId);
+        if (!seen.has(cId)) {
+          seen.add(cId);
+          uniqueMovies.push(m);
+        }
+      }
+
       const results = await Promise.allSettled(
-        sortedMovies.slice(0, 40).map(async (m) => {
+        uniqueMovies.slice(0, 50).map(async (m) => {
+          const cId = cleanId(m.movieId);
           if (m.posterPath) {
             return {
-              movieId: m.movieId,
+              movieId: cId,
               title: m.movieTitle || 'Filme',
               posterPath: m.posterPath,
               isFavorite: m.isFavorite,
@@ -261,30 +468,21 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             };
           }
 
-          // 1. Try detail by ID
+          // Fallback 1: Direct fetch by ID
           try {
-            const detail = await fetchMediaDetails(m.movieId, 'movie');
+            const detail = await fetchMediaDetails(cId, 'movie');
             if (detail && (detail.posterPath || detail.poster_path)) {
               const poster = detail.posterPath || detail.poster_path;
               const title = detail.title || m.movieTitle || 'Filme';
-              
-              // Persist/Cache this details back to database so we don't query TMDB next time
+
+              // Persist cache
               if (isFirebaseEnabled && db && user) {
-                const docRef = doc(db, 'watch_movies', `${user.id}_${m.movieId}`);
+                const docRef = doc(db, 'watch_movies', m.id || `${user.id}_${cId}`);
                 setDoc(docRef, { posterPath: poster, movieTitle: title }, { merge: true }).catch(() => {});
-              } else if (!isFirebaseEnabled && user) {
-                const uid = user.id;
-                const local = JSON.parse(localStorage.getItem(`epsync_watch_movies_${uid}`) || '[]');
-                const idx = local.findIndex((w: any) => w.movieId === m.movieId);
-                if (idx > -1) {
-                  local[idx].posterPath = poster;
-                  local[idx].movieTitle = title;
-                  localStorage.setItem(`epsync_watch_movies_${uid}`, JSON.stringify(local));
-                }
               }
 
               return {
-                movieId: m.movieId,
+                movieId: cId,
                 title: title,
                 posterPath: poster,
                 isFavorite: m.isFavorite,
@@ -293,9 +491,9 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             }
           } catch (_) {}
 
-          // 2. Fallback search by title or slug for imported TV Time entries
+          // Fallback 2: Search by title / slug
           const cleanQuery = (m.movieTitle || m.movieId || '')
-            .replace(/^[m]_/, '')
+            .replace(/^[sm]_/, '')
             .replace(/[-_]/g, ' ')
             .trim();
 
@@ -306,22 +504,11 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               if (found) {
                 const poster = found.posterPath || found.poster_path;
                 const title = found.title || cleanQuery;
-                const newId = found.id || m.movieId;
+                const newId = cleanId(found.id) || cId;
 
-                // Persist/Cache this details back to database so we don't query TMDB next time
                 if (isFirebaseEnabled && db && user) {
-                  const docRef = doc(db, 'watch_movies', `${user.id}_${m.movieId}`);
+                  const docRef = doc(db, 'watch_movies', m.id || `${user.id}_${cId}`);
                   setDoc(docRef, { posterPath: poster, movieTitle: title, movieId: newId }, { merge: true }).catch(() => {});
-                } else if (!isFirebaseEnabled && user) {
-                  const uid = user.id;
-                  const local = JSON.parse(localStorage.getItem(`epsync_watch_movies_${uid}`) || '[]');
-                  const idx = local.findIndex((w: any) => w.movieId === m.movieId);
-                  if (idx > -1) {
-                    local[idx].posterPath = poster;
-                    local[idx].movieTitle = title;
-                    local[idx].movieId = newId;
-                    localStorage.setItem(`epsync_watch_movies_${uid}`, JSON.stringify(local));
-                  }
                 }
 
                 return {
@@ -336,7 +523,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           }
 
           return {
-            movieId: m.movieId,
+            movieId: cId,
             title: m.movieTitle || cleanQuery || 'Filme',
             posterPath: null,
             isFavorite: m.isFavorite,
@@ -344,198 +531,550 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           };
         })
       );
+
       if (cancelled) return;
       const movies = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
       setWatchedMoviesData(movies);
       setLoadingMovies(false);
     })();
-    return () => { cancelled = true; };
-  }, [watchedMovies]);
 
-  const bannerBackground = user?.bannerUrl 
-    ? user.bannerUrl 
-    : 'linear-gradient(135deg, rgba(124,92,255,0.3) 0%, rgba(255,122,89,0.2) 100%)';
+    return () => { cancelled = true; };
+  }, [strictlyWatchedMovies]);
 
   return (
-    <div className="profile-view animate-fade-in" style={{ paddingBottom: '60px' }}>
+    <div className="profile-view animate-fade-in" style={{ paddingBottom: '70px', maxWidth: '1100px', margin: '0 auto' }}>
       
-      {/* Banner & Avatar Container (Unclipped & Responsive) */}
-      <div style={{ position: 'relative', marginBottom: '45px' }}>
+      {/* 1. Profile Header Container (Banner + Overlapping Avatar) */}
+      <div style={{ position: 'relative', marginBottom: '52px' }}>
         
-        {/* Inner Banner with overflow: hidden */}
+        {/* Cover Banner with overflow hidden */}
         <div style={{ 
           position: 'relative', 
-          height: 'clamp(140px, 32vw, 240px)', 
+          height: 'clamp(140px, 32vw, 220px)', 
           borderRadius: 'var(--radius-lg)', 
           overflow: 'hidden', 
-          background: 'var(--bg-surface)',
+          background: 'linear-gradient(135deg, #1E1A38 0%, #11101E 100%)',
           border: '1px solid var(--border-color)',
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: 'var(--shadow-md)'
         }}>
           {user?.bannerUrl ? (
-            <img src={user.bannerUrl} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} />
+            <img 
+              src={user.bannerUrl} 
+              alt="Capa do Perfil" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} 
+            />
           ) : (
-            <div style={{ width: '100%', height: '100%', background: bannerBackground }} />
+            <div style={{ 
+              width: '100%', 
+              height: '100%', 
+              background: 'radial-gradient(ellipse at top left, rgba(124, 92, 255, 0.45) 0%, rgba(255, 122, 89, 0.2) 60%, #0D0D12 100%)' 
+            }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)' }} />
 
-          {/* Change Banner Button (Always Touch Friendly on Cover) */}
+          {/* Vignette Overlay */}
+          <div style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            background: 'linear-gradient(to top, rgba(13,13,18,0.9) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.4) 100%)' 
+          }} />
+
+          {/* Single "Alterar Capa" Button on Cover Banner */}
           <button
+            type="button"
             onClick={() => setShowBannerPicker(true)}
-            className="st-btn-secondary"
+            aria-label="Alterar Capa"
             style={{
               position: 'absolute',
               top: '12px',
               right: '12px',
-              padding: '8px 14px',
-              fontSize: '13px',
+              padding: '7px 14px',
+              fontSize: '12px',
               fontWeight: 600,
               background: 'rgba(13, 13, 18, 0.85)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.25)',
               borderRadius: 'var(--radius-full)',
               color: '#FFFFFF',
-              zIndex: 20,
+              zIndex: 10,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-              cursor: 'pointer'
+              boxShadow: '0 4px 14px rgba(0,0,0,0.6)',
+              cursor: 'pointer',
+              transition: 'transform var(--transition-fast), background var(--transition-fast)'
             }}
+            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(124, 92, 255, 0.8)'}
+            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(13, 13, 18, 0.85)'}
           >
-            <Camera size={15} /> Alterar Capa
+            <Camera size={14} /> Alterar Capa
           </button>
         </div>
 
-        {/* Avatar Positioned Outside overflow: hidden */}
-        <div style={{ position: 'absolute', bottom: '-38px', left: '20px', zIndex: 10 }}>
-          <div
-            style={{ 
-              position: 'relative', 
-              cursor: 'pointer', 
-              borderRadius: '50%', 
-              width: '86px', 
-              height: '86px', 
-              border: '4px solid var(--bg-dark)', 
-              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
-              background: 'var(--bg-surface)',
-              overflow: 'hidden'
-            }}
-            onClick={() => setShowAvatarPicker(true)}
-            className="avatar-container"
-            title="Clique para alterar foto"
-          >
-            <img
-              src={user?.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username}`}
-              alt={user?.username}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="avatar-hover-overlay">
-              <Camera size={22} color="white" />
+        {/* Avatar Positioned Overlapping Bottom Border of Cover */}
+        <div style={{ position: 'absolute', bottom: '-40px', left: '20px', zIndex: 15 }}>
+          <div style={{ position: 'relative' }}>
+            <div
+              onClick={() => setShowAvatarPicker(true)}
+              title="Alterar Foto de Perfil"
+              style={{ 
+                width: '88px', 
+                height: '88px', 
+                borderRadius: '50%', 
+                border: '4px solid var(--bg-dark)', 
+                boxShadow: '0 10px 26px rgba(0,0,0,0.7)',
+                background: 'var(--bg-surface)',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                position: 'relative'
+              }}
+            >
+              <img
+                src={user?.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username || 'user'}`}
+                alt={user?.username}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
             </div>
+
+            {/* Camera Badge on Avatar */}
+            <button
+              type="button"
+              onClick={() => setShowAvatarPicker(true)}
+              aria-label="Alterar Foto"
+              title="Alterar Foto"
+              style={{
+                position: 'absolute',
+                bottom: '2px',
+                right: '2px',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: 'var(--primary)',
+                border: '2px solid var(--bg-dark)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#FFFFFF',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                transition: 'transform var(--transition-fast)'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <Camera size={13} />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* User Info Block */}
-      <div style={{ marginTop: '46px', marginBottom: '16px', paddingLeft: '4px' }}>
-        <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-          @{user?.username}
-        </h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-          <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+      {/* 2. User Info & Main Action Buttons (Clean & Without Redundancies) */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start', 
+          flexWrap: 'wrap', 
+          gap: '16px', 
+          marginBottom: '26px',
+          padding: '0 4px'
+        }}
+      >
+        {/* User Identity Details */}
+        <div>
+          <h2 style={{ 
+            fontSize: '24px', 
+            fontFamily: 'var(--font-display)', 
+            letterSpacing: '-0.02em', 
+            margin: 0, 
+            color: 'var(--text-primary)', 
+            lineHeight: 1.2 
+          }}>
+            @{user?.username}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '5px' }}>
+            <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+          </div>
+        </div>
+
+        {/* Action Buttons: "Editar Perfil" & "Sair" */}
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setShowEditModal(true)}
+            className="st-btn-secondary"
+            style={{
+              padding: '9px 18px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: 'var(--radius-full)',
+              cursor: 'pointer'
+            }}
+          >
+            <Settings size={15} /> Editar Perfil
+          </button>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="st-btn-secondary"
+            style={{
+              padding: '9px 16px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              borderRadius: 'var(--radius-full)',
+              color: 'var(--error)',
+              borderColor: 'rgba(239, 68, 68, 0.3)',
+              cursor: 'pointer'
+            }}
+          >
+            <LogOut size={15} /> Sair
+          </button>
         </div>
       </div>
 
-      {/* 3 Action Buttons - Always 3 equal columns across the entire width */}
+      {/* 3. Stats Grid (2x2 on Mobile, 4 Columns on Desktop) */}
       <div 
-        className="profile-header-actions"
+        className="profile-stats-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px',
           width: '100%',
           boxSizing: 'border-box',
-          marginBottom: '22px'
+          marginBottom: '32px'
         }}
       >
-        <button 
-          type="button" 
-          onClick={() => setShowAvatarPicker(true)} 
-          className="st-btn-secondary" 
-          style={{
-            width: '100%',
-            minHeight: '44px',
-            padding: '8px 4px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            textAlign: 'center',
-            boxSizing: 'border-box',
-            cursor: 'pointer'
-          }}
-          disabled={avatarLoading}
-        >
-          <Camera size={15} /> Foto
-        </button>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {(followedShows || []).length}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Séries Seguidas</div>
+        </div>
 
-        <button 
-          type="button" 
-          onClick={() => setShowBannerPicker(true)} 
-          className="st-btn-secondary" 
-          style={{
-            width: '100%',
-            minHeight: '44px',
-            padding: '8px 4px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            textAlign: 'center',
-            boxSizing: 'border-box',
-            cursor: 'pointer'
-          }}
-          disabled={bannerLoading}
-        >
-          <ImageIcon size={15} /> Capa
-        </button>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {(watchedEpisodes || []).length}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Episódios Vistos</div>
+        </div>
 
-        <button 
-          type="button" 
-          onClick={logout} 
-          className="st-btn-secondary" 
-          style={{
-            width: '100%',
-            minHeight: '44px',
-            padding: '8px 4px',
-            fontSize: '13px',
-            fontWeight: 600,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px',
-            textAlign: 'center',
-            boxSizing: 'border-box',
-            color: 'var(--error)',
-            borderColor: 'rgba(239, 68, 68, 0.3)',
-            cursor: 'pointer'
-          }}
-        >
-          <LogOut size={15} /> Sair
-        </button>
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {strictlyWatchedMovies.length}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Filmes Vistos</div>
+        </div>
+
+        <div className="st-card" style={{ padding: '16px 12px', textAlign: 'center', boxSizing: 'border-box', border: '1px solid var(--border-color)' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {totalDays}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Dias Assistidos</div>
+        </div>
+      </div>
+
+      {/* 4. Séries que estou acompanhando (Horizontal Scroller with Swipe/Drag & Arrows) */}
+      <MediaCarousel
+        title="Séries que estou acompanhando"
+        count={(followedShows || []).length}
+        icon={<Tv size={18} style={{ color: 'var(--primary)' }} />}
+        loading={loadingShows && followedShowsData.length === 0}
+        emptyText="Você ainda não está acompanhando nenhuma série. Encontre séries e animes na aba Descobrir!"
+      >
+        {followedShowsData.map(show => (
+          <div
+            key={show.id}
+            className="horizontal-scroll-item"
+            onClick={() => onViewMedia?.(cleanId(show.id), 'show')}
+          >
+            <div style={{ 
+              borderRadius: 'var(--radius-md)', 
+              overflow: 'hidden', 
+              aspectRatio: '2/3', 
+              boxShadow: '0 6px 16px rgba(0,0,0,0.5)', 
+              marginBottom: '8px', 
+              border: '1px solid var(--border-color)', 
+              background: 'var(--bg-card)' 
+            }}>
+              <img 
+                src={getImageUrl(show.posterPath || show.poster_path)} 
+                alt={show.title || show.name} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                loading="lazy" 
+              />
+            </div>
+            <p style={{ 
+              fontSize: '11px', 
+              fontWeight: 600, 
+              textAlign: 'center', 
+              lineHeight: 1.25, 
+              color: 'var(--text-primary)', 
+              display: '-webkit-box', 
+              WebkitLineClamp: 2, 
+              WebkitBoxOrient: 'vertical', 
+              overflow: 'hidden', 
+              margin: 0 
+            }}>
+              {show.title || show.name}
+            </p>
+          </div>
+        ))}
+      </MediaCarousel>
+
+      {/* 5. Filmes Assistidos (Strictly Watched Movies with Touch Swipe/Drag & Arrows) */}
+      <MediaCarousel
+        title="Filmes Assistidos"
+        count={strictlyWatchedMovies.length}
+        icon={<Film size={18} style={{ color: 'var(--secondary)' }} />}
+        loading={loadingMovies && watchedMoviesData.length === 0}
+        emptyText="Você ainda não marcou nenhum filme como assistido. Explore os lançamentos na aba Descobrir!"
+      >
+        {watchedMoviesData.map((m, idx) => (
+          <div
+            key={m.movieId || idx}
+            className="horizontal-scroll-item"
+            onClick={() => onViewMedia?.(cleanId(m.movieId), 'movie')}
+          >
+            <div style={{ 
+              borderRadius: 'var(--radius-md)', 
+              overflow: 'hidden', 
+              aspectRatio: '2/3', 
+              boxShadow: '0 6px 16px rgba(0,0,0,0.5)', 
+              marginBottom: '8px', 
+              border: '1px solid var(--border-color)', 
+              background: 'linear-gradient(145deg, #1E1B38 0%, #111022 100%)', 
+              position: 'relative', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              {m.posterPath ? (
+                <img 
+                  src={getImageUrl(m.posterPath)} 
+                  alt={m.title} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  loading="lazy" 
+                />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 6px', textAlign: 'center', width: '100%', height: '100%' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 122, 89, 0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Film size={18} style={{ color: 'var(--secondary)' }} />
+                  </div>
+                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {m.title}
+                  </span>
+                </div>
+              )}
+
+              {/* Favorite Heart Badge */}
+              {m.isFavorite && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: 5, 
+                  right: 5, 
+                  background: 'rgba(0,0,0,0.78)', 
+                  borderRadius: '50%', 
+                  padding: '4px', 
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Heart size={12} fill="var(--secondary)" color="var(--secondary)" />
+                </div>
+              )}
+            </div>
+            <p style={{ 
+              fontSize: '11px', 
+              fontWeight: 600, 
+              textAlign: 'center', 
+              lineHeight: 1.25, 
+              color: 'var(--text-primary)', 
+              display: '-webkit-box', 
+              WebkitLineClamp: 2, 
+              WebkitBoxOrient: 'vertical', 
+              overflow: 'hidden', 
+              margin: 0 
+            }}>
+              {m.title || m.movieId}
+            </p>
+          </div>
+        ))}
+      </MediaCarousel>
+
+      {/* 6. Visibilidade do Perfil (Privacidade) */}
+      <div className="st-panel" style={{ padding: '20px', marginBottom: '24px', borderRadius: 'var(--radius-lg)' }}>
+        <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Globe size={16} style={{ color: 'var(--primary)' }} /> Visibilidade do Perfil
+        </h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+          Controle quem pode ver suas séries, filmes e estatísticas no Epsync.
+        </p>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {(['public', 'friends', 'private'] as const).map(v => {
+            const active = (user?.profileVisibility ?? 'public') === v;
+            const label = v === 'public' ? 'Público' : v === 'friends' ? 'Apenas Amigos' : 'Privado';
+            const Icon = v === 'public' ? Globe : v === 'friends' ? Users : Lock;
+            return (
+              <button 
+                key={v} 
+                type="button"
+                onClick={() => handlePrivacyChange(v)} 
+                disabled={privacyLoading} 
+                className={active ? 'st-btn-primary' : 'st-btn-secondary'} 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  fontSize: '12px', 
+                  padding: '8px 16px', 
+                  borderRadius: 'var(--radius-full)',
+                  opacity: privacyLoading ? 0.6 : 1,
+                  cursor: 'pointer'
+                }}
+              >
+                <Icon size={14} /> {label} {active && <Check size={12} />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 7. Categorias / Gêneros Favoritos */}
+      <div className="st-panel" style={{ padding: '20px', marginBottom: '24px', borderRadius: 'var(--radius-lg)' }}>
+        <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <BarChart3 size={16} style={{ color: 'var(--accent)' }} /> Categorias Favoritas
+        </h3>
+        {(() => {
+          const sorted = Object.entries(genreCounts || {})
+            .map(([name, count]) => ({ name, count, pct: totalGenresCount > 0 ? Math.round((count / totalGenresCount) * 100) : 0 }))
+            .sort((a,b) => b.count - a.count)
+            .slice(0, 5);
+
+          if (!sorted.length) return <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Nenhuma categoria registrada ainda.</p>;
+          const colors = ['var(--primary)', 'var(--secondary)', 'var(--accent)', 'var(--warning)', '#9D4EDD'];
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {sorted.map((g, i) => (
+                <div key={g.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: 600 }}>{g.name}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{g.pct}%</span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.06)', height: '6px', borderRadius: 'var(--radius-full)', overflow: 'hidden' }}>
+                    <div style={{ width: `${g.pct}%`, height: '100%', background: colors[i % colors.length], borderRadius: 'var(--radius-full)', transition: 'width 0.6s ease' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Hidden File Inputs for Device Gallery / Camera */}
       <input ref={devicePhotoInputRef} type="file" accept="image/*" onChange={handleDevicePhotoChange} style={{ display: 'none' }} />
       <input ref={deviceBannerInputRef} type="file" accept="image/*" onChange={handleDeviceBannerChange} style={{ display: 'none' }} />
 
-      {/* Banner Picker Modal (Mounted via createPortal directly into body for perfect centering) */}
+      {/* Unified "Editar Perfil" Modal */}
+      {showEditModal && createPortal(
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            background: 'rgba(0, 0, 0, 0.82)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowEditModal(false); }}
+        >
+          <div 
+            className="st-panel animate-scale-up" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '460px', 
+              padding: '24px', 
+              borderRadius: 'var(--radius-lg)', 
+              border: '1px solid var(--border-color)', 
+              background: 'var(--bg-surface)',
+              boxShadow: 'var(--shadow-xl)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Settings size={18} style={{ color: 'var(--primary)' }} /> Editar Perfil
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setShowEditModal(false)} 
+                className="st-btn-icon" 
+                style={{ width: '32px', height: '32px', fontSize: '16px' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                type="button"
+                onClick={() => { setShowEditModal(false); setShowAvatarPicker(true); }}
+                className="st-btn-secondary"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Camera size={18} style={{ color: 'var(--primary)' }} />
+                  <span>Alterar Foto de Perfil</span>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setShowEditModal(false); setShowBannerPicker(true); }}
+                className="st-btn-secondary"
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <ImageIcon size={18} style={{ color: 'var(--accent)' }} />
+                  <span>Alterar Capa do Perfil</span>
+                </div>
+                <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Banner Picker Modal */}
       {showBannerPicker && createPortal(
         <div 
           style={{
@@ -572,7 +1111,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               <button onClick={() => setShowBannerPicker(false)} className="st-btn-icon" style={{ width: '32px', height: '32px', fontSize: '16px' }}>✕</button>
             </div>
 
-            {/* Option 1: Choose from Device */}
+            {/* Option 1: Device */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 1. Do seu dispositivo
@@ -588,7 +1127,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </button>
             </div>
 
-            {/* Option 2: Choose from Presets */}
+            {/* Option 2: Presets */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 2. Ou escolha uma capa pronta
@@ -617,7 +1156,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </div>
             </div>
 
-            {/* Option 3: Image URL */}
+            {/* Option 3: URL */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 3. Ou cole um link de imagem (URL)
@@ -641,7 +1180,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         document.body
       )}
 
-      {/* Avatar Picker Modal (Mounted via createPortal directly into body for perfect centering) */}
+      {/* Avatar Picker Modal */}
       {showAvatarPicker && createPortal(
         <div 
           style={{
@@ -678,7 +1217,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               <button onClick={() => setShowAvatarPicker(false)} className="st-btn-icon" style={{ width: '32px', height: '32px', fontSize: '16px' }}>✕</button>
             </div>
 
-            {/* Option 1: Choose from Device */}
+            {/* Option 1: Device */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 1. Do seu dispositivo
@@ -694,7 +1233,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </button>
             </div>
 
-            {/* Option 2: Choose avatar preset */}
+            {/* Option 2: Presets */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 2. Ou escolha um avatar ilustrado
@@ -723,7 +1262,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </div>
             </div>
 
-            {/* Option 3: Avatar URL */}
+            {/* Option 3: URL */}
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 3. Ou cole um link de foto (URL)
@@ -747,208 +1286,20 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         document.body
       )}
 
-      {/* Stats Grid (2x2 on Mobile, 4 columns on Desktop) */}
-      <div 
-        className="profile-stats-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '10px',
-          width: '100%',
-          boxSizing: 'border-box',
-          marginBottom: '28px'
-        }}
-      >
-        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
-            {followedShows.length}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Séries Seguidas</div>
-        </div>
-        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
-            {watchedEpisodes.length}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Episódios Vistos</div>
-        </div>
-        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
-            {watchedMovies.length}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Filmes Vistos</div>
-        </div>
-        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
-          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
-            {totalDays}
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Dias Assistidos</div>
-        </div>
-      </div>
-
-      {/* Séries que estou acompanhando (Horizontal Touch Drag Scroll) */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Tv size={17} style={{ color: 'var(--primary)' }} /> Séries que estou acompanhando ({followedShows.length})
-          </h3>
-        </div>
-
-        {followedShows.length === 0 ? (
-          <div className="st-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-            Você ainda não está acompanhando nenhuma série. Encontre séries e animes na aba <strong>Descobrir</strong>!
-          </div>
-        ) : (
-          <div 
-            ref={showsScrollRef}
-            className="horizontal-scroll-container"
-          >
-            {loadingShows && followedShowsData.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '16px' }}>Carregando séries...</div>
-            ) : (
-              followedShowsData.map(show => (
-                <div
-                  key={show.id}
-                  className="horizontal-scroll-item"
-                  onClick={() => onViewMedia?.(show.id, 'show')}
-                >
-                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
-                    <img src={getImageUrl(show.posterPath)} alt={show.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                  </div>
-                  <p style={{ fontSize: '11px', fontWeight: 600, textAlign: 'center', lineHeight: 1.25, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: 0 }}>
-                    {show.title}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Filmes Assistidos (Horizontal Touch Drag Scroll) */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Film size={17} style={{ color: 'var(--secondary)' }} /> Filmes Assistidos ({watchedMovies.length})
-          </h3>
-        </div>
-
-        {watchedMovies.length === 0 ? (
-          <div className="st-panel" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-            Você ainda não marcou nenhum filme como assistido. Explore os lançamentos na aba <strong>Descobrir</strong>!
-          </div>
-        ) : (
-          <div 
-            ref={moviesScrollRef}
-            className="horizontal-scroll-container"
-          >
-            {loadingMovies && watchedMoviesData.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '16px' }}>Carregando filmes assistidos...</div>
-            ) : (
-              watchedMoviesData.map((m, idx) => (
-                <div
-                  key={m.movieId || idx}
-                  className="horizontal-scroll-item"
-                  onClick={() => onViewMedia?.(m.movieId, 'movie')}
-                >
-                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'linear-gradient(145deg, #1E1B38 0%, #111022 100%)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {m.posterPath ? (
-                      <img src={getImageUrl(m.posterPath)} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 6px', textAlign: 'center', width: '100%', height: '100%' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 122, 89, 0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Film size={18} style={{ color: 'var(--secondary)' }} />
-                        </div>
-                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                          {m.title}
-                        </span>
-                      </div>
-                    )}
-                    {m.isFavorite && (
-                      <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.75)', borderRadius: '50%', padding: '4px', backdropFilter: 'blur(4px)' }}>
-                        <Heart size={12} fill="var(--secondary)" color="var(--secondary)" />
-                      </div>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '11px', fontWeight: 600, textAlign: 'center', lineHeight: 1.25, color: 'var(--text-primary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: 0 }}>
-                    {m.title || m.movieId}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Privacy Settings */}
-      <div className="st-panel" style={{ padding: '20px', marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Globe size={16} style={{ color: 'var(--primary)' }} /> Visibilidade do Perfil
-        </h3>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>Controle quem pode ver suas séries e atividade no Epsync.</p>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {(['public', 'friends', 'private'] as const).map(v => {
-            const active = (user?.profileVisibility ?? 'public') === v;
-            const label = v === 'public' ? 'Público' : v === 'friends' ? 'Apenas Amigos' : 'Privado';
-            const Icon = v === 'public' ? Globe : v === 'friends' ? Users : Lock;
-            return (
-              <button key={v} onClick={() => handlePrivacyChange(v)} disabled={privacyLoading} className={active ? 'st-btn-primary' : 'st-btn-secondary'} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '7px 14px', opacity: privacyLoading ? 0.6 : 1 }}>
-                <Icon size={13} />{label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Genre Stats */}
-      <div className="st-panel" style={{ padding: '20px', marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-display)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <BarChart3 size={16} style={{ color: 'var(--accent)' }} /> Categorias Favoritas
-        </h3>
-        {(() => {
-          const sorted = Object.entries(genreCounts || {}).map(([name, count]) => ({ name, count, pct: totalGenresCount > 0 ? Math.round((count / totalGenresCount) * 100) : 0 })).sort((a,b) => b.count - a.count).slice(0, 5);
-          if (!sorted.length) return <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Nenhum gênero registrado ainda.</p>;
-          const colors = ['var(--primary)', 'var(--secondary)', 'var(--accent)', 'var(--warning)', 'var(--error)'];
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {sorted.map((g, i) => (
-                <div key={g.name}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '3px' }}>
-                    <span>{g.name}</span><span style={{ color: 'var(--text-muted)' }}>{g.pct}%</span>
-                  </div>
-                  <div style={{ background: 'rgba(255,255,255,0.05)', height: '5px', borderRadius: 'var(--radius-full)' }}>
-                    <div style={{ width: `${g.pct}%`, height: '100%', background: colors[i], borderRadius: 'var(--radius-full)', transition: 'width 0.6s ease' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-      </div>
-
+      {/* Component Level Styles for Mobile Responsiveness & Carousel */}
       <style>{`
-        .horizontal-scroll-container::-webkit-scrollbar {
-          height: 6px;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.02);
-          border-radius: 4px;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-thumb {
-          background: rgba(124, 92, 255, 0.3);
-          border-radius: 4px;
-        }
-        .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-          background: rgba(124, 92, 255, 0.6);
-        }
-
-        @media (max-width: 580px) {
-          .profile-view .st-panel {
-            padding: 16px !important;
+        @media (max-width: 640px) {
+          .profile-stats-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
           }
-
-          .profile-header-info {
-            padding-left: 16px !important;
-            padding-top: 40px !important;
+          .carousel-nav-arrows {
+            display: none !important;
+          }
+        }
+        @media (min-width: 641px) {
+          .profile-stats-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
           }
         }
       `}</style>

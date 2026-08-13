@@ -587,41 +587,44 @@ button, input, select, textarea {
   gap: 14px !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  padding: 4px 2px 14px 2px !important;
+  padding: 4px 4px 14px 4px !important;
   -webkit-overflow-scrolling: touch !important;
   scroll-behavior: smooth !important;
-  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  touch-action: pan-x pan-y !important;
   scrollbar-width: thin !important;
+  scrollbar-color: rgba(124, 92, 255, 0.4) transparent !important;
   cursor: grab;
 }
 .horizontal-scroll-container::-webkit-scrollbar {
-  height: 5px !important;
+  height: 6px !important;
   display: block !important;
 }
 .horizontal-scroll-container::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.02) !important;
-  border-radius: 4px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 6px !important;
 }
 .horizontal-scroll-container::-webkit-scrollbar-thumb {
   background: rgba(124, 92, 255, 0.35) !important;
-  border-radius: 4px !important;
+  border-radius: 6px !important;
+  transition: background 0.2s !important;
 }
 .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(124, 92, 255, 0.6) !important;
+  background: rgba(124, 92, 255, 0.7) !important;
 }
 .horizontal-scroll-container:active {
   cursor: grabbing;
 }
 .horizontal-scroll-item {
-  flex: 0 0 110px !important;
-  width: 110px !important;
-  min-width: 110px !important;
+  flex: 0 0 116px !important;
+  width: 116px !important;
+  min-width: 116px !important;
   user-select: none !important;
   cursor: pointer !important;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), filter var(--transition-fast);
 }
 .horizontal-scroll-item:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 @media (max-width: 768px) {
