@@ -545,8 +545,29 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       );
 
       if (cancelled) return;
-      const movies = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
-      setWatchedMoviesData(movies);
+      const rawMovies = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
+
+      // Post-fetch deduplication by ID, posterPath and Title
+      const finalSeen = new Set<string>();
+      const finalMovies: any[] = [];
+
+      for (const m of rawMovies) {
+        const idKey = m.movieId ? `id_${cleanId(m.movieId)}` : '';
+        const titleKey = m.title ? `title_${normalizeTitle(m.title)}` : '';
+        const posterKey = m.posterPath ? `poster_${m.posterPath}` : '';
+
+        if (idKey && finalSeen.has(idKey)) continue;
+        if (titleKey && titleKey.length > 9 && finalSeen.has(titleKey)) continue;
+        if (posterKey && finalSeen.has(posterKey)) continue;
+
+        if (idKey) finalSeen.add(idKey);
+        if (titleKey && titleKey.length > 9) finalSeen.add(titleKey);
+        if (posterKey) finalSeen.add(posterKey);
+
+        finalMovies.push(m);
+      }
+
+      setWatchedMoviesData(finalMovies);
       setLoadingMovies(false);
     })();
 
@@ -874,6 +895,19 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                 aria-label="Desmarcar filme como assistido"
                 onClick={(e) => {
                   e.stopPropagation();
+                  const targetId = cleanId(m.movieId);
+                  const targetTitle = (m.title || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+
+                  // Immediate optimistic UI update
+                  setWatchedMoviesData(prev => prev.filter(item => {
+                    if (cleanId(item.movieId) === targetId) return false;
+                    if (targetTitle && targetTitle.length > 3) {
+                      const itemTitle = (item.title || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+                      if (itemTitle === targetTitle) return false;
+                    }
+                    return true;
+                  }));
+
                   toggleWatchMovie(m.movieId, m);
                   pushToast('info', `"${m.title || 'Filme'}" desmarcado.`);
                 }}

@@ -6,7 +6,10 @@ export const ToastHost: React.FC = () => {
 
   React.useEffect(() => {
     const unsubscribe = onToast((toast) => {
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => {
+        const filtered = prev.filter(t => t.message !== toast.message);
+        return [...filtered.slice(-1), toast];
+      });
 
       window.setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id));
