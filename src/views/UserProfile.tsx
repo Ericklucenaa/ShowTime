@@ -4,18 +4,26 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { getImageUrl, fetchMediaDetails } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { useAuth } from '../context/AuthContext.js';
-import { ArrowLeft, UserCheck, UserPlus, Tv, Star, Eye, Lock, Users } from 'lucide-react';
+import { ArrowLeft, UserCheck, UserPlus, Tv, Star, Eye, Lock, Users, MessageSquare } from 'lucide-react';
 
 interface UserProfileProps {
   targetUserId: string;
   targetUsername: string;
   onBack: () => void;
   onViewMedia: (id: string, type: 'show' | 'movie') => void;
+  onViewProfile?: (userId: string, username: string) => void;
+  onOpenChat?: (friend: { id: string; username: string; avatarUrl?: string; lastActiveAt?: string }) => void;
 }
 
-export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUsername, onBack, onViewMedia }) => {
+export const UserProfile: React.FC<UserProfileProps> = ({ 
+  targetUserId, 
+  targetUsername, 
+  onBack, 
+  onViewMedia, 
+  onOpenChat 
+}) => {
   const { user } = useAuth();
-  const { followedUsers, toggleFollowUser } = useTracking();
+  const { followedUsers, toggleFollowUser, isMutualFollow, isUserBlocked } = useTracking();
   const [profileData, setProfileData] = useState<any>(null);
   const [watchedShows, setWatchedShows] = useState<any[]>([]);
   const [followedShowsList, setFollowedShowsList] = useState<any[]>([]);
@@ -23,6 +31,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
   const [activeTab, setActiveTab] = useState<'watched' | 'following'>('watched');
 
   const isFollowed = followedUsers.includes(targetUserId);
+  const isMutual = isMutualFollow(targetUserId);
+  const isBlockedByMe = isUserBlocked(targetUserId);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -66,7 +76,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
         for (const sid of followedIds.slice(0, 30)) {
           try {
             const show = await fetchMediaDetails(sid, 'show');
-            if (show) followedDetails.push(show);
+            if (show) showDetails.push(show);
           } catch (_) {}
         }
         setFollowedShowsList(followedDetails);
@@ -118,7 +128,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
         style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '8px 0', cursor: 'pointer', color: 'var(--text-secondary)' }}
       >
         <ArrowLeft size={18} />
-        Voltar à Busca
+        Voltar
       </button>
 
       {/* Profile Card */}
@@ -131,6 +141,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
         <div style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {profile.username}
+            {isMutual && !isOwnProfile && (
+              <span style={{ fontSize: '12px', background: 'rgba(124, 92, 255, 0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
+                Amigo Mútuo
+              </span>
+            )}
             {visibility === 'private' && <span style={{ fontSize: '12px', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Lock size={11} /> Privado</span>}
             {visibility === 'friends' && <span style={{ fontSize: '12px', background: 'rgba(99,102,241,0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={11} /> Apenas Amigos</span>}
           </h2>
@@ -142,14 +157,31 @@ export const UserProfile: React.FC<UserProfileProps> = ({ targetUserId, targetUs
           )}
         </div>
         {!isOwnProfile && (
-          <button
-            className={isFollowed ? 'btn-secondary' : 'btn-primary'}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none', flexShrink: 0 }}
-            onClick={() => toggleFollowUser(targetUserId)}
-          >
-            {isFollowed ? <UserCheck size={16} /> : <UserPlus size={16} />}
-            {isFollowed ? 'Seguindo' : 'Seguir'}
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+            {onOpenChat && isMutual && !isBlockedByMe && (
+              <button
+                className="btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}
+                onClick={() => onOpenChat({
+                  id: targetUserId,
+                  username: profile.username || targetUsername,
+                  avatarUrl: profile.avatarUrl || profile.photoUrl,
+                  lastActiveAt: profile.lastActiveAt
+                })}
+              >
+                <MessageSquare size={16} />
+                Conversar
+              </button>
+            )}
+            <button
+              className={isFollowed ? 'btn-secondary' : 'btn-primary'}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}
+              onClick={() => toggleFollowUser(targetUserId)}
+            >
+              {isFollowed ? <UserCheck size={16} /> : <UserPlus size={16} />}
+              {isFollowed ? 'Seguindo' : 'Seguir'}
+            </button>
+          </div>
         )}
       </div>
 

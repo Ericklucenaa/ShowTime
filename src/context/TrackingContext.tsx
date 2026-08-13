@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback, useMemo } from 'react';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { useAuth } from './AuthContext.js';
 import { fetchSeasonEpisodes } from '../services/api.js';
@@ -52,6 +52,10 @@ interface TrackingContextType {
   lists: CustomList[];
   followedShows: string[];
   followedUsers: string[];
+  followers: string[];
+  blockedUsers: string[];
+  mutedUsers: string[];
+  mutualFollowers: string[];
   loading: boolean;
   genreCounts: Record<string, number>;
   totalGenresCount: number;
@@ -70,6 +74,11 @@ interface TrackingContextType {
   fetchListItems: (listId: string) => Promise<any>;
   toggleFollowShow: (showId: string, showMetadata?: any) => Promise<boolean>;
   toggleFollowUser: (targetUserId: string) => Promise<boolean>;
+  isMutualFollow: (targetUserId: string) => boolean;
+  isUserBlocked: (targetUserId: string) => boolean;
+  isUserMuted: (targetUserId: string) => boolean;
+  toggleBlockUser: (targetUserId: string) => Promise<boolean>;
+  toggleMuteUser: (targetUserId: string) => Promise<boolean>;
   watchAllEpisodesOfShow: (showMetadata: any) => Promise<void>;
   importTvTimeData: (episodes: any[], movies: any[]) => Promise<{ importedEpisodes: number; importedMovies: number }>;
   watchAllEpisodesOfSeason: (showMetadata: any, episodes: any[], seasonNumber: number) => Promise<void>;
@@ -123,6 +132,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [lists, setLists] = useState<CustomList[]>([]);
   const [followedShows, setFollowedShows] = useState<string[]>([]);
   const [followedUsers, setFollowedUsers] = useState<string[]>([]);
+  const [followers, setFollowers] = useState<string[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
+  const [mutedUsers, setMutedUsers] = useState<string[]>([]);
   const [genreCounts, setGenreCounts] = useState<Record<string, number>>({});
   const [totalGenresCount, setTotalGenresCount] = useState<number>(0);
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
@@ -144,13 +156,19 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const movs = getLocalData(`epsync_watch_movies_${uid}`, []);
     const customLists = getLocalData(`epsync_custom_lists_${uid}`, []);
     const follows = getLocalData(`epsync_followed_shows_${uid}`, []);
-    const followsUsers = getLocalData(`epsync_followed_users_${uid}`, []);
+    const followsUsers = getLocalData(`epsync_followed_users_${uid}`, ['mock1', 'mock2']);
+    const followersList = getLocalData(`epsync_followers_${uid}`, ['mock1']); // mock1 follows user (mutual), mock2 does not
+    const blockedList = getLocalData(`epsync_blocked_users_${uid}`, []);
+    const mutedList = getLocalData(`epsync_muted_users_${uid}`, []);
 
     setWatchedEpisodes(eps);
     setWatchedMovies(movs);
     setLists(customLists);
     setFollowedShows(follows);
     setFollowedUsers(followsUsers);
+    setFollowers(followersList);
+    setBlockedUsers(blockedList);
+    setMutedUsers(mutedList);
     calculateGenreStats(eps, movs);
     calculateEngagementStats(eps, movs);
   }, []);
@@ -201,15 +219,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setFavoriteGenres(topGenres);
   };
 
-  // Compute genre statistics on the client-side
   const calculateGenreStats = (eps: WatchEpisodeEvent[], movs: WatchMovieEvent[]) => {
     const counts: Record<string, number> = {};
     let total = 0;
 
-    // We collect genres from watched episodes (grouped by show to avoid duplicating show genres per episode count, or just count shows)
     const uniqueShows = Array.from(new Set(eps.map(e => e.showId)));
     uniqueShows.forEach(showId => {
-      // Find one episode event for this show to get the genres
       const ev = eps.find(e => e.showId === showId);
       if (ev && ev.genres && Array.isArray(ev.genres)) {
         ev.genres.forEach(g => {
@@ -254,60 +269,73 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
-    const runRefresh = async () => {
+    const task = (async () => {
       setLoading(true);
-    
       if (isFirebaseEnabled && db) {
         try {
-          // 1. Fetch watched episodes
           const qEp = query(collection(db, 'watch_episodes'), where('userId', '==', user.id));
           const snapEp = await getDocs(qEp);
-          const eps = snapEp.docs.map(d => d.data() as WatchEpisodeEvent);
+          const eps = snapEp.docs.map(d => ({ id: d.id, ...d.data() } as WatchEpisodeEvent));
           setWatchedEpisodes(eps);
 
-          // 2. Fetch watched movies
           const qMov = query(collection(db, 'watch_movies'), where('userId', '==', user.id));
           const snapMov = await getDocs(qMov);
-          const movs = snapMov.docs.map(d => d.data() as WatchMovieEvent);
+          const movs = snapMov.docs.map(d => ({ id: d.id, ...d.data() } as WatchMovieEvent));
           setWatchedMovies(movs);
 
-          // 3. Fetch custom lists (avoid N+1 reads for list items count)
           const qLists = query(collection(db, 'custom_lists'), where('userId', '==', user.id));
           const snapLists = await getDocs(qLists);
-          const loadedLists = snapLists.docs.map((d) => {
-            const listData = d.data();
-            return {
-              id: d.id,
-              name: listData.name,
-              description: listData.description || '',
-              type: listData.type || 'mixed',
-              itemCount: Number.isFinite(listData.itemCount) ? listData.itemCount : 0
-            } as CustomList;
-          });
+          const loadedLists = snapLists.docs.map(d => ({ id: d.id, ...d.data() } as CustomList));
           setLists(loadedLists);
 
-          // 4. Fetch followed shows
           const qFollow = query(collection(db, 'followed_shows'), where('userId', '==', user.id));
           const snapFollow = await getDocs(qFollow);
           const follows = snapFollow.docs.map(d => d.data().showId as string);
           setFollowedShows(follows);
 
-          // 5. Fetch followed profiles
           const qFollowUsers = query(collection(db, 'profile_follows'), where('followerId', '==', user.id));
           const snapFollowUsers = await getDocs(qFollowUsers);
           const followsUsers = snapFollowUsers.docs.map(d => d.data().followedId as string);
           setFollowedUsers(followsUsers);
 
-          // 6. Calculate genre stats
+          const qFollowers = query(collection(db, 'profile_follows'), where('followedId', '==', user.id));
+          const snapFollowers = await getDocs(qFollowers);
+          const loadedFollowers = snapFollowers.docs.map(d => d.data().followerId as string);
+          setFollowers(loadedFollowers);
+
+          let loadedBlocks: string[] = [];
+          try {
+            const qBlocks = query(collection(db, 'user_blocks'), where('userId', '==', user.id));
+            const snapBlocks = await getDocs(qBlocks);
+            loadedBlocks = snapBlocks.docs.map(d => d.data().blockedId as string);
+            setBlockedUsers(loadedBlocks);
+          } catch (_) {
+            loadedBlocks = getLocalData(`epsync_blocked_users_${user.id}`, []);
+            setBlockedUsers(loadedBlocks);
+          }
+
+          let loadedMutes: string[] = [];
+          try {
+            const qMutes = query(collection(db, 'user_mutes'), where('userId', '==', user.id));
+            const snapMutes = await getDocs(qMutes);
+            loadedMutes = snapMutes.docs.map(d => d.data().mutedId as string);
+            setMutedUsers(loadedMutes);
+          } catch (_) {
+            loadedMutes = getLocalData(`epsync_muted_users_${user.id}`, []);
+            setMutedUsers(loadedMutes);
+          }
+
           calculateGenreStats(eps, movs);
           calculateEngagementStats(eps, movs);
 
-          // Keep local snapshot updated for quota fallback mode.
           setLocalData(`epsync_watch_episodes_${user.id}`, eps);
           setLocalData(`epsync_watch_movies_${user.id}`, movs);
           setLocalData(`epsync_custom_lists_${user.id}`, loadedLists);
           setLocalData(`epsync_followed_shows_${user.id}`, follows);
           setLocalData(`epsync_followed_users_${user.id}`, followsUsers);
+          setLocalData(`epsync_followers_${user.id}`, loadedFollowers);
+          setLocalData(`epsync_blocked_users_${user.id}`, loadedBlocks);
+          setLocalData(`epsync_muted_users_${user.id}`, loadedMutes);
 
           if (quotaCooldownUntilRef.current > 0) {
             quotaCooldownUntilRef.current = 0;
@@ -333,21 +361,23 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           setLoading(false);
         }
       } else {
-        // Offline fallback
         hydrateTrackingSnapshot(user.id);
         lastRefreshAtRef.current = Date.now();
         setLoading(false);
       }
-    };
+    })();
 
-    refreshInFlightRef.current = runRefresh().finally(() => {
+    refreshInFlightRef.current = task;
+    try {
+      await task;
+    } finally {
       refreshInFlightRef.current = null;
-    });
-    await refreshInFlightRef.current;
+    }
   }, [user, hydrateTrackingSnapshot]);
 
   useEffect(() => {
     if (user) {
+      hydrateTrackingSnapshot(user.id);
       refreshData();
     } else {
       setWatchedEpisodes([]);
@@ -355,6 +385,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLists([]);
       setFollowedShows([]);
       setFollowedUsers([]);
+      setFollowers([]);
+      setBlockedUsers([]);
+      setMutedUsers([]);
       setGenreCounts({});
       setTotalGenresCount(0);
       setFavoriteGenres([]);
@@ -362,7 +395,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setLastWatchedAt(null);
       setTotalWatchEvents(0);
     }
-  }, [user]);
+  }, [user?.id, hydrateTrackingSnapshot, refreshData]);
 
   const toggleWatchEpisode = async (episodeId: string, showMetadata?: any, episodeMetadata?: any): Promise<boolean> => {
     if (!user) return false;
@@ -1192,6 +1225,107 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  // Mutual follow helpers
+  const mutualFollowers = useMemo(() => {
+    return followedUsers.filter(id => followers.includes(id));
+  }, [followedUsers, followers]);
+
+  const isMutualFollow = useCallback((targetUserId: string): boolean => {
+    if (!targetUserId || !user) return false;
+    if (targetUserId === user.id) return false;
+    return followedUsers.includes(targetUserId) && followers.includes(targetUserId);
+  }, [followedUsers, followers, user]);
+
+  const isUserBlocked = useCallback((targetUserId: string): boolean => {
+    if (!targetUserId) return false;
+    return blockedUsers.includes(targetUserId);
+  }, [blockedUsers]);
+
+  const isUserMuted = useCallback((targetUserId: string): boolean => {
+    if (!targetUserId) return false;
+    return mutedUsers.includes(targetUserId);
+  }, [mutedUsers]);
+
+  // Toggle Block User
+  const toggleBlockUser = async (targetUserId: string): Promise<boolean> => {
+    if (!user) {
+      pushToast('info', 'Faça login para gerenciar bloqueios.');
+      return false;
+    }
+
+    const isBlocked = blockedUsers.includes(targetUserId);
+    const newBlocks = isBlocked
+      ? blockedUsers.filter(id => id !== targetUserId)
+      : [...blockedUsers, targetUserId];
+
+    setBlockedUsers(newBlocks);
+    setLocalData(`epsync_blocked_users_${user.id}`, newBlocks);
+
+    if (isFirebaseEnabled && db) {
+      try {
+        const docRef = doc(db, 'user_blocks', `${user.id}_${targetUserId}`);
+        if (isBlocked) {
+          await deleteDoc(docRef);
+        } else {
+          await setDoc(docRef, {
+            userId: user.id,
+            blockedId: targetUserId,
+            blockedAt: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.warn('Error syncing block in Firestore:', err);
+      }
+    }
+
+    pushToast(
+      'info',
+      isBlocked ? 'Usuário desbloqueado com sucesso.' : 'Usuário bloqueado com sucesso.'
+    );
+    trackEvent('user_block_toggled', { targetUserId, blocked: !isBlocked });
+    return !isBlocked;
+  };
+
+  // Toggle Mute User
+  const toggleMuteUser = async (targetUserId: string): Promise<boolean> => {
+    if (!user) {
+      pushToast('info', 'Faça login para silenciar conversas.');
+      return false;
+    }
+
+    const isMuted = mutedUsers.includes(targetUserId);
+    const newMutes = isMuted
+      ? mutedUsers.filter(id => id !== targetUserId)
+      : [...mutedUsers, targetUserId];
+
+    setMutedUsers(newMutes);
+    setLocalData(`epsync_muted_users_${user.id}`, newMutes);
+
+    if (isFirebaseEnabled && db) {
+      try {
+        const docRef = doc(db, 'user_mutes', `${user.id}_${targetUserId}`);
+        if (isMuted) {
+          await deleteDoc(docRef);
+        } else {
+          await setDoc(docRef, {
+            userId: user.id,
+            mutedId: targetUserId,
+            mutedAt: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.warn('Error syncing mute in Firestore:', err);
+      }
+    }
+
+    pushToast(
+      'info',
+      isMuted ? 'Notificações reativadas para este usuário.' : 'Notificações silenciadas para este usuário.'
+    );
+    trackEvent('user_mute_toggled', { targetUserId, muted: !isMuted });
+    return !isMuted;
+  };
+
   return (
     <TrackingContext.Provider value={{
       watchedEpisodes,
@@ -1199,6 +1333,10 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       lists,
       followedShows,
       followedUsers,
+      followers,
+      blockedUsers,
+      mutedUsers,
+      mutualFollowers,
       genreCounts,
       totalGenresCount,
       favoriteGenres,
@@ -1217,6 +1355,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       fetchListItems,
       toggleFollowShow,
       toggleFollowUser,
+      isMutualFollow,
+      isUserBlocked,
+      isUserMuted,
+      toggleBlockUser,
+      toggleMuteUser,
       watchAllEpisodesOfShow,
       importTvTimeData,
       watchAllEpisodesOfSeason

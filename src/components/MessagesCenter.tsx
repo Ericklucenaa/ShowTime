@@ -4,7 +4,7 @@ import { useTracking } from '../context/TrackingContext.js';
 import { useNotifications } from '../context/NotificationContext.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { doc, getDoc } from 'firebase/firestore/lite';
-import { MessageCircle, Search } from 'lucide-react';
+import { MessageCircle, Search, BellOff } from 'lucide-react';
 
 interface ChatFriend {
   id: string;
@@ -14,6 +14,7 @@ interface ChatFriend {
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
+  isMuted?: boolean;
 }
 
 interface MessagesCenterProps {
@@ -40,7 +41,7 @@ function formatRelativeTime(dateString?: string): string {
 
 export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) => {
   const { user } = useAuth();
-  const { followedUsers } = useTracking();
+  const { followedUsers, followers, isMutualFollow, isUserBlocked, isUserMuted } = useTracking();
   const { notifications, markAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const [friendsList, setFriendsList] = useState<ChatFriend[]>([]);
@@ -48,14 +49,24 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Filter direct message notifications specifically
+  // Filter direct message notifications specifically (excluding blocked and non-mutual users)
   const directMessageNotifications = useMemo(() => {
-    return notifications.filter(n => n.type === 'direct_message');
-  }, [notifications]);
+    return notifications.filter(n => {
+      if (n.type !== 'direct_message') return false;
+      const senderId = n.senderId || (n as any).data?.senderId;
+      if (senderId && isUserBlocked(senderId)) return false;
+      return true;
+    });
+  }, [notifications, isUserBlocked]);
 
   const totalUnreadMessages = useMemo(() => {
-    return directMessageNotifications.filter(n => !n.read).length;
-  }, [directMessageNotifications]);
+    return directMessageNotifications.filter(n => {
+      if (n.read) return false;
+      const senderId = n.senderId || (n as any).data?.senderId;
+      if (senderId && isUserMuted(senderId)) return false;
+      return true;
+    }).length;
+  }, [directMessageNotifications, isUserMuted]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -73,7 +84,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
     };
   }, [isOpen]);
 
-  // Load conversations when opening dropdown or when user/followedUsers change
+  // Load conversations when opening dropdown or when user/followedUsers/followers change
   useEffect(() => {
     if (!user) return;
 
@@ -82,7 +93,8 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
 
       // Default mock if Firebase not enabled
       if (!isFirebaseEnabled || !db) {
-        setFriendsList([
+        // Only show mock users who are mutual followers
+        const mockCandidates = [
           {
             id: 'mock1',
             username: 'joaosilva',
@@ -90,7 +102,8 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
             lastMessage: 'Já assistiu o episódio 3?',
             lastMessageTime: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
             lastActiveAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-            unreadCount: 1
+            unreadCount: 1,
+            isMuted: isUserMuted('mock1')
           },
           {
             id: 'mock2',
@@ -99,9 +112,14 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
             lastMessage: 'Adicionei aquela série na minha lista!',
             lastMessageTime: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
             lastActiveAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-            unreadCount: 0
+            unreadCount: 0,
+            isMuted: isUserMuted('mock2')
           }
-        ]);
+        ];
+
+        // Filter mock candidates: MUST be mutual followers and NOT blocked
+        const mutualMocks = mockCandidates.filter(m => isMutualFollow(m.id) && !isUserBlocked(m.id));
+        setFriendsList(mutualMocks);
         setLoading(false);
         return;
       }
@@ -109,7 +127,10 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
       try {
         const loaded: ChatFriend[] = [];
         
-        for (const uid of followedUsers) {
+        // ONLY iterate over followedUsers that are also followers (MUTUAL FOLLOW) and NOT blocked
+        const mutualIds = followedUsers.filter(uid => isMutualFollow(uid) && !isUserBlocked(uid));
+
+        for (const uid of mutualIds) {
           try {
             const userDoc = await getDoc(doc(db, 'profiles', uid));
             const username = userDoc.exists() ? userDoc.data().username : 'Usuário';
@@ -148,7 +169,8 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
               lastActiveAt,
               lastMessage: lastMessage || 'Iniciar conversa...',
               lastMessageTime,
-              unreadCount
+              unreadCount,
+              isMuted: isUserMuted(uid)
             });
           } catch (err) {
             console.warn('Error loading friend for messages:', err);
@@ -174,7 +196,7 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
     };
 
     loadConversations();
-  }, [user, followedUsers, isOpen, directMessageNotifications]);
+  }, [user, followedUsers, followers, isOpen, directMessageNotifications, isMutualFollow, isUserBlocked, isUserMuted]);
 
   const filteredFriends = useMemo(() => {
     if (!searchFilter.trim()) return friendsList;
@@ -331,10 +353,10 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
               <div style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <MessageCircle size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
                 <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                  Nenhuma conversa encontrada
+                  Nenhuma conversa disponível
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                  Siga amigos na aba <strong>Amigos</strong> para iniciar bate-papos!
+                  O chat direto fica disponível apenas para amigos que se <strong>seguem mutuamente</strong>!
                 </p>
               </div>
             ) : (
@@ -402,9 +424,14 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                     {/* Friend metadata & snippet */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: hasUnread ? 700 : 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          @{friend.username}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0, overflow: 'hidden' }}>
+                          <span style={{ fontSize: '13px', fontWeight: hasUnread ? 700 : 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            @{friend.username}
+                          </span>
+                          {friend.isMuted && (
+                            <BellOff size={12} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                          )}
+                        </div>
                         {friend.lastMessageTime && (
                           <span style={{ fontSize: '10px', color: 'var(--text-muted)', flexShrink: 0, marginLeft: '6px' }}>
                             {formatRelativeTime(friend.lastMessageTime)}

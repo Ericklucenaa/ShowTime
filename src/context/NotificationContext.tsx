@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode, useRef } from 'react';
 import { useAuth } from './AuthContext.js';
 import { useTracking } from './TrackingContext.js';
 import { db, isFirebaseEnabled } from '../services/firebase.js';
@@ -113,7 +113,7 @@ function sendDesktopAlert(title: string, options: { body: string; icon?: string;
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const { followedShows } = useTracking();
+  const { followedShows, blockedUsers, mutedUsers } = useTracking();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [reminders, setReminders] = useState<EpisodeReminder[]>([]);
   const [loading, setLoading] = useState(false);
@@ -671,12 +671,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const visibleNotifications = useMemo(() => {
+    return notifications.filter(n => !(n.senderId && blockedUsers.includes(n.senderId)));
+  }, [notifications, blockedUsers]);
+
+  const unreadCount = useMemo(() => {
+    return visibleNotifications.filter(n => {
+      if (n.read) return false;
+      if (n.senderId && mutedUsers.includes(n.senderId) && n.type === 'direct_message') return false;
+      return true;
+    }).length;
+  }, [visibleNotifications, mutedUsers]);
 
   return (
     <NotificationContext.Provider
       value={{
-        notifications,
+        notifications: visibleNotifications,
         unreadCount,
         loading,
         reminders,

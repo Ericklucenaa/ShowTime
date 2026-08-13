@@ -13,7 +13,7 @@ interface FriendsProps {
 
 export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) => {
   const { user } = useAuth();
-  const { followedUsers, toggleFollowUser } = useTracking();
+  const { followedUsers, toggleFollowUser, isMutualFollow, isUserBlocked } = useTracking();
   const [activeTab, setActiveTab] = useState<'my_friends' | 'search'>('my_friends');
   
   // Followed friends state
@@ -197,6 +197,8 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {friendsData.map(friend => {
                 const presence = formatLastActive(friend.lastActiveAt);
+                const isMutual = isMutualFollow(friend.id);
+                const isBlocked = isUserBlocked(friend.id);
 
                 return (
                   <div 
@@ -211,7 +213,7 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
                         style={{ width: '42px', height: '42px', borderRadius: '50%', border: '1px solid var(--border-color)', flexShrink: 0, cursor: 'pointer', objectFit: 'cover' }}
                         onClick={() => onViewProfile?.(friend.id, friend.username)}
                       />
-                      {presence.isOnline && (
+                      {presence.isOnline && !isBlocked && (
                         <span
                           style={{
                             position: 'absolute',
@@ -229,19 +231,32 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <h4 
-                        style={{ fontSize: '14px', fontWeight: 600, marginBottom: '2px', cursor: 'pointer' }}
-                        onClick={() => onViewProfile?.(friend.id, friend.username)}
-                      >
-                        @{friend.username}
-                      </h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <h4 
+                          style={{ fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+                          onClick={() => onViewProfile?.(friend.id, friend.username)}
+                        >
+                          @{friend.username}
+                        </h4>
+                        {isMutual && (
+                          <span style={{ fontSize: '10px', background: 'rgba(124, 92, 255, 0.12)', color: 'var(--primary)', padding: '1px 6px', borderRadius: 'var(--radius-xs)', fontWeight: 600 }}>
+                            Mútuo
+                          </span>
+                        )}
+                        {isBlocked && (
+                          <span style={{ fontSize: '10px', background: 'rgba(239, 68, 68, 0.12)', color: 'var(--error)', padding: '1px 6px', borderRadius: 'var(--radius-xs)', fontWeight: 600 }}>
+                            Bloqueado
+                          </span>
+                        )}
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: presence.isOnline ? 'var(--accent)' : 'var(--text-muted)' }}>
                         <span>{presence.text}</span>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
-                      {onOpenChat && (
+                      {/* Chat Button ONLY appears if both follow each other and not blocked */}
+                      {onOpenChat && isMutual && !isBlocked && (
                         <button
                           className="st-btn-primary"
                           style={{ fontSize: '12px', height: '30px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '5px' }}
@@ -321,6 +336,8 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {searchResults.map((userResult) => {
                 const isFollowed = followedUsers.includes(userResult.id);
+                const isMutual = isMutualFollow(userResult.id);
+                const isBlocked = isUserBlocked(userResult.id);
                 const presence = formatLastActive(userResult.lastActiveAt);
 
                 return (
@@ -336,7 +353,7 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
                         style={{ width: '42px', height: '42px', borderRadius: '50%', border: '1px solid var(--border-color)', flexShrink: 0, cursor: 'pointer', objectFit: 'cover' }}
                         onClick={() => onViewProfile?.(userResult.id, userResult.username)}
                       />
-                      {presence.isOnline && (
+                      {presence.isOnline && !isBlocked && (
                         <span
                           style={{
                             position: 'absolute',
@@ -361,6 +378,11 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
                         >
                           @{userResult.username}
                         </h4>
+                        {isMutual && (
+                          <span style={{ fontSize: '10px', background: 'rgba(124, 92, 255, 0.12)', color: 'var(--primary)', padding: '1px 6px', borderRadius: 'var(--radius-xs)', fontWeight: 600 }}>
+                            Mútuo
+                          </span>
+                        )}
                         {userResult.profileVisibility === 'friends' && (
                           <span style={{ fontSize: '10px', background: 'var(--bg-elevated)', color: 'var(--text-muted)', padding: '1px 5px', borderRadius: 'var(--radius-xs)', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                             <Lock size={9} /> Amigos
@@ -373,7 +395,8 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
                     </div>
 
                     <div style={{ display: 'flex', gap: '6px', flexShrink: 0, alignItems: 'center' }}>
-                      {onOpenChat && (
+                      {/* Chat Button ONLY appears if both follow each other and not blocked */}
+                      {onOpenChat && isMutual && !isBlocked && (
                         <button
                           className="st-btn-secondary"
                           style={{ fontSize: '12px', height: '30px', padding: '0 10px', display: 'flex', alignItems: 'center', gap: '4px' }}

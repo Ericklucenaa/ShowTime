@@ -3,7 +3,22 @@ import { db, isFirebaseEnabled } from '../services/firebase.js';
 import { collection, query, where, getDocs, doc, setDoc } from 'firebase/firestore/lite';
 import { useAuth, formatLastActive } from '../context/AuthContext.js';
 import { useNotifications } from '../context/NotificationContext.js';
-import { X, Send, Paperclip, CheckCheck, Maximize2, Loader2, Minus, ChevronUp } from 'lucide-react';
+import { useTracking } from '../context/TrackingContext.js';
+import { 
+  X, 
+  Send, 
+  Paperclip, 
+  CheckCheck, 
+  Maximize2, 
+  Loader2, 
+  Minus, 
+  ChevronUp,
+  Bell,
+  BellOff,
+  ShieldAlert,
+  AlertCircle,
+  UserX
+} from 'lucide-react';
 import { pushToast } from '../services/toast.js';
 
 export interface ChatFriend {
@@ -41,6 +56,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
 }) => {
   const { user } = useAuth();
   const { notifications, markAsRead } = useNotifications();
+  const { isMutualFollow, isUserBlocked, isUserMuted, toggleBlockUser, toggleMuteUser } = useTracking();
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
@@ -48,8 +64,13 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isMutual = friend ? isMutualFollow(friend.id) : false;
+  const isBlocked = friend ? isUserBlocked(friend.id) : false;
+  const isMuted = friend ? isUserMuted(friend.id) : false;
 
   const chatId = (user && friend)
     ? [user.id, friend.id].sort().join('_')
@@ -66,6 +87,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
   useEffect(() => {
     if (friend) {
       setIsMinimized(false);
+      setShowBlockConfirm(false);
     }
   }, [friend?.id]);
 
@@ -186,7 +208,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
   // Send message
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if ((!inputText.trim() && !attachedImage) || !user || !friend || sending) return;
+    if ((!inputText.trim() && !attachedImage) || !user || !friend || sending || isBlocked || !isMutual) return;
 
     setSending(true);
     const msgId = 'dm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
@@ -246,14 +268,14 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
 
   return (
     <>
-      {/* Floating Bottom-Right Messenger Box (Facebook Style) */}
+      {/* Floating Bottom-Right Messenger Box */}
       <div
         className="fb-chat-dock animate-fade-in"
         style={{
           position: 'fixed',
           bottom: 0,
           right: '24px',
-          width: '350px',
+          width: '360px',
           maxWidth: 'calc(100vw - 32px)',
           height: isMinimized ? '48px' : '480px',
           maxHeight: 'calc(100vh - 80px)',
@@ -285,7 +307,7 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
           onClick={() => setIsMinimized(!isMinimized)}
         >
           <div
-            style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}
             onClick={(e) => {
               if (onViewProfile && !isMinimized) {
                 e.stopPropagation();
@@ -294,13 +316,13 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
               }
             }}
           >
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <img
                 src={friend.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${friend.username}`}
                 alt={friend.username}
                 style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
               />
-              {presence.isOnline && (
+              {presence.isOnline && !isBlocked && (
                 <span
                   style={{
                     position: 'absolute',
@@ -316,17 +338,68 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
               )}
             </div>
 
-            <div>
-              <h3 style={{ fontSize: '13px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 style={{ fontSize: '13px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 @{friend.username}
               </h3>
-              <span style={{ fontSize: '10px', color: presence.isOnline ? 'var(--accent)' : 'var(--text-muted)' }}>
-                {presence.text}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {isBlocked ? (
+                  <span style={{ fontSize: '10px', color: 'var(--error)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    ⛔ Bloqueado
+                  </span>
+                ) : isMuted ? (
+                  <span style={{ fontSize: '10px', color: 'var(--warning)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                    🔕 Silenciado
+                  </span>
+                ) : (
+                  <span style={{ fontSize: '10px', color: presence.isOnline ? 'var(--accent)' : 'var(--text-muted)' }}>
+                    {presence.text}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} onClick={e => e.stopPropagation()}>
+            {/* Mute Button */}
+            <button
+              onClick={() => toggleMuteUser(friend.id)}
+              className="st-btn-icon"
+              style={{
+                width: '28px',
+                height: '28px',
+                color: isMuted ? 'var(--warning)' : 'var(--text-secondary)',
+                background: isMuted ? 'rgba(234, 179, 8, 0.15)' : 'transparent',
+                borderColor: isMuted ? 'rgba(234, 179, 8, 0.3)' : 'transparent'
+              }}
+              title={isMuted ? "Silêncio ativado (Clique para desativar)" : "Silenciar notificações"}
+            >
+              {isMuted ? <BellOff size={14} /> : <Bell size={14} />}
+            </button>
+
+            {/* Block Button */}
+            <button
+              onClick={() => {
+                if (isBlocked) {
+                  toggleBlockUser(friend.id);
+                } else {
+                  setShowBlockConfirm(true);
+                }
+              }}
+              className="st-btn-icon"
+              style={{
+                width: '28px',
+                height: '28px',
+                color: isBlocked ? 'var(--error)' : 'var(--text-secondary)',
+                background: isBlocked ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                borderColor: isBlocked ? 'rgba(239, 68, 68, 0.3)' : 'transparent'
+              }}
+              title={isBlocked ? "Usuário bloqueado (Clique para desbloquear)" : "Bloquear usuário"}
+            >
+              {isBlocked ? <ShieldAlert size={14} /> : <UserX size={14} />}
+            </button>
+
+            {/* Minimize / Expand Button */}
             <button
               onClick={() => setIsMinimized(!isMinimized)}
               className="st-btn-icon"
@@ -335,6 +408,8 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
             >
               {isMinimized ? <ChevronUp size={15} /> : <Minus size={15} />}
             </button>
+
+            {/* Close Button */}
             <button
               onClick={onClose}
               className="st-btn-icon"
@@ -345,6 +420,62 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Block Confirmation Overlay */}
+        {showBlockConfirm && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(10, 10, 15, 0.92)',
+              backdropFilter: 'blur(6px)',
+              zIndex: 100,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px',
+              textAlign: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}>
+              <ShieldAlert size={24} color="var(--error)" />
+            </div>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)' }}>
+              Bloquear @{friend.username}?
+            </h4>
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 18px', lineHeight: 1.45 }}>
+              Você não poderá trocar mensagens e todas as notificações vindas deste usuário serão desativadas.
+            </p>
+            <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+              <button
+                onClick={() => setShowBlockConfirm(false)}
+                className="st-btn-secondary"
+                style={{ flex: 1, height: '34px', fontSize: '12px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  toggleBlockUser(friend.id);
+                  setShowBlockConfirm(false);
+                }}
+                className="st-btn-primary"
+                style={{
+                  flex: 1,
+                  height: '34px',
+                  fontSize: '12px',
+                  background: 'var(--error)',
+                  borderColor: 'var(--error)',
+                  color: '#FFFFFF'
+                }}
+              >
+                Bloquear
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Messages Body */}
         {!isMinimized && (
@@ -472,73 +603,120 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
               </div>
             )}
 
-            {/* Input Bar */}
-            <form
-              onSubmit={handleSend}
-              style={{
-                padding: '10px',
-                background: 'var(--bg-surface)',
-                borderTop: '1px solid var(--border-color)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept="image/*"
-                onChange={handleImageSelect}
-                style={{ display: 'none' }}
-              />
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="st-btn-icon"
-                style={{ width: '32px', height: '32px', color: 'var(--text-secondary)', flexShrink: 0 }}
-                title="Anexar print/imagem"
-              >
-                <Paperclip size={16} />
-              </button>
-
-              <input
-                type="text"
-                placeholder="Escreva uma mensagem..."
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
+            {/* Conditional Input Bar Area */}
+            {isBlocked ? (
+              <div
                 style={{
-                  flex: 1,
-                  height: '34px',
-                  background: 'var(--bg-dark)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-full)',
-                  padding: '0 12px',
-                  fontSize: '13px',
-                  color: 'var(--text-primary)',
-                  outline: 'none'
-                }}
-              />
-
-              <button
-                type="submit"
-                disabled={(!inputText.trim() && !attachedImage) || sending}
-                className="st-btn-primary"
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  padding: 0,
-                  borderRadius: '50%',
+                  padding: '12px 14px',
+                  background: 'var(--bg-elevated)',
+                  borderTop: '1px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  opacity: (!inputText.trim() && !attachedImage) || sending ? 0.4 : 1
+                  justifyContent: 'space-between',
+                  gap: '10px'
                 }}
               >
-                {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              </button>
-            </form>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                  <ShieldAlert size={16} style={{ color: 'var(--error)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    Você bloqueou este usuário
+                  </span>
+                </div>
+                <button
+                  onClick={() => toggleBlockUser(friend.id)}
+                  className="st-btn-secondary"
+                  style={{ height: '28px', padding: '0 12px', fontSize: '11px', flexShrink: 0 }}
+                >
+                  Desbloquear
+                </button>
+              </div>
+            ) : !isMutual ? (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  background: 'var(--bg-elevated)',
+                  borderTop: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.4
+                }}
+              >
+                <AlertCircle size={16} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                <span>
+                  O chat está disponível apenas para usuários que <strong>se seguem mutuamente</strong>.
+                </span>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSend}
+                style={{
+                  padding: '10px',
+                  background: 'var(--bg-surface)',
+                  borderTop: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  style={{ display: 'none' }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="st-btn-icon"
+                  style={{ width: '32px', height: '32px', color: 'var(--text-secondary)', flexShrink: 0 }}
+                  title="Anexar print/imagem"
+                >
+                  <Paperclip size={16} />
+                </button>
+
+                <input
+                  type="text"
+                  placeholder="Escreva uma mensagem..."
+                  value={inputText}
+                  onChange={e => setInputText(e.target.value)}
+                  style={{
+                    flex: 1,
+                    height: '34px',
+                    background: 'var(--bg-dark)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '0 12px',
+                    fontSize: '13px',
+                    color: 'var(--text-primary)',
+                    outline: 'none'
+                  }}
+                />
+
+                <button
+                  type="submit"
+                  disabled={(!inputText.trim() && !attachedImage) || sending}
+                  className="st-btn-primary"
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    padding: 0,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    opacity: (!inputText.trim() && !attachedImage) || sending ? 0.4 : 1
+                  }}
+                >
+                  {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                </button>
+              </form>
+            )}
           </>
         )}
       </div>

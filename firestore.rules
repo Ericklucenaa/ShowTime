@@ -87,5 +87,18 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
     }
+
+    // User Blocks & Mutes
+    match /user_blocks/{docId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    match /user_mutes/{docId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
   }
 }
