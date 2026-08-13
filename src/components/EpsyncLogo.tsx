@@ -48,7 +48,7 @@ export const EpsyncLogo: React.FC<EpsyncLogoProps> = ({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: `${Math.max(8, Math.round(size * 0.32))}px`,
+        gap: `${Math.max(6, Math.round(size * 0.25))}px`,
         userSelect: 'none',
         ...style
       }}
@@ -60,9 +60,7 @@ export const EpsyncLogo: React.FC<EpsyncLogoProps> = ({
           fontWeight: 800,
           fontSize: `${Math.round(size * 0.72)}px`,
           letterSpacing: '-0.025em',
-          background: 'linear-gradient(135deg, #FFFFFF 35%, #C4B5FD 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
+          color: 'var(--text-primary)',
           lineHeight: 1
         }}
       >

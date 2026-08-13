@@ -575,7 +575,7 @@ const AppContent: React.FC = () => {
               <EpsyncLogo size={72} variant="icon" />
             </div>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', letterSpacing: '-0.025em', marginBottom: '8px', background: 'linear-gradient(135deg, #FFFFFF 30%, #C4B5FD 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', letterSpacing: '-0.025em', marginBottom: '8px', color: 'var(--text-primary)' }}>
             Epsync
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>
