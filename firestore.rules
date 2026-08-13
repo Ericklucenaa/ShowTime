@@ -11,7 +11,7 @@ service cloud.firestore {
     // Custom lists: owner only
     match /custom_lists/{listId} {
       allow read: if request.auth != null;
-      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null && (resource == null || request.auth.uid == resource.data.userId || listId.matches('^' + request.auth.uid + '_.*'));
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
 
       match /items/{itemId} {
@@ -22,22 +22,25 @@ service cloud.firestore {
     // Watch episodes: owner can write; others can read (for public profiles)
     match /watch_episodes/{docId} {
       allow read: if request.auth != null;
-      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
+      allow delete: if request.auth != null && (resource == null || !('userId' in resource.data) || request.auth.uid == resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
     }
 
     // Watch movies: owner can write; others can read (for public profiles)
     match /watch_movies/{docId} {
       allow read: if request.auth != null;
-      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
+      allow delete: if request.auth != null && (resource == null || !('userId' in resource.data) || request.auth.uid == resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
     }
 
     // Followed shows: owner can write; others can read
     match /followed_shows/{docId} {
       allow read: if request.auth != null;
-      allow write, delete: if request.auth != null && request.auth.uid == resource.data.userId;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
+      allow delete: if request.auth != null && (resource == null || !('userId' in resource.data) || request.auth.uid == resource.data.userId || docId.matches('^' + request.auth.uid + '_.*'));
     }
 
     // Followed users (support both followed_users and profile_follows)

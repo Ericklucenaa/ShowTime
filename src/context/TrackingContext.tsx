@@ -278,12 +278,12 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         try {
           const qEp = query(collection(db, 'watch_episodes'), where('userId', '==', user.id));
           const snapEp = await getDocs(qEp);
-          const eps = snapEp.docs.map(d => ({ id: d.id, ...d.data() } as WatchEpisodeEvent));
+          const eps = snapEp.docs.map(d => ({ ...d.data(), id: d.id } as WatchEpisodeEvent));
           setWatchedEpisodes(eps);
 
           const qMov = query(collection(db, 'watch_movies'), where('userId', '==', user.id));
           const snapMov = await getDocs(qMov);
-          const movs = snapMov.docs.map(d => ({ id: d.id, ...d.data() } as WatchMovieEvent));
+          const movs = snapMov.docs.map(d => ({ ...d.data(), id: d.id } as WatchMovieEvent));
           setWatchedMovies(movs);
 
           const qLists = query(collection(db, 'custom_lists'), where('userId', '==', user.id));
@@ -583,17 +583,26 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isFirebaseEnabled && db) {
       try {
-        const docId = existing?.id || `${user.id}_${cleanTargetId}`;
+        const primaryDocId = `${user.id}_${cleanTargetId}`;
+        const candidateDocIds = Array.from(new Set([
+          existing?.id,
+          primaryDocId,
+          `${user.id}_${movieId}`,
+          `${user.id}_m_${cleanTargetId}`
+        ])).filter((id): id is string => Boolean(id));
+
         if (!willBeWatched && !existing?.isFavorite) {
-          await deleteDoc(doc(db, 'watch_movies', docId));
+          await Promise.allSettled(
+            candidateDocIds.map(dId => deleteDoc(doc(db, 'watch_movies', dId)))
+          );
         } else {
-          const docRef = doc(db, 'watch_movies', docId);
+          const docRef = doc(db, 'watch_movies', primaryDocId);
           if (willBeWatched) {
             await setDoc(docRef, {
-              id: docId,
+              id: primaryDocId,
               userId: user.id,
-              movieId,
-              watchedAt: new Date().toISOString(),
+              movieId: cleanTargetId,
+              watchedAt: existing?.watchedAt || new Date().toISOString(),
               isWatched: true,
               isFavorite: existing?.isFavorite || false,
               movieTitle: title,
@@ -602,9 +611,18 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             }, { merge: true });
           } else {
             await setDoc(docRef, {
+              userId: user.id,
               isWatched: false,
               watchedAt: ''
             }, { merge: true });
+          }
+
+          // Clean up any legacy duplicates with different IDs
+          const legacyDocIds = candidateDocIds.filter(dId => dId !== primaryDocId);
+          if (legacyDocIds.length > 0) {
+            Promise.allSettled(
+              legacyDocIds.map(dId => deleteDoc(doc(db, 'watch_movies', dId)))
+            ).catch(() => {});
           }
         }
         return willBeWatched;
@@ -665,18 +683,30 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isFirebaseEnabled && db) {
       try {
-        const docId = existing?.id || `${user.id}_${cleanTargetId}`;
+        const primaryDocId = `${user.id}_${cleanTargetId}`;
+        const candidateDocIds = Array.from(new Set([
+          existing?.id,
+          primaryDocId,
+          `${user.id}_${movieId}`,
+          `${user.id}_m_${cleanTargetId}`
+        ])).filter((id): id is string => Boolean(id));
+
         if (!newFavoriteStatus && existing?.isWatched === false) {
-          await deleteDoc(doc(db, 'watch_movies', docId));
+          await Promise.allSettled(
+            candidateDocIds.map(dId => deleteDoc(doc(db, 'watch_movies', dId)))
+          );
         } else {
-          const docRef = doc(db, 'watch_movies', docId);
+          const docRef = doc(db, 'watch_movies', primaryDocId);
           if (existing) {
-            await setDoc(docRef, { isFavorite: newFavoriteStatus }, { merge: true });
+            await setDoc(docRef, {
+              userId: user.id,
+              isFavorite: newFavoriteStatus
+            }, { merge: true });
           } else {
             await setDoc(docRef, {
-              id: docId,
+              id: primaryDocId,
               userId: user.id,
-              movieId,
+              movieId: cleanTargetId,
               watchedAt: '',
               isWatched: false,
               isFavorite: true,

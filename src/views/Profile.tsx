@@ -474,8 +474,9 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
 
               // Persist cache
               if (isFirebaseEnabled && db && user) {
-                const docRef = doc(db, 'watch_movies', m.id || `${user.id}_${cId}`);
-                setDoc(docRef, { posterPath: poster, movieTitle: title }, { merge: true }).catch(() => {});
+                const targetDocId = `${user.id}_${cId}`;
+                const docRef = doc(db, 'watch_movies', targetDocId);
+                setDoc(docRef, { userId: user.id, posterPath: poster, movieTitle: title }, { merge: true }).catch(() => {});
               }
 
               return {
@@ -504,8 +505,9 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                 const newId = cleanId(found.id) || cId;
 
                 if (isFirebaseEnabled && db && user) {
-                  const docRef = doc(db, 'watch_movies', m.id || `${user.id}_${cId}`);
-                  setDoc(docRef, { posterPath: poster, movieTitle: title, movieId: newId }, { merge: true }).catch(() => {});
+                  const targetDocId = `${user.id}_${newId}`;
+                  const docRef = doc(db, 'watch_movies', targetDocId);
+                  setDoc(docRef, { userId: user.id, posterPath: poster, movieTitle: title, movieId: newId }, { merge: true }).catch(() => {});
                 }
 
                 return {
