@@ -283,7 +283,36 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
           const qMov = query(collection(db, 'watch_movies'), where('userId', '==', user.id));
           const snapMov = await getDocs(qMov);
-          const movs = snapMov.docs.map(d => ({ ...d.data(), id: d.id } as WatchMovieEvent));
+          const rawMovs = snapMov.docs.map(d => ({ ...d.data(), id: d.id } as WatchMovieEvent));
+
+          const normTitleHelper = (t?: string) => (t || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+          const seenIds = new Set<string>();
+          const seenTitles = new Set<string>();
+          const movs: WatchMovieEvent[] = [];
+          const duplicateDocIdsToDelete: string[] = [];
+
+          for (const m of rawMovs) {
+            const cId = normalizeId(m.movieId) || normalizeId(m.id);
+            const nTitle = normTitleHelper(m.movieTitle);
+            const isDuplicateId = Boolean(cId && seenIds.has(cId));
+            const isDuplicateTitle = Boolean(nTitle && nTitle.length > 3 && seenTitles.has(nTitle));
+
+            if (isDuplicateId || isDuplicateTitle) {
+              if (m.id) duplicateDocIdsToDelete.push(m.id);
+              continue;
+            }
+
+            if (cId) seenIds.add(cId);
+            if (nTitle && nTitle.length > 3) seenTitles.add(nTitle);
+            movs.push(m);
+          }
+
+          if (duplicateDocIdsToDelete.length > 0) {
+            Promise.allSettled(
+              duplicateDocIdsToDelete.map(dId => deleteDoc(doc(db, 'watch_movies', dId)))
+            ).catch(() => {});
+          }
+
           setWatchedMovies(movs);
 
           const qLists = query(collection(db, 'custom_lists'), where('userId', '==', user.id));
@@ -552,8 +581,24 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleWatchMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const existingIndex = watchedMovies.findIndex(w => isMovieMatch(w, movieId));
-    const existing = existingIndex > -1 ? watchedMovies[existingIndex] : null;
+    const normTitleHelper = (t?: string) => (t || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+    const targetTitle = movieMetadata?.title || movieMetadata?.name || '';
+    const normTargetTitle = normTitleHelper(targetTitle);
+
+    // Find ALL matching duplicates (by ID or Title)
+    const matchingIndices: number[] = [];
+    watchedMovies.forEach((w, idx) => {
+      if (isMovieMatch(w, movieId)) {
+        matchingIndices.push(idx);
+      } else if (normTargetTitle && normTargetTitle.length > 3) {
+        const wTitle = normTitleHelper(w.movieTitle);
+        if (wTitle && wTitle === normTargetTitle) {
+          matchingIndices.push(idx);
+        }
+      }
+    });
+
+    const existing = matchingIndices.length > 0 ? watchedMovies[matchingIndices[0]] : null;
     const isCurrentlyWatched = Boolean(existing && existing.isWatched !== false && existing.watchedAt);
     const willBeWatched = !isCurrentlyWatched;
     const cleanTargetId = normalizeId(movieId) || normalizeId(existing?.movieId) || String(movieId);
@@ -564,32 +609,42 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const title = movieMetadata?.title || movieMetadata?.name || existing?.movieTitle || 'Filme';
     const genres = movieMetadata?.genres || movieMetadata?.genre || existing?.genres || [];
 
-    if (existing) {
+    if (matchingIndices.length > 0) {
       if (willBeWatched) {
-        newMovs[existingIndex] = {
-          ...existing,
+        const primaryIdx = matchingIndices[0];
+        newMovs[primaryIdx] = {
+          ...watchedMovies[primaryIdx],
           isWatched: true,
-          watchedAt: existing.watchedAt || new Date().toISOString(),
+          watchedAt: watchedMovies[primaryIdx].watchedAt || new Date().toISOString(),
           posterPath: poster,
           movieTitle: title,
           genres
         };
+        const otherIndices = matchingIndices.slice(1);
+        newMovs = newMovs.filter((_, idx) => !otherIndices.includes(idx));
       } else {
-        if (existing.isFavorite) {
-          newMovs[existingIndex] = {
-            ...existing,
+        const matchedItems = matchingIndices.map(i => watchedMovies[i]);
+        const hasFavorite = matchedItems.some(m => m.isFavorite);
+
+        if (hasFavorite) {
+          const primaryIdx = matchingIndices[0];
+          newMovs[primaryIdx] = {
+            ...watchedMovies[primaryIdx],
             isWatched: false,
-            watchedAt: ''
+            watchedAt: '',
+            isFavorite: true
           };
+          const otherIndices = matchingIndices.slice(1);
+          newMovs = newMovs.filter((_, idx) => !otherIndices.includes(idx));
         } else {
-          newMovs.splice(existingIndex, 1);
+          newMovs = newMovs.filter((_, idx) => !matchingIndices.includes(idx));
         }
       }
     } else {
       newMovs.push({
         id: 'wm_' + generateId(),
         userId: user.id,
-        movieId,
+        movieId: cleanTargetId,
         watchedAt: new Date().toISOString(),
         isWatched: true,
         isFavorite: false,
@@ -607,13 +662,21 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (isFirebaseEnabled && db) {
       try {
         const primaryDocId = `${user.id}_${cleanTargetId}`;
+        const matchedItems = matchingIndices.map(i => watchedMovies[i]);
+
         const candidateDocIds = Array.from(new Set([
           existing?.id,
           primaryDocId,
           `${user.id}_${movieId}`,
           `${user.id}_m_${cleanTargetId}`,
           `${user.id}_wm_${cleanTargetId}`,
-          existing?.movieId ? `${user.id}_${existing.movieId}` : null
+          ...matchedItems.flatMap(m => [
+            m.id,
+            `${user.id}_${m.movieId}`,
+            `${user.id}_${normalizeId(m.movieId)}`,
+            `${user.id}_m_${normalizeId(m.movieId)}`,
+            `${user.id}_wm_${normalizeId(m.movieId)}`
+          ])
         ])).filter((id): id is string => Boolean(id));
 
         if (!willBeWatched && !existing?.isFavorite) {

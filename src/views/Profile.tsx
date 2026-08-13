@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
-import { db, isFirebaseEnabled } from '../services/firebase.js';
-import { doc, setDoc } from 'firebase/firestore/lite';
 
 interface ProfileProps {
   onViewMedia?: (id: string, type: 'show' | 'movie') => void;
@@ -431,7 +429,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     return () => { cancelled = true; };
   }, [followedShows]);
 
-  // Load strictly watched movies details (Deduplicated & with TMDB fallback)
+  // Load strictly watched movies details (Deduplicated by ID & Title, in-memory cache)
   useEffect(() => {
     let cancelled = false;
     setLoadingMovies(true);
@@ -441,15 +439,23 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         return new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime();
       });
 
-      // 2. Deduplicate by clean movieId
-      const seen = new Set<string>();
+      const normalizeTitle = (t?: string) => (t || '').toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
+
+      // 2. Deduplicate by both clean movieId and normalized title
+      const seenIds = new Set<string>();
+      const seenTitles = new Set<string>();
       const uniqueMovies: typeof strictlyWatchedMovies = [];
+
       for (const m of sorted) {
         const cId = cleanId(m.movieId);
-        if (!seen.has(cId)) {
-          seen.add(cId);
-          uniqueMovies.push(m);
-        }
+        const normTitle = normalizeTitle(m.movieTitle);
+
+        if (cId && seenIds.has(cId)) continue;
+        if (normTitle && normTitle.length > 3 && seenTitles.has(normTitle)) continue;
+
+        if (cId) seenIds.add(cId);
+        if (normTitle && normTitle.length > 3) seenTitles.add(normTitle);
+        uniqueMovies.push(m);
       }
 
       const results = await Promise.allSettled(
@@ -457,7 +463,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           const cId = cleanId(m.movieId);
           if (m.posterPath) {
             return {
-              movieId: cId,
+              movieId: cId || m.movieId,
               title: m.movieTitle || 'Filme',
               posterPath: m.posterPath,
               isFavorite: m.isFavorite,
@@ -465,29 +471,41 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             };
           }
 
-          // Fallback 1: Direct fetch by ID
-          try {
-            const detail = await fetchMediaDetails(cId, 'movie');
-            if (detail && (detail.posterPath || detail.poster_path)) {
-              const poster = detail.posterPath || detail.poster_path;
-              const title = detail.title || m.movieTitle || 'Filme';
-
-              // Persist cache
-              if (isFirebaseEnabled && db && user) {
-                const targetDocId = `${user.id}_${cId}`;
-                const docRef = doc(db, 'watch_movies', targetDocId);
-                setDoc(docRef, { userId: user.id, posterPath: poster, movieTitle: title }, { merge: true }).catch(() => {});
-              }
-
+          // Check local session cache
+          const cacheKey = `epsync_meta_cache_${cId || m.movieId}`;
+          const cachedRaw = sessionStorage.getItem(cacheKey);
+          if (cachedRaw) {
+            try {
+              const cached = JSON.parse(cachedRaw);
               return {
-                movieId: cId,
-                title: title,
-                posterPath: poster,
+                movieId: cached.movieId || cId || m.movieId,
+                title: cached.title || m.movieTitle || 'Filme',
+                posterPath: cached.posterPath,
                 isFavorite: m.isFavorite,
                 watchedAt: m.watchedAt
               };
-            }
-          } catch (_) {}
+            } catch (_) {}
+          }
+
+          // Fallback 1: Direct fetch by ID (if numeric ID)
+          if (/^\d+$/.test(cId)) {
+            try {
+              const detail = await fetchMediaDetails(cId, 'movie');
+              if (detail && (detail.posterPath || detail.poster_path)) {
+                const poster = detail.posterPath || detail.poster_path;
+                const title = detail.title || m.movieTitle || 'Filme';
+                sessionStorage.setItem(cacheKey, JSON.stringify({ posterPath: poster, title, movieId: cId }));
+
+                return {
+                  movieId: cId,
+                  title,
+                  posterPath: poster,
+                  isFavorite: m.isFavorite,
+                  watchedAt: m.watchedAt
+                };
+              }
+            } catch (_) {}
+          }
 
           // Fallback 2: Search by title / slug
           const cleanQuery = (m.movieTitle || m.movieId || '')
@@ -495,7 +513,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             .replace(/[-_]/g, ' ')
             .trim();
 
-          if (cleanQuery) {
+          if (cleanQuery && cleanQuery.length > 1) {
             try {
               const searchResults = await searchMedia(cleanQuery);
               const found = searchResults.find(r => r.mediaType === 'movie' && (r.posterPath || r.poster_path)) || searchResults[0];
@@ -503,16 +521,11 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                 const poster = found.posterPath || found.poster_path;
                 const title = found.title || cleanQuery;
                 const newId = cleanId(found.id) || cId;
-
-                if (isFirebaseEnabled && db && user) {
-                  const targetDocId = `${user.id}_${newId}`;
-                  const docRef = doc(db, 'watch_movies', targetDocId);
-                  setDoc(docRef, { userId: user.id, posterPath: poster, movieTitle: title, movieId: newId }, { merge: true }).catch(() => {});
-                }
+                sessionStorage.setItem(cacheKey, JSON.stringify({ posterPath: poster, title, movieId: newId }));
 
                 return {
                   movieId: newId,
-                  title: title,
+                  title,
                   posterPath: poster,
                   isFavorite: m.isFavorite,
                   watchedAt: m.watchedAt
@@ -522,7 +535,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           }
 
           return {
-            movieId: cId,
+            movieId: cId || m.movieId,
             title: m.movieTitle || cleanQuery || 'Filme',
             posterPath: null,
             isFavorite: m.isFavorite,
