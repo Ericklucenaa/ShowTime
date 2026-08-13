@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes, fetchWatchProviders } from '../services/api.js';
+import { fetchMediaDetails, getImageUrl, fetchSeasonEpisodes, fetchWatchProviders, searchMedia } from '../services/api.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { useAuth } from '../context/AuthContext.js';
 import { useNotifications } from '../context/NotificationContext.js';
@@ -23,6 +23,27 @@ import { trackEvent } from '../services/telemetry.js';
 function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
+
+const normalizeId = (id?: string | number) => id ? String(id).replace(/^(wm_|we_|m_|s_)/, '').trim() : '';
+
+const isMovieMatch = (movie: any, targetId: string | number) => {
+  if (!movie || !targetId) return false;
+  const cleanTarget = normalizeId(targetId);
+  const rawTarget = String(targetId).trim();
+  const cleanMovieId = normalizeId(movie.movieId);
+  const rawMovieId = String(movie.movieId || '').trim();
+  const cleanDocId = normalizeId(movie.id);
+  const rawDocId = String(movie.id || '').trim();
+
+  return (
+    (cleanMovieId !== '' && cleanMovieId === cleanTarget) ||
+    (rawMovieId !== '' && rawMovieId === rawTarget) ||
+    (cleanDocId !== '' && cleanDocId === cleanTarget) ||
+    (rawDocId !== '' && rawDocId === rawTarget) ||
+    (movie.id && movie.id.endsWith(`_${cleanTarget}`)) ||
+    (movie.id && movie.id.endsWith(`_${rawTarget}`))
+  );
+};
 
 function isEpisodeReleased(airDateValue?: string): boolean {
   if (!airDateValue) return false;
@@ -125,11 +146,47 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
     setLoadError(null);
     setMedia(null);
     try {
-      const data = await fetchMediaDetails(mediaId, mediaType);
+      let data: any = null;
+      try {
+        data = await fetchMediaDetails(mediaId, mediaType);
+      } catch (_) {}
+
+      // Fallback for custom/imported movie or show IDs
+      if (!data) {
+        const matchingMovie = mediaType === 'movie' 
+          ? (watchedMovies || []).find(m => isMovieMatch(m, mediaId))
+          : null;
+
+        if (matchingMovie) {
+          const queryTitle = matchingMovie.movieTitle || matchingMovie.movieId;
+          if (queryTitle) {
+            try {
+              const searchResults = await searchMedia(queryTitle);
+              const found = searchResults.find(r => r.mediaType === 'movie') || searchResults[0];
+              if (found && found.id) {
+                data = await fetchMediaDetails(found.id, 'movie');
+              }
+            } catch (_) {}
+          }
+
+          if (!data) {
+            data = {
+              id: mediaId,
+              title: matchingMovie.movieTitle || 'Filme',
+              overview: 'Filme adicionado à sua biblioteca no Epsync.',
+              posterPath: matchingMovie.posterPath || null,
+              genres: matchingMovie.genres || [],
+              status: 'Assistido'
+            };
+          }
+        }
+      }
+
       if (!data) {
         setLoadError('Série/filme não encontrado. Verifique se a chave TMDB está configurada corretamente.');
         return;
       }
+
       setMedia(data);
       if (data.tmdbId) {
         const providers = await fetchWatchProviders(mediaType, data.tmdbId);
@@ -294,17 +351,13 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
 
 
 
-  // Helper to normalize TMDB IDs (removes m_ or s_ prefix if present)
-  const cleanId = (id?: string) => id ? id.replace(/^[sm]_/, '') : '';
-
   // Check watch statuses
   const isMovieWatched = (watchedMovies || []).some(m => {
-    const cleanWatchedId = cleanId(m.movieId);
-    return (cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId)) && m.isWatched !== false && Boolean(m.watchedAt);
+    const match = isMovieMatch(m, media?.id) || isMovieMatch(m, mediaId);
+    return match && m.isWatched !== false && Boolean(m.watchedAt);
   });
   const isMovieFavorite = (watchedMovies || []).find(m => {
-    const cleanWatchedId = cleanId(m.movieId);
-    return cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId);
+    return isMovieMatch(m, media?.id) || isMovieMatch(m, mediaId);
   })?.isFavorite || false;
 
   const isEpisodeWatched = (epId: string) => (watchedEpisodes || []).some(e => e && e.episodeId === epId);

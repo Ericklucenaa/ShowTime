@@ -525,15 +525,38 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const normalizeId = (id?: string | number) => {
+    if (!id) return '';
+    return String(id).replace(/^(wm_|we_|m_|s_)/, '').trim();
+  };
+
+  const isMovieMatch = (movie: WatchMovieEvent, targetId: string | number) => {
+    if (!movie || !targetId) return false;
+    const cleanTarget = normalizeId(targetId);
+    const rawTarget = String(targetId).trim();
+    const cleanMovieId = normalizeId(movie.movieId);
+    const rawMovieId = String(movie.movieId || '').trim();
+    const cleanDocId = normalizeId(movie.id);
+    const rawDocId = String(movie.id || '').trim();
+
+    return (
+      (cleanMovieId !== '' && cleanMovieId === cleanTarget) ||
+      (rawMovieId !== '' && rawMovieId === rawTarget) ||
+      (cleanDocId !== '' && cleanDocId === cleanTarget) ||
+      (rawDocId !== '' && rawDocId === rawTarget) ||
+      (movie.id && movie.id.endsWith(`_${cleanTarget}`)) ||
+      (movie.id && movie.id.endsWith(`_${rawTarget}`))
+    );
+  };
+
   const toggleWatchMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const cleanId = (id?: string) => id ? String(id).replace(/^[sm]_/, '') : '';
-    const cleanTargetId = cleanId(movieId);
-    const existingIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
+    const existingIndex = watchedMovies.findIndex(w => isMovieMatch(w, movieId));
     const existing = existingIndex > -1 ? watchedMovies[existingIndex] : null;
     const isCurrentlyWatched = Boolean(existing && existing.isWatched !== false && existing.watchedAt);
     const willBeWatched = !isCurrentlyWatched;
+    const cleanTargetId = normalizeId(movieId) || normalizeId(existing?.movieId) || String(movieId);
 
     // Optimistic Update
     let newMovs = [...watchedMovies];
@@ -588,7 +611,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           existing?.id,
           primaryDocId,
           `${user.id}_${movieId}`,
-          `${user.id}_m_${cleanTargetId}`
+          `${user.id}_m_${cleanTargetId}`,
+          `${user.id}_wm_${cleanTargetId}`,
+          existing?.movieId ? `${user.id}_${existing.movieId}` : null
         ])).filter((id): id is string => Boolean(id));
 
         if (!willBeWatched && !existing?.isFavorite) {
@@ -645,12 +670,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleFavoriteMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const cleanId = (id?: string) => id ? String(id).replace(/^[sm]_/, '') : '';
-    const cleanTargetId = cleanId(movieId);
-    const existingIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
+    const existingIndex = watchedMovies.findIndex(w => isMovieMatch(w, movieId));
     const existing = existingIndex > -1 ? watchedMovies[existingIndex] : null;
     const isCurrentlyFav = Boolean(existing && existing.isFavorite);
     const newFavoriteStatus = !isCurrentlyFav;
+    const cleanTargetId = normalizeId(movieId) || normalizeId(existing?.movieId) || String(movieId);
 
     // Optimistic Update
     let newMovs = [...watchedMovies];
@@ -688,7 +712,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           existing?.id,
           primaryDocId,
           `${user.id}_${movieId}`,
-          `${user.id}_m_${cleanTargetId}`
+          `${user.id}_m_${cleanTargetId}`,
+          `${user.id}_wm_${cleanTargetId}`,
+          existing?.movieId ? `${user.id}_${existing.movieId}` : null
         ])).filter((id): id is string => Boolean(id));
 
         if (!newFavoriteStatus && existing?.isWatched === false) {

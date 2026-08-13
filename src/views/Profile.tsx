@@ -252,7 +252,7 @@ const MediaCarousel: React.FC<CarouselProps> = ({
 
 export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const { user, logout, updateAvatar, updateBanner, updatePrivacy, error: authError } = useAuth();
-  const { watchedEpisodes, watchedMovies, genreCounts, totalGenresCount, followedShows } = useTracking();
+  const { watchedEpisodes, watchedMovies, genreCounts, totalGenresCount, followedShows, toggleWatchMovie } = useTracking();
 
   const [followedShowsData, setFollowedShowsData] = useState<any[]>([]);
   const [watchedMoviesData, setWatchedMoviesData] = useState<any[]>([]);
@@ -821,7 +821,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <div
             key={m.movieId || idx}
             className="horizontal-scroll-item"
-            onClick={() => onViewMedia?.(cleanId(m.movieId), 'movie')}
+            onClick={() => onViewMedia?.(m.movieId, 'movie')}
           >
             <div style={{ 
               borderRadius: 'var(--radius-md)', 
@@ -854,6 +854,40 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                 </div>
               )}
 
+              {/* Quick Unwatch Button on Top-Left */}
+              <button
+                type="button"
+                title="Desmarcar filme como assistido"
+                aria-label="Desmarcar filme como assistido"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleWatchMovie(m.movieId, m);
+                  pushToast('info', `"${m.title || 'Filme'}" desmarcado.`);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: 5,
+                  left: 5,
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'rgba(13, 13, 18, 0.85)',
+                  backdropFilter: 'blur(4px)',
+                  border: '1px solid rgba(0, 245, 212, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent)',
+                  cursor: 'pointer',
+                  zIndex: 6,
+                  transition: 'transform var(--transition-fast)'
+                }}
+                onMouseOver={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <Check size={13} />
+              </button>
+
               {/* Favorite Heart Badge */}
               {m.isFavorite && (
                 <div style={{ 
@@ -866,7 +900,8 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                   backdropFilter: 'blur(4px)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  zIndex: 5
                 }}>
                   <Heart size={12} fill="var(--secondary)" color="var(--secondary)" />
                 </div>
