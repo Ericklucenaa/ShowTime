@@ -16,9 +16,7 @@ import {
   Sparkles, 
   ChevronLeft, 
   ChevronRight, 
-  Settings, 
-  Check, 
-  ImageIcon
+  Check
 } from 'lucide-react';
 import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
@@ -261,10 +259,9 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const [loadingShows, setLoadingShows] = useState(false);
   const [loadingMovies, setLoadingMovies] = useState(false);
 
-  // Avatar, Banner & Edit Modals State
+  // Avatar & Banner Modals State
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showBannerPicker, setShowBannerPicker] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [customAvatarUrl, setCustomAvatarUrl] = useState('');
   const [customBannerUrl, setCustomBannerUrl] = useState('');
   const [avatarLoading, setAvatarLoading] = useState(false);
@@ -697,26 +694,8 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           </div>
         </div>
 
-        {/* Action Buttons: "Editar Perfil" & "Sair" */}
+        {/* Action Button: "Sair" */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => setShowEditModal(true)}
-            className="st-btn-secondary"
-            style={{
-              padding: '9px 18px',
-              fontSize: '13px',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              borderRadius: 'var(--radius-full)',
-              cursor: 'pointer'
-            }}
-          >
-            <Settings size={15} /> Editar Perfil
-          </button>
-
           <button
             type="button"
             onClick={logout}
@@ -981,98 +960,6 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       {/* Hidden File Inputs for Device Gallery / Camera */}
       <input ref={devicePhotoInputRef} type="file" accept="image/*" onChange={handleDevicePhotoChange} style={{ display: 'none' }} />
       <input ref={deviceBannerInputRef} type="file" accept="image/*" onChange={handleDeviceBannerChange} style={{ display: 'none' }} />
-
-      {/* Unified "Editar Perfil" Modal */}
-      {showEditModal && createPortal(
-        <div 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 99999,
-            background: 'rgba(0, 0, 0, 0.82)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px'
-          }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowEditModal(false); }}
-        >
-          <div 
-            className="st-panel animate-scale-up" 
-            style={{ 
-              width: '100%', 
-              maxWidth: '460px', 
-              padding: '24px', 
-              borderRadius: 'var(--radius-lg)', 
-              border: '1px solid var(--border-color)', 
-              background: 'var(--bg-surface)',
-              boxShadow: 'var(--shadow-xl)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Settings size={18} style={{ color: 'var(--primary)' }} /> Editar Perfil
-              </h3>
-              <button 
-                type="button" 
-                onClick={() => setShowEditModal(false)} 
-                className="st-btn-icon" 
-                style={{ width: '32px', height: '32px', fontSize: '16px' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={() => { setShowEditModal(false); setShowAvatarPicker(true); }}
-                className="st-btn-secondary"
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-md)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Camera size={18} style={{ color: 'var(--primary)' }} />
-                  <span>Alterar Foto de Perfil</span>
-                </div>
-                <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setShowEditModal(false); setShowBannerPicker(true); }}
-                className="st-btn-secondary"
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  borderRadius: 'var(--radius-md)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ImageIcon size={18} style={{ color: 'var(--accent)' }} />
-                  <span>Alterar Capa do Perfil</span>
-                </div>
-                <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Banner Picker Modal */}
       {showBannerPicker && createPortal(
