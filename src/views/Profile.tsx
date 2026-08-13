@@ -392,30 +392,97 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         </div>
       </div>
 
-      {/* Profile Header Info Block */}
-      <div className="profile-header-block">
-        <div className="profile-user-details">
-          <h2 className="profile-username">
-            @{user?.username}
-          </h2>
-          <div className="profile-badge-row">
-            <img src="/logo.png" alt="Epsync" className="profile-badge-icon" />
-            <span className="profile-badge-text">Membro Epsync</span>
-          </div>
+      {/* User Info Block */}
+      <div style={{ marginTop: '46px', marginBottom: '16px', paddingLeft: '4px' }}>
+        <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+          @{user?.username}
+        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+          <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
         </div>
-        
-        {/* Responsive 3-Button Action Row */}
-        <div className="profile-header-actions">
-          <button type="button" onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary profile-action-btn" disabled={avatarLoading}>
-            <Camera size={14} /> Foto
-          </button>
-          <button type="button" onClick={() => setShowBannerPicker(true)} className="st-btn-secondary profile-action-btn" disabled={bannerLoading}>
-            <ImageIcon size={14} /> Capa
-          </button>
-          <button type="button" onClick={logout} className="st-btn-secondary profile-action-btn logout-btn">
-            <LogOut size={14} /> Sair
-          </button>
-        </div>
+      </div>
+
+      {/* 3 Action Buttons - Always 3 equal columns across the entire width */}
+      <div 
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '8px',
+          width: '100%',
+          boxSizing: 'border-box',
+          marginBottom: '22px'
+        }}
+      >
+        <button 
+          type="button" 
+          onClick={() => setShowAvatarPicker(true)} 
+          className="st-btn-secondary" 
+          style={{
+            width: '100%',
+            minHeight: '44px',
+            padding: '8px 4px',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+            cursor: 'pointer'
+          }}
+          disabled={avatarLoading}
+        >
+          <Camera size={15} /> Foto
+        </button>
+
+        <button 
+          type="button" 
+          onClick={() => setShowBannerPicker(true)} 
+          className="st-btn-secondary" 
+          style={{
+            width: '100%',
+            minHeight: '44px',
+            padding: '8px 4px',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+            cursor: 'pointer'
+          }}
+          disabled={bannerLoading}
+        >
+          <ImageIcon size={15} /> Capa
+        </button>
+
+        <button 
+          type="button" 
+          onClick={logout} 
+          className="st-btn-secondary" 
+          style={{
+            width: '100%',
+            minHeight: '44px',
+            padding: '8px 4px',
+            fontSize: '13px',
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+            color: 'var(--error)',
+            borderColor: 'rgba(239, 68, 68, 0.3)',
+            cursor: 'pointer'
+          }}
+        >
+          <LogOut size={15} /> Sair
+        </button>
       </div>
 
       {/* Hidden File Inputs for Device Gallery / Camera */}
@@ -635,22 +702,40 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       )}
 
       {/* Stats Grid (2x2 on Mobile, 4 columns on Desktop) */}
-      <div className="profile-stats-grid">
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)' }}>{followedShows.length}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Séries Seguidas</div>
+      <div 
+        className="profile-stats-grid"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '10px',
+          width: '100%',
+          boxSizing: 'border-box',
+          marginBottom: '28px'
+        }}
+      >
+        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {followedShows.length}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Séries Seguidas</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>{watchedEpisodes.length}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
+        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {watchedEpisodes.length}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Episódios Vistos</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)' }}>{watchedMovies.length}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
+        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {watchedMovies.length}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Filmes Vistos</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
-          <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>{totalDays}</div>
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Dias Assistidos</div>
+        <div className="st-card" style={{ padding: '14px 10px', textAlign: 'center', boxSizing: 'border-box' }}>
+          <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)', lineHeight: 1.1, marginBottom: '4px' }}>
+            {totalDays}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>Dias Assistidos</div>
         </div>
       </div>
 
