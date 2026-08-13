@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
 import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
-import { fetchMediaDetails, getImageUrl } from '../services/api.js';
+import { fetchMediaDetails, searchMedia, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 
 interface ProfileProps {
@@ -236,13 +237,13 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     return () => { cancelled = true; };
   }, [followedShows]);
 
-  // Load user's watched movies
+  // Load user's watched movies with auto fallback search for imported movies
   useEffect(() => {
     let cancelled = false;
     setLoadingMovies(true);
     (async () => {
       const results = await Promise.allSettled(
-        watchedMovies.slice(0, 35).map(async (m) => {
+        watchedMovies.slice(0, 40).map(async (m) => {
           if (m.posterPath) {
             return {
               movieId: m.movieId,
@@ -252,11 +253,47 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               watchedAt: m.watchedAt
             };
           }
-          const detail = await fetchMediaDetails(m.movieId, 'movie');
+
+          // 1. Try detail by ID
+          try {
+            const detail = await fetchMediaDetails(m.movieId, 'movie');
+            if (detail && (detail.posterPath || detail.poster_path)) {
+              return {
+                movieId: m.movieId,
+                title: detail.title || m.movieTitle || 'Filme',
+                posterPath: detail.posterPath || detail.poster_path,
+                isFavorite: m.isFavorite,
+                watchedAt: m.watchedAt
+              };
+            }
+          } catch (_) {}
+
+          // 2. Fallback search by title or slug for imported TV Time entries
+          const cleanQuery = (m.movieTitle || m.movieId || '')
+            .replace(/^[m]_/, '')
+            .replace(/[-_]/g, ' ')
+            .trim();
+
+          if (cleanQuery) {
+            try {
+              const searchResults = await searchMedia(cleanQuery);
+              const found = searchResults.find(r => r.mediaType === 'movie' && (r.posterPath || r.poster_path)) || searchResults[0];
+              if (found) {
+                return {
+                  movieId: found.id || m.movieId,
+                  title: found.title || cleanQuery,
+                  posterPath: found.posterPath || found.poster_path,
+                  isFavorite: m.isFavorite,
+                  watchedAt: m.watchedAt
+                };
+              }
+            } catch (_) {}
+          }
+
           return {
             movieId: m.movieId,
-            title: detail?.title || m.movieTitle || 'Filme',
-            posterPath: detail?.posterPath || m.posterPath,
+            title: m.movieTitle || cleanQuery || 'Filme',
+            posterPath: null,
             isFavorite: m.isFavorite,
             watchedAt: m.watchedAt
           };
@@ -385,14 +422,14 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       <input ref={devicePhotoInputRef} type="file" accept="image/*" onChange={handleDevicePhotoChange} style={{ display: 'none' }} />
       <input ref={deviceBannerInputRef} type="file" accept="image/*" onChange={handleDeviceBannerChange} style={{ display: 'none' }} />
 
-      {/* Banner Picker Modal */}
-      {showBannerPicker && (
+      {/* Banner Picker Modal (Mounted via createPortal directly into body for perfect centering) */}
+      {showBannerPicker && createPortal(
         <div 
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 10000,
-            background: 'rgba(0, 0, 0, 0.78)',
+            zIndex: 99999,
+            background: 'rgba(0, 0, 0, 0.82)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -405,7 +442,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             className="st-panel animate-scale-up" 
             style={{ 
               width: '100%', 
-              maxWidth: '560px', 
+              maxWidth: '520px', 
               maxHeight: '90vh', 
               overflowY: 'auto', 
               padding: '24px', 
@@ -487,17 +524,18 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Avatar Picker Modal */}
-      {showAvatarPicker && (
+      {/* Avatar Picker Modal (Mounted via createPortal directly into body for perfect centering) */}
+      {showAvatarPicker && createPortal(
         <div 
           style={{
             position: 'fixed',
             inset: 0,
-            zIndex: 10000,
-            background: 'rgba(0, 0, 0, 0.78)',
+            zIndex: 99999,
+            background: 'rgba(0, 0, 0, 0.82)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -592,7 +630,8 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               </form>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Stats Grid (2x2 on Mobile, 4 columns on Desktop) */}
@@ -680,17 +719,21 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
                   className="horizontal-scroll-item"
                   onClick={() => onViewMedia?.(m.movieId, 'movie')}
                 >
-                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
+                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'linear-gradient(145deg, #1E1B38 0%, #111022 100%)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {m.posterPath ? (
                       <img src={getImageUrl(m.posterPath)} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '8px' }}>
-                        <Film size={28} color="var(--text-muted)" />
-                        <span style={{ fontSize: '9px', color: 'var(--text-muted)', textAlign: 'center' }}>Filme</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px 6px', textAlign: 'center', width: '100%', height: '100%' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255, 122, 89, 0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Film size={18} style={{ color: 'var(--secondary)' }} />
+                        </div>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, lineHeight: 1.25, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {m.title}
+                        </span>
                       </div>
                     )}
                     {m.isFavorite && (
-                      <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.75)', borderRadius: '50%', padding: '3px', backdropFilter: 'blur(4px)' }}>
+                      <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.75)', borderRadius: '50%', padding: '4px', backdropFilter: 'blur(4px)' }}>
                         <Heart size={12} fill="var(--secondary)" color="var(--secondary)" />
                       </div>
                     )}
