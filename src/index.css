@@ -504,27 +504,77 @@ button, input, select, textarea {
   background: var(--bg-surface);
 }
 
+@media (max-width: 640px) {
+  .profile-header-info {
+    padding-left: 0 !important;
+    margin-top: 48px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 14px !important;
+  }
+  .profile-header-info > div:first-child {
+    width: 100%;
+  }
+  .profile-header-actions {
+    width: 100% !important;
+    display: flex !important;
+    gap: 8px !important;
+  }
+  .profile-header-actions button {
+    flex: 1 1 0 !important;
+    justify-content: center !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    min-height: 40px !important;
+  }
+}
+
 @media (max-width: 520px) {
   .user-greeting {
     display: none;
   }
 
   .app-container {
-    padding-bottom: 70px;
+    padding-bottom: 75px;
+  }
+
+  .welcome-banner {
+    padding: 18px 16px !important;
+    gap: 14px !important;
+  }
+
+  .hero-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
   }
 }
 
 @media (max-width: 420px) {
   .nav-item {
-    min-height: 42px;
+    min-height: 44px;
     font-size: 10px;
-    padding: 4px 6px;
-    min-width: 58px;
+    padding: 4px 4px;
+    min-width: 54px;
   }
 
   .viewport {
-    padding: 12px 8px 16px !important;
+    padding: 12px 10px 20px !important;
   }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Toast Notifications */

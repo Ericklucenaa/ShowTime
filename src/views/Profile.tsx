@@ -247,55 +247,63 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         {/* Inner Banner with overflow: hidden */}
         <div style={{ 
           position: 'relative', 
-          height: 'clamp(150px, 25vw, 220px)', 
+          height: 'clamp(150px, 28vw, 240px)', 
           borderRadius: 'var(--radius-lg)', 
           overflow: 'hidden', 
           background: 'var(--bg-surface)',
-          border: '1px solid var(--border-color)'
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
           {user?.bannerUrl ? (
             <img src={user.bannerUrl} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} />
           ) : (
             <div style={{ width: '100%', height: '100%', background: bannerBackground }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)' }} />
 
-          {/* Change Banner Button */}
+          {/* Change Banner Button (Touch Friendly) */}
           <button
-            onClick={() => setShowBannerPicker(!showBannerPicker)}
+            onClick={() => setShowBannerPicker(true)}
             className="st-btn-secondary"
             style={{
               position: 'absolute',
               top: '12px',
               right: '12px',
-              padding: '6px 12px',
-              fontSize: '12px',
-              background: 'rgba(13, 13, 18, 0.75)',
-              backdropFilter: 'blur(6px)',
-              border: '1px solid rgba(255,255,255,0.15)',
+              padding: '8px 14px',
+              fontSize: '13px',
+              fontWeight: 600,
+              background: 'rgba(13, 13, 18, 0.85)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: 'var(--radius-full)',
               color: '#FFFFFF',
-              zIndex: 5
+              zIndex: 5,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              cursor: 'pointer'
             }}
           >
-            <ImageIcon size={14} /> Alterar Capa
+            <Camera size={15} /> Alterar Capa
           </button>
         </div>
 
-        {/* Avatar Positioned Outside overflow: hidden so it's NEVER cut off */}
-        <div style={{ position: 'absolute', bottom: '-35px', left: '24px', zIndex: 10 }}>
+        {/* Avatar Positioned Outside overflow: hidden */}
+        <div style={{ position: 'absolute', bottom: '-38px', left: '20px', zIndex: 10 }}>
           <div
             style={{ 
               position: 'relative', 
               cursor: 'pointer', 
               borderRadius: '50%', 
-              width: '84px', 
-              height: '84px', 
+              width: '86px', 
+              height: '86px', 
               border: '4px solid var(--bg-dark)', 
               boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
               background: 'var(--bg-surface)',
               overflow: 'hidden'
             }}
-            onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+            onClick={() => setShowAvatarPicker(true)}
             className="avatar-container"
             title="Clique para alterar foto"
           >
@@ -304,7 +312,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               alt={user?.username}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="avatar-hover-overlay">
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.2s' }} className="avatar-hover-overlay">
               <Camera size={22} color="white" />
             </div>
           </div>
@@ -312,7 +320,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       </div>
 
       {/* Username + actions row */}
-      <div style={{ paddingLeft: '125px', paddingRight: '16px', minHeight: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }} className="profile-header-info">
+      <div className="profile-header-info" style={{ paddingLeft: '125px', paddingRight: '16px', minHeight: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
             @{user?.username}
@@ -322,86 +330,230 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={() => devicePhotoInputRef.current?.click()} className="st-btn-secondary" style={{ padding: '7px 14px', fontSize: '12px', display: 'inline-flex', gap: '5px' }} disabled={avatarLoading}>
-            <Upload size={14} /> Foto
+        <div className="profile-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }} disabled={avatarLoading}>
+            <Camera size={14} /> Foto
           </button>
-          <button onClick={() => deviceBannerInputRef.current?.click()} className="st-btn-secondary" style={{ padding: '7px 14px', fontSize: '12px', display: 'inline-flex', gap: '5px' }} disabled={bannerLoading}>
-            <Upload size={14} /> Capa
+          <button onClick={() => setShowBannerPicker(true)} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }} disabled={bannerLoading}>
+            <ImageIcon size={14} /> Capa
           </button>
-          <button onClick={logout} className="st-btn-secondary" style={{ padding: '7px 14px', fontSize: '12px', display: 'inline-flex', gap: '5px', color: 'var(--error)', borderColor: 'rgba(239,68,110,0.2)' }}>
+          <button onClick={logout} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--error)', borderColor: 'rgba(239,68,110,0.2)' }}>
             <LogOut size={14} /> Sair
           </button>
         </div>
       </div>
 
+      {/* Hidden File Inputs for Device Gallery / Camera */}
       <input ref={devicePhotoInputRef} type="file" accept="image/*" onChange={handleDevicePhotoChange} style={{ display: 'none' }} />
       <input ref={deviceBannerInputRef} type="file" accept="image/*" onChange={handleDeviceBannerChange} style={{ display: 'none' }} />
 
-      {/* Banner Picker Modal */}
+      {/* Banner Picker Modal (Responsive Modal Dialog) */}
       {showBannerPicker && (
-        <div className="st-panel animate-fade-in" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={16} style={{ color: 'var(--primary)' }} /> Escolha uma Capa para seu Perfil
-            </h4>
-            <button onClick={() => setShowBannerPicker(false)} className="st-btn-icon" style={{ width: '28px', height: '28px' }}>✕</button>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px', marginBottom: '16px' }}>
-            {bannerPresets.map((b, i) => (
-              <div 
-                key={i} 
-                onClick={() => handleSelectBanner(b.url)} 
-                style={{ 
-                  height: '70px', 
-                  borderRadius: 'var(--radius-sm)', 
-                  overflow: 'hidden', 
-                  cursor: 'pointer', 
-                  border: user?.bannerUrl === b.url ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                  position: 'relative'
-                }}
-              >
-                <img src={b.url} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <span style={{ position: 'absolute', bottom: 4, left: 6, fontSize: '10px', background: 'rgba(0,0,0,0.7)', padding: '2px 5px', borderRadius: '3px', color: '#fff', fontWeight: 600 }}>{b.name}</span>
-              </div>
-            ))}
-          </div>
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowBannerPicker(false); }}
+        >
+          <div 
+            className="st-panel animate-scale-up" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '560px', 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              padding: '24px', 
+              borderRadius: 'var(--radius-lg)', 
+              border: '1px solid var(--border-color)', 
+              background: 'var(--bg-surface)',
+              boxShadow: 'var(--shadow-xl)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Sparkles size={18} style={{ color: 'var(--primary)' }} /> Alterar Capa do Perfil
+              </h3>
+              <button onClick={() => setShowBannerPicker(false)} className="st-btn-icon" style={{ width: '32px', height: '32px', fontSize: '16px' }}>✕</button>
+            </div>
 
-          <form onSubmit={e => { e.preventDefault(); if (customBannerUrl.trim()) handleSelectBanner(customBannerUrl.trim()); }} style={{ display: 'flex', gap: '8px' }}>
-            <input 
-              type="url" 
-              required 
-              placeholder="Ou cole o link direto de uma imagem (URL)..." 
-              value={customBannerUrl} 
-              onChange={e => setCustomBannerUrl(e.target.value)} 
-              style={{ flex: 1, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} 
-            />
-            <button type="submit" className="st-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} disabled={bannerLoading}>
-              {bannerLoading ? '...' : 'Salvar Capa'}
-            </button>
-          </form>
+            {/* Option 1: Choose from Device (Mobile / Desktop) */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                1. Do seu dispositivo
+              </label>
+              <button 
+                type="button"
+                onClick={() => deviceBannerInputRef.current?.click()} 
+                className="st-btn-primary" 
+                style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}
+                disabled={bannerLoading}
+              >
+                <Upload size={16} /> {bannerLoading ? 'Processando imagem...' : 'Escolher Foto da Galeria ou Câmera'}
+              </button>
+            </div>
+
+            {/* Option 2: Choose from Presets */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                2. Ou escolha uma capa pronta
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
+                {bannerPresets.map((b, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => handleSelectBanner(b.url)} 
+                    style={{ 
+                      height: '74px', 
+                      borderRadius: 'var(--radius-sm)', 
+                      overflow: 'hidden', 
+                      cursor: 'pointer', 
+                      border: user?.bannerUrl === b.url ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                      position: 'relative',
+                      transition: 'transform var(--transition-fast)'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.03)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    <img src={b.url} alt={b.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', bottom: 4, left: 6, fontSize: '10px', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: '3px', color: '#fff', fontWeight: 600 }}>{b.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Option 3: Image URL */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                3. Ou cole um link de imagem (URL)
+              </label>
+              <form onSubmit={e => { e.preventDefault(); if (customBannerUrl.trim()) handleSelectBanner(customBannerUrl.trim()); }} style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="url" 
+                  required 
+                  placeholder="https://exemplo.com/minha-capa.jpg" 
+                  value={customBannerUrl} 
+                  onChange={e => setCustomBannerUrl(e.target.value)} 
+                  style={{ flex: 1, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} 
+                />
+                <button type="submit" className="st-btn-secondary" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600 }} disabled={bannerLoading}>
+                  {bannerLoading ? '...' : 'Salvar'}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Avatar picker */}
+      {/* Avatar Picker Modal (Responsive Modal Dialog) */}
       {showAvatarPicker && (
-        <div className="st-panel animate-fade-in" style={{ padding: '20px', marginBottom: '24px', border: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Escolha um Avatar ou envie uma foto</h4>
-            <button onClick={() => setShowAvatarPicker(false)} className="st-btn-icon" style={{ width: '28px', height: '28px' }}>✕</button>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '16px' }}>
-            {avatarPresets.map((preset, i) => (
-              <div key={i} onClick={() => handleSelectAvatar(preset)} style={{ width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer', border: user?.avatarUrl === preset ? '3px solid var(--primary)' : '2px solid rgba(255,255,255,0.1)', transition: 'transform 0.2s' }} onMouseOver={e => e.currentTarget.style.transform='scale(1.1)'} onMouseOut={e => e.currentTarget.style.transform='scale(1)'}>
-                <img src={preset} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 10000,
+            background: 'rgba(0, 0, 0, 0.78)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowAvatarPicker(false); }}
+        >
+          <div 
+            className="st-panel animate-scale-up" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '480px', 
+              maxHeight: '90vh', 
+              overflowY: 'auto', 
+              padding: '24px', 
+              borderRadius: 'var(--radius-lg)', 
+              border: '1px solid var(--border-color)', 
+              background: 'var(--bg-surface)',
+              boxShadow: 'var(--shadow-xl)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Camera size={18} style={{ color: 'var(--primary)' }} /> Alterar Foto de Perfil
+              </h3>
+              <button onClick={() => setShowAvatarPicker(false)} className="st-btn-icon" style={{ width: '32px', height: '32px', fontSize: '16px' }}>✕</button>
+            </div>
+
+            {/* Option 1: Choose from Device */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                1. Do seu dispositivo
+              </label>
+              <button 
+                type="button"
+                onClick={() => devicePhotoInputRef.current?.click()} 
+                className="st-btn-primary" 
+                style={{ width: '100%', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '14px', fontWeight: 600 }}
+                disabled={avatarLoading}
+              >
+                <Upload size={16} /> {avatarLoading ? 'Processando foto...' : 'Escolher Foto da Galeria ou Câmera'}
+              </button>
+            </div>
+
+            {/* Option 2: Choose avatar preset */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                2. Ou escolha um avatar ilustrado
+              </label>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                {avatarPresets.map((preset, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => handleSelectAvatar(preset)} 
+                    style={{ 
+                      width: '56px', 
+                      height: '56px', 
+                      borderRadius: '50%', 
+                      overflow: 'hidden', 
+                      cursor: 'pointer', 
+                      border: user?.avatarUrl === preset ? '3px solid var(--primary)' : '2px solid rgba(255,255,255,0.15)', 
+                      transition: 'transform 0.2s',
+                      background: 'var(--bg-dark)'
+                    }} 
+                    onMouseOver={e => e.currentTarget.style.transform='scale(1.1)'} 
+                    onMouseOut={e => e.currentTarget.style.transform='scale(1)'}
+                  >
+                    <img src={preset} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Option 3: Avatar URL */}
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                3. Ou cole um link de foto (URL)
+              </label>
+              <form onSubmit={e => { e.preventDefault(); if (customAvatarUrl.trim()) handleSelectAvatar(customAvatarUrl.trim()); }} style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  type="url" 
+                  required 
+                  placeholder="https://exemplo.com/minha-foto.jpg" 
+                  value={customAvatarUrl} 
+                  onChange={e => setCustomAvatarUrl(e.target.value)} 
+                  style={{ flex: 1, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} 
+                />
+                <button type="submit" className="st-btn-secondary" style={{ padding: '10px 16px', fontSize: '13px', fontWeight: 600 }} disabled={avatarLoading}>
+                  {avatarLoading ? '...' : 'Salvar'}
+                </button>
+              </form>
+            </div>
           </div>
-          <form onSubmit={e => { e.preventDefault(); if (customAvatarUrl.trim()) handleSelectAvatar(customAvatarUrl.trim()); }} style={{ display: 'flex', gap: '8px' }}>
-            <input type="url" required placeholder="URL de imagem..." value={customAvatarUrl} onChange={e => setCustomAvatarUrl(e.target.value)} style={{ flex: 1, background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontSize: '13px', color: 'var(--text-primary)', outline: 'none' }} />
-            <button type="submit" className="st-btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} disabled={avatarLoading}>{avatarLoading ? '...' : 'Salvar'}</button>
-          </form>
         </div>
       )}
 
