@@ -119,49 +119,109 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     (visibility === 'friends' && !viewerFollowsTarget)
   );
 
+  const bannerBackground = profile.bannerUrl 
+    ? profile.bannerUrl 
+    : 'linear-gradient(135deg, rgba(124,92,255,0.35) 0%, rgba(255,122,89,0.2) 100%)';
+
   return (
-    <div className="animate-fade-in">
-      {/* Header */}
+    <div className="profile-view animate-fade-in" style={{ paddingBottom: '60px' }}>
+      {/* Header Back Button */}
       <button
         onClick={onBack}
-        className="btn-secondary"
-        style={{ border: 'none', background: 'transparent', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '8px 0', cursor: 'pointer', color: 'var(--text-secondary)' }}
+        className="st-btn-secondary"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '20px', padding: '8px 14px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft size={16} />
         Voltar
       </button>
 
-      {/* Profile Card */}
-      <div className="glass-card" style={{ padding: '32px', marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-        <img
-          src={profile.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.username}`}
-          alt={profile.username}
-          style={{ width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary)', flexShrink: 0 }}
-        />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {profile.username}
+      {/* Banner & Avatar Container (Unclipped & Responsive) */}
+      <div style={{ position: 'relative', marginBottom: '45px' }}>
+        
+        {/* Inner Banner with overflow: hidden */}
+        <div style={{ 
+          position: 'relative', 
+          height: 'clamp(150px, 28vw, 240px)', 
+          borderRadius: 'var(--radius-lg)', 
+          overflow: 'hidden', 
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-color)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
+          {profile.bannerUrl ? (
+            <img src={profile.bannerUrl} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', background: bannerBackground }} />
+          )}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)' }} />
+        </div>
+
+        {/* Avatar Positioned Outside overflow: hidden */}
+        <div style={{ position: 'absolute', bottom: '-38px', left: '20px', zIndex: 10 }}>
+          <div
+            style={{ 
+              position: 'relative', 
+              borderRadius: '50%', 
+              width: '86px', 
+              height: '86px', 
+              border: '4px solid var(--bg-dark)', 
+              boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+              background: 'var(--bg-surface)',
+              overflow: 'hidden'
+            }}
+          >
+            <img
+              src={profile.avatarUrl || profile.photoUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.username}`}
+              alt={profile.username}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Username + actions row */}
+      <div className="profile-header-info" style={{ paddingLeft: '125px', paddingRight: '16px', minHeight: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+            <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
+              @{profile.username}
+            </h2>
             {isMutual && !isOwnProfile && (
-              <span style={{ fontSize: '12px', background: 'rgba(124, 92, 255, 0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 600 }}>
+              <span style={{ fontSize: '11px', background: 'rgba(124, 92, 255, 0.14)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', fontWeight: 700, border: '1px solid rgba(124,92,255,0.25)' }}>
                 Amigo Mútuo
               </span>
             )}
-            {visibility === 'private' && <span style={{ fontSize: '12px', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Lock size={11} /> Privado</span>}
-            {visibility === 'friends' && <span style={{ fontSize: '12px', background: 'rgba(99,102,241,0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'flex', alignItems: 'center', gap: '4px' }}><Users size={11} /> Apenas Amigos</span>}
-          </h2>
+            {visibility === 'private' && (
+              <span style={{ fontSize: '11px', background: 'rgba(239,68,68,0.12)', color: '#f87171', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                <Lock size={11} /> Privado
+              </span>
+            )}
+            {visibility === 'friends' && (
+              <span style={{ fontSize: '11px', background: 'rgba(99,102,241,0.12)', color: 'var(--primary)', padding: '3px 10px', borderRadius: 'var(--radius-full)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                <Users size={11} /> Apenas Amigos
+              </span>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+            <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+          </div>
+
           {!isBlocked && (
-            <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
               <span><strong style={{ color: 'var(--text-primary)' }}>{watchedShows.length}</strong> séries assistidas</span>
               <span><strong style={{ color: 'var(--text-primary)' }}>{followedShowsList.length}</strong> séries seguindo</span>
             </div>
           )}
         </div>
+
         {!isOwnProfile && (
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+          <div className="profile-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             {onOpenChat && isMutual && !isBlockedByMe && (
               <button
-                className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}
+                className="st-btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: 600 }}
                 onClick={() => onOpenChat({
                   id: targetUserId,
                   username: profile.username || targetUsername,
@@ -174,8 +234,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               </button>
             )}
             <button
-              className={isFollowed ? 'btn-secondary' : 'btn-primary'}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', border: 'none' }}
+              className={isFollowed ? 'st-btn-secondary' : 'st-btn-primary'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: 600 }}
               onClick={() => toggleFollowUser(targetUserId)}
             >
               {isFollowed ? <UserCheck size={16} /> : <UserPlus size={16} />}
