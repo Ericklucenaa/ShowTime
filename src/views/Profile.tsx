@@ -317,7 +317,10 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
             @{user?.username}
           </h2>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Membro Epsync</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+            <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'contain' }} />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button onClick={() => devicePhotoInputRef.current?.click()} className="st-btn-secondary" style={{ padding: '7px 14px', fontSize: '12px', display: 'inline-flex', gap: '5px' }} disabled={avatarLoading}>

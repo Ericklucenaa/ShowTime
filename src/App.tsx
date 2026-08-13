@@ -66,8 +66,9 @@ const Following = lazyWithRetry(() => import('./views/Following.js'), (m) => m.F
 const Friends = lazyWithRetry(() => import('./views/Friends.js'), (m) => m.Friends);
 
 const ViewLoadingFallback: React.FC = () => (
-  <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
-    Carregando Epsync...
+  <div style={{ padding: '60px 24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+    <EpsyncLogo size={46} variant="icon" />
+    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Carregando Epsync...</span>
   </div>
 );
 
@@ -568,10 +569,13 @@ const AppContent: React.FC = () => {
         
         {/* Header Branding */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ display: 'inline-flex', marginBottom: '14px' }}>
-            <EpsyncLogo size={42} variant="icon" />
+          <div style={{ display: 'inline-flex', marginBottom: '16px', position: 'relative' }}>
+            <div style={{ position: 'absolute', inset: '-12px', background: 'radial-gradient(circle, rgba(124, 92, 255, 0.4) 0%, transparent 70%)', filter: 'blur(12px)', zIndex: 0 }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <EpsyncLogo size={72} variant="icon" />
+            </div>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', letterSpacing: '-0.02em', marginBottom: '8px' }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '28px', letterSpacing: '-0.025em', marginBottom: '8px', background: 'linear-gradient(135deg, #FFFFFF 30%, #C4B5FD 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
             Epsync
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>

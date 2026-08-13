@@ -199,17 +199,31 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
           borderRadius: 'var(--radius-lg)'
         }}
       >
-        <div className="welcome-copy">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-            <Sparkles size={14} />
-            <span>Painel Epsync</span>
+        <div className="welcome-copy" style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <img
+            src="/logo.png"
+            alt="Epsync Logo"
+            style={{
+              width: '60px',
+              height: '60px',
+              borderRadius: '16px',
+              objectFit: 'contain',
+              flexShrink: 0,
+              filter: 'drop-shadow(0 6px 16px rgba(124, 92, 255, 0.45))'
+            }}
+          />
+          <div style={{ flex: 1, minWidth: '240px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              <Sparkles size={14} />
+              <span>Painel Epsync</span>
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', letterSpacing: '-0.02em' }}>
+              Olá, pronto para a próxima maratona?
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+              Aqui estão os próximos episódios das séries e animes que você acompanha, além dos lançamentos mais recentes.
+            </p>
           </div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', letterSpacing: '-0.02em' }}>
-            Olá, pronto para a próxima maratona?
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
-            Aqui estão os próximos episódios das séries e animes que você acompanha, além dos lançamentos mais recentes.
-          </p>
         </div>
 
         <div className="hero-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
