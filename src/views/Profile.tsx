@@ -1,13 +1,62 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTracking } from '../context/TrackingContext.js';
-import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart, Image as ImageIcon, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { BarChart3, LogOut, Camera, Upload, Globe, Users, Lock, Tv, Film, Heart, Image as ImageIcon, Sparkles } from 'lucide-react';
 import { fetchMediaDetails, getImageUrl } from '../services/api.js';
 import { pushToast } from '../services/toast.js';
 
 interface ProfileProps {
   onViewMedia?: (id: string, type: 'show' | 'movie') => void;
   onViewProfile?: (userId: string, username: string) => void;
+}
+
+// Custom hook for smooth touch & mouse drag horizontal scrolling
+function useDragScroll() {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let isDown = false;
+    let startX = 0;
+    let scrollLeft = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      isDown = true;
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    };
+
+    const onMouseLeave = () => {
+      isDown = false;
+    };
+
+    const onMouseUp = () => {
+      isDown = false;
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDown) return;
+      const x = e.pageX - el.offsetLeft;
+      const walk = (x - startX) * 1.5;
+      el.scrollLeft = scrollLeft - walk;
+    };
+
+    el.addEventListener('mousedown', onMouseDown);
+    el.addEventListener('mouseleave', onMouseLeave);
+    el.addEventListener('mouseup', onMouseUp);
+    el.addEventListener('mousemove', onMouseMove);
+
+    return () => {
+      el.removeEventListener('mousedown', onMouseDown);
+      el.removeEventListener('mouseleave', onMouseLeave);
+      el.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('mousemove', onMouseMove);
+    };
+  }, []);
+
+  return ref;
 }
 
 export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
@@ -30,8 +79,8 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
 
   const devicePhotoInputRef = useRef<HTMLInputElement | null>(null);
   const deviceBannerInputRef = useRef<HTMLInputElement | null>(null);
-  const showsScrollRef = useRef<HTMLDivElement | null>(null);
-  const moviesScrollRef = useRef<HTMLDivElement | null>(null);
+  const showsScrollRef = useDragScroll();
+  const moviesScrollRef = useDragScroll();
 
   const avatarPresets = [
     `https://api.dicebear.com/7.x/adventurer/svg?seed=${user?.username || 'user'}_1`,
@@ -131,10 +180,10 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = 900;
-          canvas.height = 300;
+          canvas.width = 1200;
+          canvas.height = 400;
           const ctx = canvas.getContext('2d')!;
-          ctx.drawImage(img, 0, 0, 900, 300);
+          ctx.drawImage(img, 0, 0, 1200, 400);
           resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.onerror = reject;
@@ -159,19 +208,25 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
   const handlePrivacyChange = async (v: 'public' | 'friends' | 'private') => {
     if (v === user?.profileVisibility) return;
     setPrivacyLoading(true);
-    const ok = await updatePrivacy(v);
-    pushToast(ok ? 'success' : 'error', ok ? 'Privacidade atualizada.' : 'Erro ao atualizar privacidade.');
+    const success = await updatePrivacy(v);
+    if (success) {
+      pushToast('success', 'Privacidade atualizada.');
+    } else {
+      pushToast('error', 'Erro ao atualizar privacidade.');
+    }
     setPrivacyLoading(false);
   };
 
-  // Load followed shows details
+  // Load user's followed shows
   useEffect(() => {
-    if (!followedShows.length) { setFollowedShowsData([]); return; }
     let cancelled = false;
     setLoadingShows(true);
     (async () => {
       const results = await Promise.allSettled(
-        followedShows.slice(0, 30).map(id => fetchMediaDetails(id, 'show'))
+        followedShows.slice(0, 35).map(async (sid) => {
+          const detail = await fetchMediaDetails(sid, 'show');
+          return detail;
+        })
       );
       if (cancelled) return;
       const shows = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
@@ -179,24 +234,12 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       setLoadingShows(false);
     })();
     return () => { cancelled = true; };
-  }, [followedShows.join(',')]);
+  }, [followedShows]);
 
-  // Load watched movies details and merge with saved posterPath
+  // Load user's watched movies
   useEffect(() => {
-    if (!watchedMovies.length) { setWatchedMoviesData([]); return; }
     let cancelled = false;
     setLoadingMovies(true);
-
-    // Initial instant mapping from stored tracking state
-    const initialList = watchedMovies.map(m => ({
-      movieId: m.movieId,
-      title: m.movieTitle || 'Filme',
-      posterPath: m.posterPath,
-      isFavorite: m.isFavorite,
-      watchedAt: m.watchedAt
-    }));
-    setWatchedMoviesData(initialList);
-
     (async () => {
       const results = await Promise.allSettled(
         watchedMovies.slice(0, 35).map(async (m) => {
@@ -227,13 +270,6 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
     return () => { cancelled = true; };
   }, [watchedMovies]);
 
-  const scrollContainer = (ref: React.RefObject<HTMLDivElement | null>, direction: 'left' | 'right') => {
-    if (ref.current) {
-      const offset = direction === 'left' ? -260 : 260;
-      ref.current.scrollBy({ left: offset, behavior: 'smooth' });
-    }
-  };
-
   const bannerBackground = user?.bannerUrl 
     ? user.bannerUrl 
     : 'linear-gradient(135deg, rgba(124,92,255,0.3) 0%, rgba(255,122,89,0.2) 100%)';
@@ -247,7 +283,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         {/* Inner Banner with overflow: hidden */}
         <div style={{ 
           position: 'relative', 
-          height: 'clamp(150px, 28vw, 240px)', 
+          height: 'clamp(140px, 32vw, 240px)', 
           borderRadius: 'var(--radius-lg)', 
           overflow: 'hidden', 
           background: 'var(--bg-surface)',
@@ -259,9 +295,9 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           ) : (
             <div style={{ width: '100%', height: '100%', background: bannerBackground }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, var(--bg-dark) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)' }} />
 
-          {/* Change Banner Button (Touch Friendly) */}
+          {/* Change Banner Button (Always Touch Friendly on Cover) */}
           <button
             onClick={() => setShowBannerPicker(true)}
             className="st-btn-secondary"
@@ -274,14 +310,14 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               fontWeight: 600,
               background: 'rgba(13, 13, 18, 0.85)',
               backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.25)',
               borderRadius: 'var(--radius-full)',
               color: '#FFFFFF',
-              zIndex: 5,
+              zIndex: 20,
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
               cursor: 'pointer'
             }}
           >
@@ -330,14 +366,16 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
           </div>
         </div>
-        <div className="profile-header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }} disabled={avatarLoading}>
+        
+        {/* Responsive 3-Button Row */}
+        <div className="profile-header-actions">
+          <button onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary" disabled={avatarLoading}>
             <Camera size={14} /> Foto
           </button>
-          <button onClick={() => setShowBannerPicker(true)} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }} disabled={bannerLoading}>
+          <button onClick={() => setShowBannerPicker(true)} className="st-btn-secondary" disabled={bannerLoading}>
             <ImageIcon size={14} /> Capa
           </button>
-          <button onClick={logout} className="st-btn-secondary" style={{ padding: '8px 14px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--error)', borderColor: 'rgba(239,68,110,0.2)' }}>
+          <button onClick={logout} className="st-btn-secondary" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,110,0.25)' }}>
             <LogOut size={14} /> Sair
           </button>
         </div>
@@ -347,7 +385,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
       <input ref={devicePhotoInputRef} type="file" accept="image/*" onChange={handleDevicePhotoChange} style={{ display: 'none' }} />
       <input ref={deviceBannerInputRef} type="file" accept="image/*" onChange={handleDeviceBannerChange} style={{ display: 'none' }} />
 
-      {/* Banner Picker Modal (Responsive Modal Dialog) */}
+      {/* Banner Picker Modal */}
       {showBannerPicker && (
         <div 
           style={{
@@ -384,7 +422,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               <button onClick={() => setShowBannerPicker(false)} className="st-btn-icon" style={{ width: '32px', height: '32px', fontSize: '16px' }}>✕</button>
             </div>
 
-            {/* Option 1: Choose from Device (Mobile / Desktop) */}
+            {/* Option 1: Choose from Device */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 1. Do seu dispositivo
@@ -452,7 +490,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         </div>
       )}
 
-      {/* Avatar Picker Modal (Responsive Modal Dialog) */}
+      {/* Avatar Picker Modal */}
       {showAvatarPicker && (
         <div 
           style={{
@@ -557,21 +595,21 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         </div>
       )}
 
-      {/* Stats Grid */}
-      <div style={{ display: 'flex', gap: '14px', marginBottom: '28px', flexWrap: 'wrap' }}>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center', flex: '1 1 80px' }}>
+      {/* Stats Grid (2x2 on Mobile, 4 columns on Desktop) */}
+      <div className="profile-stats-grid">
+        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)' }}>{followedShows.length}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Séries Seguidas</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center', flex: '1 1 80px' }}>
+        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>{watchedEpisodes.length}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center', flex: '1 1 80px' }}>
+        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)' }}>{watchedMovies.length}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
         </div>
-        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center', flex: '1 1 80px' }}>
+        <div className="st-card" style={{ padding: '14px 18px', textAlign: 'center' }}>
           <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--warning)', fontFamily: 'var(--font-display)' }}>{totalDays}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Dias Assistidos</div>
         </div>
@@ -583,16 +621,6 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Tv size={17} style={{ color: 'var(--primary)' }} /> Séries que estou acompanhando ({followedShows.length})
           </h3>
-          {followedShowsData.length > 3 && (
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button onClick={() => scrollContainer(showsScrollRef, 'left')} className="st-btn-icon" style={{ width: '28px', height: '28px' }} title="Rolar para esquerda">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => scrollContainer(showsScrollRef, 'right')} className="st-btn-icon" style={{ width: '28px', height: '28px' }} title="Rolar para direita">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
         </div>
 
         {followedShows.length === 0 ? (
@@ -603,15 +631,6 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <div 
             ref={showsScrollRef}
             className="horizontal-scroll-container"
-            style={{ 
-              display: 'flex', 
-              gap: '14px', 
-              overflowX: 'auto', 
-              paddingBottom: '12px',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'thin',
-              touchAction: 'pan-x pan-y'
-            }}
           >
             {loadingShows && followedShowsData.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '16px' }}>Carregando séries...</div>
@@ -619,7 +638,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               followedShowsData.map(show => (
                 <div
                   key={show.id}
-                  style={{ flexShrink: 0, width: '105px', cursor: onViewMedia ? 'pointer' : 'default', userSelect: 'none' }}
+                  className="horizontal-scroll-item"
                   onClick={() => onViewMedia?.(show.id, 'show')}
                 >
                   <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
@@ -635,22 +654,12 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         )}
       </div>
 
-      {/* Filmes Assistidos (Horizontal Touch Drag Scroll + Fixed Cards) */}
+      {/* Filmes Assistidos (Horizontal Touch Drag Scroll) */}
       <div style={{ marginBottom: '32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <h3 style={{ fontSize: '17px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Film size={17} style={{ color: 'var(--secondary)' }} /> Filmes Assistidos ({watchedMovies.length})
           </h3>
-          {watchedMoviesData.length > 3 && (
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button onClick={() => scrollContainer(moviesScrollRef, 'left')} className="st-btn-icon" style={{ width: '28px', height: '28px' }} title="Rolar para esquerda">
-                <ChevronLeft size={16} />
-              </button>
-              <button onClick={() => scrollContainer(moviesScrollRef, 'right')} className="st-btn-icon" style={{ width: '28px', height: '28px' }} title="Rolar para direita">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
         </div>
 
         {watchedMovies.length === 0 ? (
@@ -661,15 +670,6 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
           <div 
             ref={moviesScrollRef}
             className="horizontal-scroll-container"
-            style={{ 
-              display: 'flex', 
-              gap: '14px', 
-              overflowX: 'auto', 
-              paddingBottom: '12px',
-              WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'thin',
-              touchAction: 'pan-x pan-y'
-            }}
           >
             {loadingMovies && watchedMoviesData.length === 0 ? (
               <div style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '16px' }}>Carregando filmes assistidos...</div>
@@ -677,10 +677,10 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
               watchedMoviesData.map((m, idx) => (
                 <div
                   key={m.movieId || idx}
-                  style={{ flexShrink: 0, width: '105px', cursor: onViewMedia ? 'pointer' : 'default', userSelect: 'none' }}
+                  className="horizontal-scroll-item"
                   onClick={() => onViewMedia?.(m.movieId, 'movie')}
                 >
-                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', aspectRatio: '2/3', boxShadow: '0 6px 16px rgba(0,0,0,0.5)', marginBottom: '6px', border: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
                     {m.posterPath ? (
                       <img src={getImageUrl(m.posterPath)} alt={m.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                     ) : (
