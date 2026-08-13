@@ -102,6 +102,14 @@ function generateId() {
   return Math.random().toString(36).substring(2, 9);
 }
 
+function chunkArray<T>(items: T[], chunkSize: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += chunkSize) {
+    chunks.push(items.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
 function isEpisodeReleased(airDateValue?: string): boolean {
   if (!airDateValue) return false;
   const parsed = new Date(airDateValue);
@@ -1177,23 +1185,26 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
 
       if (isFirebaseEnabled && db) {
-        const batch = writeBatch(db);
-        episodesToMark.forEach(ep => {
-          const epId = `ep_${showMetadata.id}_${ep.seasonNumber}_${ep.episodeNumber}`;
-          const docRef = doc(db, 'watch_episodes', `${user.id}_${epId}`);
-          const newEvent: WatchEpisodeEvent = {
-            id: 'we_' + generateId(),
-            userId: user.id,
-            showId: showMetadata.id,
-            episodeId: epId,
-            watchedAt: new Date().toISOString(),
-            genres: showMetadata.genres || showMetadata.genre || [],
-            showTitle: showMetadata.title,
-            episodeTitle: ep.title
-          };
-          batch.set(docRef, newEvent);
-        });
-        await batch.commit();
+        const chunks = chunkArray(episodesToMark, 400);
+        for (const chunk of chunks) {
+          const batch = writeBatch(db);
+          chunk.forEach(ep => {
+            const epId = `ep_${showMetadata.id}_${ep.seasonNumber}_${ep.episodeNumber}`;
+            const docRef = doc(db, 'watch_episodes', `${user.id}_${epId}`);
+            const newEvent: WatchEpisodeEvent = {
+              id: 'we_' + generateId(),
+              userId: user.id,
+              showId: showMetadata.id,
+              episodeId: epId,
+              watchedAt: new Date().toISOString(),
+              genres: showMetadata.genres || showMetadata.genre || [],
+              showTitle: showMetadata.title,
+              episodeTitle: ep.title
+            };
+            batch.set(docRef, newEvent);
+          });
+          await batch.commit();
+        }
         await refreshData();
         trackEvent('show_mark_all_watched', { showId: showMetadata.id, totalEpisodes: episodesToMark.length });
         pushToast('success', `${episodesToMark.length} episódios marcados como assistidos.`);
@@ -1239,7 +1250,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isFirebaseEnabled && db) {
       try {
-        const batch = writeBatch(db);
+        const allOps: Array<(b: any) => void> = [];
 
         episodes.forEach(item => {
           const showIdStr = item.tmdbId ? item.tmdbId.toString() : `s_${generateId()}`;
@@ -1247,15 +1258,17 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           
           const epId = `ep_${showIdStr}_${item.seasonNumber}_${item.episodeNumber}`;
           const docRef = doc(db, 'watch_episodes', `${user.id}_${epId}`);
-          batch.set(docRef, {
-            id: 'we_' + generateId(),
-            userId: user.id,
-            showId: showIdStr,
-            episodeId: epId,
-            watchedAt: item.watchedAt || new Date().toISOString(),
-            showTitle: item.title,
-            episodeTitle: `Episódio ${item.episodeNumber}`,
-            genres: [] // Imported might lack genres initial information
+          allOps.push((b) => {
+            b.set(docRef, {
+              id: 'we_' + generateId(),
+              userId: user.id,
+              showId: showIdStr,
+              episodeId: epId,
+              watchedAt: item.watchedAt || new Date().toISOString(),
+              showTitle: item.title,
+              episodeTitle: `Episódio ${item.episodeNumber}`,
+              genres: []
+            });
           });
           epCount++;
         });
@@ -1263,31 +1276,40 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         movies.forEach(item => {
           const movieId = item.tmdbId ? `m_${item.tmdbId}` : `m_${generateId()}`;
           const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
-          batch.set(docRef, {
-            id: 'wm_' + generateId(),
-            userId: user.id,
-            movieId: movieId,
-            watchedAt: item.watchedAt || new Date().toISOString(),
-            isFavorite: false,
-            movieTitle: item.title,
-            genres: []
+          allOps.push((b) => {
+            b.set(docRef, {
+              id: 'wm_' + generateId(),
+              userId: user.id,
+              movieId: movieId,
+              watchedAt: item.watchedAt || new Date().toISOString(),
+              isFavorite: false,
+              movieTitle: item.title,
+              genres: []
+            });
           });
           movCount++;
         });
 
-        // Also follow unique shows
         uniqueShowsToFollow.forEach(showId => {
           if (!followedShows.includes(showId)) {
             const followRef = doc(db, 'followed_shows', `${user.id}_${showId}`);
-            batch.set(followRef, {
-              userId: user.id,
-              showId: showId,
-              followedAt: new Date().toISOString()
+            allOps.push((b) => {
+              b.set(followRef, {
+                userId: user.id,
+                showId: showId,
+                followedAt: new Date().toISOString()
+              });
             });
           }
         });
 
-        await batch.commit();
+        const opChunks = chunkArray(allOps, 400);
+        for (const chunk of opChunks) {
+          const batch = writeBatch(db);
+          chunk.forEach(op => op(batch));
+          await batch.commit();
+        }
+
         await refreshData();
         trackEvent('bulk_import_completed', { importedEpisodes: epCount, importedMovies: movCount, mode: 'firebase' });
         pushToast('success', 'Importação concluída com sucesso.');

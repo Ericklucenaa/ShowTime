@@ -39,30 +39,28 @@ export const Friends: React.FC<FriendsProps> = ({ onViewProfile, onOpenChat }) =
       }
 
       try {
-        const loaded: any[] = [];
-        for (const uid of followedUsers) {
-          try {
+        const results = await Promise.allSettled(
+          followedUsers.map(async (uid) => {
             const userDoc = await getDoc(doc(db, 'profiles', uid));
             if (userDoc.exists()) {
               const data = userDoc.data();
-              loaded.push({
+              return {
                 id: uid,
                 username: data.username,
                 avatarUrl: data.avatarUrl || data.photoUrl,
                 lastActiveAt: data.lastActiveAt
-              });
+              };
             } else {
-              loaded.push({
+              return {
                 id: uid,
                 username: 'Usuário',
                 avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${uid}`,
                 lastActiveAt: undefined
-              });
+              };
             }
-          } catch (errUser) {
-            console.warn('Error loading friend profile:', errUser);
-          }
-        }
+          })
+        );
+        const loaded = results.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
         setFriendsData(loaded);
       } catch (e) {
         console.error("Error loading friends:", e);

@@ -93,76 +93,77 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
       const nextEpItems: NextEpisodeItem[] = [];
       const releases: UpcomingReleaseItem[] = [];
 
-      for (const showId of allActiveShowIds) {
-        try {
-          const show = await fetchMediaDetails(showId, 'show');
-          if (!show || !show.seasons || show.seasons.length === 0) continue;
+      const showResults = await Promise.allSettled(
+        allActiveShowIds.map(showId => fetchMediaDetails(showId, 'show'))
+      );
 
-          const progress = showProgress[showId];
-          let nextSeasonNum = progress ? progress.lastSeason : 1;
-          let nextEpNum = progress ? progress.lastEpisode + 1 : 1;
+      for (const res of showResults) {
+        if (res.status !== 'fulfilled' || !res.value) continue;
+        const show = res.value;
+        if (!show.seasons || show.seasons.length === 0) continue;
 
-          let currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
-          
-          if (currentSeason && nextEpNum > (currentSeason.episodeCount || 999)) {
-            nextSeasonNum += 1;
-            nextEpNum = 1;
-            currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
-          }
+        const showId = show.id;
+        const progress = showProgress[showId] || showProgress[show.id?.replace(/^[sm]_/, '')];
+        let nextSeasonNum = progress ? progress.lastSeason : 1;
+        let nextEpNum = progress ? progress.lastEpisode + 1 : 1;
 
-          if (currentSeason) {
-            const nextEp = currentSeason.episodes?.find((e: any) => e.episodeNumber === nextEpNum) || {
-              seasonNumber: nextSeasonNum,
-              episodeNumber: nextEpNum,
-              title: `Episódio ${nextEpNum}`
-            };
-            const nextEpId = `ep_${show.id}_${nextSeasonNum}_${nextEpNum}`;
-
-            nextEpItems.push({
-              showId: show.id,
-              showTitle: show.title,
-              posterPath: show.posterPath,
-              backdropPath: show.backdropPath,
-              nextEpisodeId: nextEpId,
-              nextEpisodeNumber: nextEpNum,
-              nextSeasonNumber: nextSeasonNum,
-              nextEpisodeTitle: nextEp.title || `Episódio ${nextEpNum}`,
-              nextEpisodeOverview: nextEp.overview || '',
-              airDate: nextEp.airDate,
-              isReleased: isEpisodeReleased(nextEp.airDate),
-              fullShowData: show,
-              fullEpisodeData: nextEp
-            });
-          }
-
-          // Extract recent / upcoming episodes from show
-          show.seasons.forEach((s: any) => {
-            s.episodes?.forEach((ep: any) => {
-              if (ep.airDate) {
-                const epDate = new Date(ep.airDate);
-                const now = new Date();
-                const diffDays = Math.round((epDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-                // Released in the last 14 days or airing in the next 30 days
-                if (diffDays >= -14 && diffDays <= 30) {
-                  releases.push({
-                    showId: show.id,
-                    showTitle: show.title,
-                    posterPath: show.posterPath,
-                    episodeNumber: ep.episodeNumber,
-                    seasonNumber: s.seasonNumber,
-                    episodeTitle: ep.title || `Episódio ${ep.episodeNumber}`,
-                    airDate: ep.airDate,
-                    isRecent: diffDays <= 0
-                  });
-                }
-              }
-            });
-          });
-
-        } catch (e) {
-          console.warn(`Error computing dashboard for show ${showId}:`, e);
+        let currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
+        
+        if (currentSeason && nextEpNum > (currentSeason.episodeCount || 999)) {
+          nextSeasonNum += 1;
+          nextEpNum = 1;
+          currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
         }
+
+        if (currentSeason) {
+          const nextEp = currentSeason.episodes?.find((e: any) => e.episodeNumber === nextEpNum) || {
+            seasonNumber: nextSeasonNum,
+            episodeNumber: nextEpNum,
+            title: `Episódio ${nextEpNum}`
+          };
+          const nextEpId = `ep_${show.id}_${nextSeasonNum}_${nextEpNum}`;
+
+          nextEpItems.push({
+            showId: show.id,
+            showTitle: show.title,
+            posterPath: show.posterPath,
+            backdropPath: show.backdropPath,
+            nextEpisodeId: nextEpId,
+            nextEpisodeNumber: nextEpNum,
+            nextSeasonNumber: nextSeasonNum,
+            nextEpisodeTitle: nextEp.title || `Episódio ${nextEpNum}`,
+            nextEpisodeOverview: nextEp.overview || '',
+            airDate: nextEp.airDate,
+            isReleased: isEpisodeReleased(nextEp.airDate),
+            fullShowData: show,
+            fullEpisodeData: nextEp
+          });
+        }
+
+        // Extract recent / upcoming episodes from show
+        show.seasons.forEach((s: any) => {
+          s.episodes?.forEach((ep: any) => {
+            if (ep.airDate) {
+              const epDate = new Date(ep.airDate);
+              const now = new Date();
+              const diffDays = Math.round((epDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+              // Released in the last 14 days or airing in the next 30 days
+              if (diffDays >= -14 && diffDays <= 30) {
+                releases.push({
+                  showId: show.id,
+                  showTitle: show.title,
+                  posterPath: show.posterPath,
+                  episodeNumber: ep.episodeNumber,
+                  seasonNumber: s.seasonNumber,
+                  episodeTitle: ep.title || `Episódio ${ep.episodeNumber}`,
+                  airDate: ep.airDate,
+                  isRecent: diffDays <= 0
+                });
+              }
+            }
+          });
+        });
       }
 
       if (!cancelled) {

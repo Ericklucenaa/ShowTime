@@ -443,7 +443,7 @@ export const rankMediaResults = (results: any[], preferredGenres: string[] = [])
 export const fetchMediaDetails = async (id: string, mediaType: 'show' | 'movie'): Promise<any> => {
   const key = getTmdbKey();
   const rawId = id.replace(/^[sm]_/, '');
-  const tmdbNumId = parseInt(rawId);
+  const tmdbNumId = parseInt(rawId, 10);
 
   // First check if it's a local mock ID (non-numeric prefix or found in local data)
   const isLocalId = isNaN(tmdbNumId);
@@ -565,7 +565,7 @@ export const fetchSeasonEpisodes = async (showId: string, seasonNumber: number):
   }
 
   const key = getTmdbKey();
-  const tmdbNumId = parseInt(showId.replace(/^[sm]_/, ''));
+  const tmdbNumId = parseInt(showId.replace(/^[sm]_/, ''), 10);
 
   if (key && !isNaN(tmdbNumId)) {
     try {

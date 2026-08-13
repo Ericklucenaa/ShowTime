@@ -110,40 +110,55 @@ export const Calendar: React.FC<CalendarProps> = ({ onViewMedia }) => {
         maxDate.setDate(maxDate.getDate() + 365);
 
         const nextPersonal: PersonalEvent[] = [];
+        const showList = Array.from(showIds);
+        const showResults = await Promise.allSettled(
+          showList.map(showId => fetchMediaDetails(showId, 'show'))
+        );
 
-        for (const showId of Array.from(showIds)) {
-          try {
-            const show = await fetchMediaDetails(showId, 'show');
-            if (!show?.seasons) continue;
+        const seasonFetchTasks: Array<Promise<{ show: any; season: any; episodes: any[] }>> = [];
 
-            for (const season of show.seasons) {
-              let episodes = season.episodes;
-              if (!episodes || episodes.length === 0) {
-                episodes = await fetchSeasonEpisodes(showId, season.seasonNumber);
-              }
+        for (const res of showResults) {
+          if (res.status !== 'fulfilled' || !res.value) continue;
+          const show = res.value;
+          if (!show.seasons) continue;
 
-              for (const ep of episodes || []) {
-                if (!ep.airDate) continue;
-                const airDateObj = new Date(ep.airDate);
-                if (Number.isNaN(airDateObj.getTime())) continue;
-                if (airDateObj < minDate || airDateObj > maxDate) continue;
-
-                nextPersonal.push({
-                  id: `cal_${show.id}_${season.seasonNumber}_${ep.episodeNumber}`,
-                  showId: show.id,
-                  showTitle: show.title,
-                  showPoster: show.posterPath,
-                  seasonNumber: season.seasonNumber,
-                  episodeNumber: ep.episodeNumber,
-                  title: ep.title || 'Novo episódio',
-                  overview: ep.overview || '',
-                  airDate: ep.airDate,
-                  airDateMs: airDateObj.getTime()
-                });
-              }
+          for (const season of show.seasons) {
+            if (season.episodes && season.episodes.length > 0) {
+              seasonFetchTasks.push(Promise.resolve({ show, season, episodes: season.episodes }));
+            } else {
+              seasonFetchTasks.push(
+                fetchSeasonEpisodes(show.id, season.seasonNumber)
+                  .then(episodes => ({ show, season, episodes }))
+                  .catch(() => ({ show, season, episodes: [] }))
+              );
             }
-          } catch (err) {
-            console.warn(`Calendar: failed to process show ${showId}`, err);
+          }
+        }
+
+        const seasonResults = await Promise.allSettled(seasonFetchTasks);
+
+        for (const sRes of seasonResults) {
+          if (sRes.status !== 'fulfilled' || !sRes.value) continue;
+          const { show, season, episodes } = sRes.value;
+
+          for (const ep of episodes || []) {
+            if (!ep.airDate) continue;
+            const airDateObj = new Date(ep.airDate);
+            if (Number.isNaN(airDateObj.getTime())) continue;
+            if (airDateObj < minDate || airDateObj > maxDate) continue;
+
+            nextPersonal.push({
+              id: `cal_${show.id}_${season.seasonNumber}_${ep.episodeNumber}`,
+              showId: show.id,
+              showTitle: show.title,
+              showPoster: show.posterPath,
+              seasonNumber: season.seasonNumber,
+              episodeNumber: ep.episodeNumber,
+              title: ep.title || 'Novo episódio',
+              overview: ep.overview || '',
+              airDate: ep.airDate,
+              airDateMs: airDateObj.getTime()
+            });
           }
         }
 

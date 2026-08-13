@@ -166,6 +166,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error in auth state change:', err);
       }
     } else {
+      localStorage.removeItem('epsync_token');
+      localStorage.removeItem('epsync_user');
       localStorage.removeItem('showtime_token');
       localStorage.removeItem('showtime_user');
       setToken(null);
@@ -316,17 +318,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    localStorage.removeItem('epsync_token');
+    localStorage.removeItem('epsync_user');
+    localStorage.removeItem('showtime_token');
+    localStorage.removeItem('showtime_user');
+    setToken(null);
+    setUser(null);
+
     if (isFirebaseEnabled && firebaseAuth) {
       try {
         await signOut(firebaseAuth);
       } catch (err) {
         console.error('Error signing out of Firebase:', err);
       }
-    } else {
-      localStorage.removeItem('showtime_token');
-      localStorage.removeItem('showtime_user');
-      setToken(null);
-      setUser(null);
     }
   };
 

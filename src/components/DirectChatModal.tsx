@@ -122,11 +122,9 @@ export const DirectChatModal: React.FC<DirectChatModalProps> = ({
         // Mark unread messages sent to me as read
         const unreadForMe = loaded.filter(m => m.receiverId === user.id && !m.read);
         if (unreadForMe.length > 0) {
-          unreadForMe.forEach(async msg => {
-            try {
-              await setDoc(doc(db, 'direct_messages', msg.id), { ...msg, read: true });
-            } catch (_) {}
-          });
+          Promise.allSettled(
+            unreadForMe.map(msg => setDoc(doc(db, 'direct_messages', msg.id), { read: true }, { merge: true }))
+          ).catch(() => {});
         }
       } catch (err) {
         console.warn('Error loading Firestore messages:', err);

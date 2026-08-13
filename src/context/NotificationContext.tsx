@@ -595,8 +595,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const removeEpisodeReminder = useCallback(async (reminderId: string) => {
     const next = reminders.filter(r => r.id !== reminderId);
     setReminders(next);
-    const localKey = user ? `showtime_reminders_${user.id}` : 'showtime_episode_reminders';
-    localStorage.setItem(localKey, JSON.stringify(next));
+    if (user) {
+      localStorage.setItem(`epsync_reminders_${user.id}`, JSON.stringify(next));
+      localStorage.setItem(`showtime_reminders_${user.id}`, JSON.stringify(next));
+    }
+    localStorage.setItem('epsync_episode_reminders', JSON.stringify(next));
     localStorage.setItem('showtime_episode_reminders', JSON.stringify(next));
 
     if (user && isFirebaseEnabled && db) {
@@ -610,6 +613,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setNotifications(prev => {
       const updated = prev.map(n => n.id === id ? { ...n, read: true } : n);
       if (user) {
+        localStorage.setItem(`epsync_notifications_${user.id}`, JSON.stringify(updated));
         localStorage.setItem(`showtime_notifications_${user.id}`, JSON.stringify(updated));
       }
       return updated;
@@ -628,6 +632,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setNotifications(prev => {
       const updated = prev.map(n => ({ ...n, read: true }));
       if (user) {
+        localStorage.setItem(`epsync_notifications_${user.id}`, JSON.stringify(updated));
         localStorage.setItem(`showtime_notifications_${user.id}`, JSON.stringify(updated));
       }
       return updated;
@@ -636,9 +641,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (isFirebaseEnabled && db && user) {
       try {
         const unreadList = notifications.filter(n => !n.read);
-        for (const item of unreadList) {
-          await updateDoc(doc(db, 'notifications', item.id), { read: true });
-        }
+        await Promise.allSettled(
+          unreadList.map(item => updateDoc(doc(db, 'notifications', item.id), { read: true }))
+        );
       } catch (err) {
         console.warn('Could not mark all notifications as read in cloud:', err);
       }
@@ -657,6 +662,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (user && item.userId === user.id) {
       setNotifications(prev => {
         const updated = [fullItem, ...prev];
+        localStorage.setItem(`epsync_notifications_${user.id}`, JSON.stringify(updated));
         localStorage.setItem(`showtime_notifications_${user.id}`, JSON.stringify(updated));
         return updated;
       });

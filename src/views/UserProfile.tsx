@@ -57,14 +57,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         );
         const showIds = Array.from(new Set(epSnap.docs.map(d => d.data().showId as string)));
 
-        // Load show details
-        const showDetails: any[] = [];
-        for (const sid of showIds.slice(0, 30)) {
-          try {
-            const show = await fetchMediaDetails(sid, 'show');
-            if (show) showDetails.push(show);
-          } catch (_) {}
-        }
+        // Load watched shows in parallel
+        const watchedResults = await Promise.allSettled(
+          showIds.slice(0, 30).map(sid => fetchMediaDetails(sid, 'show'))
+        );
+        const showDetails = watchedResults.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
         setWatchedShows(showDetails);
 
         // Load followed shows
@@ -72,13 +69,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           query(collection(db, 'followed_shows'), where('userId', '==', targetUserId))
         );
         const followedIds = followSnap.docs.map(d => d.data().showId as string);
-        const followedDetails: any[] = [];
-        for (const sid of followedIds.slice(0, 30)) {
-          try {
-            const show = await fetchMediaDetails(sid, 'show');
-            if (show) showDetails.push(show);
-          } catch (_) {}
-        }
+        const followedResults = await Promise.allSettled(
+          followedIds.slice(0, 30).map(sid => fetchMediaDetails(sid, 'show'))
+        );
+        const followedDetails = followedResults.flatMap(r => r.status === 'fulfilled' && r.value ? [r.value] : []);
         setFollowedShowsList(followedDetails);
       } catch (e) {
         console.error('Failed to load user profile:', e);
