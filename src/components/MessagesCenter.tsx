@@ -244,13 +244,13 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
       {/* Cascading Messenger Dropdown */}
       {isOpen && (
         <div
-          className="st-panel animate-fade-in"
+          className="st-panel animate-fade-in messages-dropdown-panel"
           style={{
             position: 'absolute',
             top: 'calc(100% + 10px)',
             right: 0,
             width: '360px',
-            maxWidth: 'calc(100vw - 24px)',
+            maxWidth: 'calc(100vw - 20px)',
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-lg)',
@@ -282,6 +282,14 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
                 </span>
               )}
             </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="st-btn-icon"
+              style={{ width: '26px', height: '26px', color: 'var(--text-muted)' }}
+              title="Fechar"
+            >
+              ✕
+            </button>
           </div>
 
           {/* Search bar within messages */}
@@ -443,6 +451,22 @@ export const MessagesCenter: React.FC<MessagesCenterProps> = ({ onOpenChat }) =>
           </div>
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 520px) {
+          .messages-dropdown-panel {
+            position: fixed !important;
+            top: 58px !important;
+            left: 8px !important;
+            right: 8px !important;
+            width: auto !important;
+            max-width: none !important;
+            max-height: calc(100vh - 130px) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85) !important;
+          }
+        }
+      `}</style>
     </div>
   );
 };

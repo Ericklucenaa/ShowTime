@@ -1,130 +1,187 @@
 import React, { useState, useEffect } from 'react';
 import { useTracking } from '../context/TrackingContext.js';
-import { useNotifications } from '../context/NotificationContext.js';
 import { fetchMediaDetails, getImageUrl } from '../services/api.js';
-import { Play, Check, Clock, Film, Tv, Flame, Bell, Sparkles } from 'lucide-react';
+import { Play, Check, Clock, Tv, Sparkles, Calendar as CalendarIcon, ArrowRight } from 'lucide-react';
 
-interface ContinueWatchingItem {
+interface NextEpisodeItem {
   showId: string;
   showTitle: string;
   posterPath: string;
+  backdropPath?: string;
   nextEpisodeId: string;
   nextEpisodeNumber: number;
   nextSeasonNumber: number;
   nextEpisodeTitle: string;
   nextEpisodeOverview: string;
+  airDate?: string;
+  isReleased: boolean;
   fullShowData: any;
   fullEpisodeData: any;
 }
 
+interface UpcomingReleaseItem {
+  showId: string;
+  showTitle: string;
+  posterPath: string;
+  episodeNumber: number;
+  seasonNumber: number;
+  episodeTitle: string;
+  airDate: string;
+  isRecent: boolean; // aired in last 7 days or airing soon
+}
+
+function isEpisodeReleased(airDateValue?: string): boolean {
+  if (!airDateValue) return true;
+  const parsed = new Date(airDateValue);
+  if (Number.isNaN(parsed.getTime())) return true;
+  const releaseDay = new Date(parsed);
+  releaseDay.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return releaseDay <= today;
+}
+
 export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'movie', seasonNum?: number, episodeNum?: number) => void }> = ({ onViewMedia }) => {
-  const { watchedEpisodes, watchedMovies, toggleWatchEpisode, streakDays, lastWatchedAt, favoriteGenres, totalWatchEvents } = useTracking();
-  const { reminders } = useNotifications();
-  const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
+  const { watchedEpisodes, watchedMovies, followedShows, toggleWatchEpisode, streakDays } = useTracking();
+  const [nextEpisodes, setNextEpisodes] = useState<NextEpisodeItem[]>([]);
+  const [upcomingReleases, setUpcomingReleases] = useState<UpcomingReleaseItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Calculate stats
   const totalEpTime = watchedEpisodes.length * 40;
-  const totalMovTime = watchedMovies.length * 120;
+  const totalMovTime = watchedMovies.length * 110;
   const totalHours = Math.round((totalEpTime + totalMovTime) / 60);
-  const daysWithoutWatching = lastWatchedAt
-    ? Math.max(0, Math.floor((Date.now() - new Date(lastWatchedAt).getTime()) / (1000 * 60 * 60 * 24)))
-    : 0;
 
+  // Calculate Next Episodes and Upcoming Releases from followedShows & watchedEpisodes
   useEffect(() => {
-    const calculateContinueWatching = async () => {
-      if (watchedEpisodes.length === 0) {
-        setContinueWatching([]);
+    let cancelled = false;
+
+    const loadDashboardContent = async () => {
+      // Gather list of show IDs to process (followedShows + shows with watched episodes)
+      const watchedShowIds = Array.from(new Set(watchedEpisodes.map(e => e.showId)));
+      const allActiveShowIds = Array.from(new Set([...followedShows, ...watchedShowIds]));
+
+      if (allActiveShowIds.length === 0) {
+        setNextEpisodes([]);
+        setUpcomingReleases([]);
         setLoading(false);
         return;
       }
 
       setLoading(true);
+
+      // Build mapping of highest watched season/episode for each show
       const showProgress: Record<string, { lastSeason: number; lastEpisode: number }> = {};
       watchedEpisodes.forEach(ev => {
         const parts = ev.episodeId.split('_');
         if (parts.length >= 4) {
-          const showId = ev.showId;
-          const sNum = parseInt(parts[parts.length - 2]);
-          const eNum = parseInt(parts[parts.length - 1]);
+          const sNum = parseInt(parts[parts.length - 2], 10);
+          const eNum = parseInt(parts[parts.length - 1], 10);
           if (!isNaN(sNum) && !isNaN(eNum)) {
-            if (!showProgress[showId]) {
-              showProgress[showId] = { lastSeason: sNum, lastEpisode: eNum };
+            if (!showProgress[ev.showId]) {
+              showProgress[ev.showId] = { lastSeason: sNum, lastEpisode: eNum };
             } else {
-              const curr = showProgress[showId];
+              const curr = showProgress[ev.showId];
               if (sNum > curr.lastSeason || (sNum === curr.lastSeason && eNum > curr.lastEpisode)) {
-                showProgress[showId] = { lastSeason: sNum, lastEpisode: eNum };
+                showProgress[ev.showId] = { lastSeason: sNum, lastEpisode: eNum };
               }
             }
-          }
-        } else {
-          if (!showProgress[ev.showId]) {
-            showProgress[ev.showId] = { lastSeason: 1, lastEpisode: 1 };
           }
         }
       });
 
-      const items: ContinueWatchingItem[] = [];
-      const showIds = Object.keys(showProgress);
+      const nextEpItems: NextEpisodeItem[] = [];
+      const releases: UpcomingReleaseItem[] = [];
 
-      for (const showId of showIds) {
+      for (const showId of allActiveShowIds) {
         try {
           const show = await fetchMediaDetails(showId, 'show');
-          if (!show || !show.seasons) continue;
+          if (!show || !show.seasons || show.seasons.length === 0) continue;
 
           const progress = showProgress[showId];
-          let nextSeasonNum = progress.lastSeason;
-          let nextEpNum = progress.lastEpisode + 1;
+          let nextSeasonNum = progress ? progress.lastSeason : 1;
+          let nextEpNum = progress ? progress.lastEpisode + 1 : 1;
 
           let currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
           
-          if (currentSeason && nextEpNum > currentSeason.episodeCount) {
+          if (currentSeason && nextEpNum > (currentSeason.episodeCount || 999)) {
             nextSeasonNum += 1;
             nextEpNum = 1;
             currentSeason = show.seasons.find((s: any) => s.seasonNumber === nextSeasonNum);
           }
 
           if (currentSeason) {
-            const nextEp = currentSeason.episodes?.find((e: any) => e.episodeNumber === nextEpNum);
+            const nextEp = currentSeason.episodes?.find((e: any) => e.episodeNumber === nextEpNum) || {
+              seasonNumber: nextSeasonNum,
+              episodeNumber: nextEpNum,
+              title: `Episódio ${nextEpNum}`
+            };
             const nextEpId = `ep_${show.id}_${nextSeasonNum}_${nextEpNum}`;
 
-            items.push({
+            nextEpItems.push({
               showId: show.id,
               showTitle: show.title,
               posterPath: show.posterPath,
+              backdropPath: show.backdropPath,
               nextEpisodeId: nextEpId,
               nextEpisodeNumber: nextEpNum,
               nextSeasonNumber: nextSeasonNum,
-              nextEpisodeTitle: nextEp ? nextEp.title : `Episódio ${nextEpNum}`,
-              nextEpisodeOverview: nextEp ? nextEp.overview : '',
+              nextEpisodeTitle: nextEp.title || `Episódio ${nextEpNum}`,
+              nextEpisodeOverview: nextEp.overview || '',
+              airDate: nextEp.airDate,
+              isReleased: isEpisodeReleased(nextEp.airDate),
               fullShowData: show,
-              fullEpisodeData: nextEp || { seasonNumber: nextSeasonNum, episodeNumber: nextEpNum }
+              fullEpisodeData: nextEp
             });
           }
+
+          // Extract recent / upcoming episodes from show
+          show.seasons.forEach((s: any) => {
+            s.episodes?.forEach((ep: any) => {
+              if (ep.airDate) {
+                const epDate = new Date(ep.airDate);
+                const now = new Date();
+                const diffDays = Math.round((epDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                // Released in the last 14 days or airing in the next 30 days
+                if (diffDays >= -14 && diffDays <= 30) {
+                  releases.push({
+                    showId: show.id,
+                    showTitle: show.title,
+                    posterPath: show.posterPath,
+                    episodeNumber: ep.episodeNumber,
+                    seasonNumber: s.seasonNumber,
+                    episodeTitle: ep.title || `Episódio ${ep.episodeNumber}`,
+                    airDate: ep.airDate,
+                    isRecent: diffDays <= 0
+                  });
+                }
+              }
+            });
+          });
+
         } catch (e) {
-          console.error(`Error calculating next episode for show ${showId}`, e);
+          console.warn(`Error computing dashboard for show ${showId}:`, e);
         }
       }
 
-      setContinueWatching(items);
-      setLoading(false);
+      if (!cancelled) {
+        // Sort releases: newest air date first
+        releases.sort((a, b) => new Date(b.airDate).getTime() - new Date(a.airDate).getTime());
+        setNextEpisodes(nextEpItems);
+        setUpcomingReleases(releases.slice(0, 10));
+        setLoading(false);
+      }
     };
 
-    calculateContinueWatching();
-  }, [watchedEpisodes]);
+    loadDashboardContent();
+    return () => { cancelled = true; };
+  }, [followedShows.join(','), watchedEpisodes.length]);
 
-  const handleQuickWatch = async (e: React.MouseEvent, item: ContinueWatchingItem) => {
+  const handleQuickWatch = async (e: React.MouseEvent, item: NextEpisodeItem) => {
     e.stopPropagation();
     await toggleWatchEpisode(item.nextEpisodeId, item.fullShowData, item.fullEpisodeData);
   };
-
-  const sortedRecentEpisodes = [...watchedEpisodes]
-    .sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime())
-    .slice(0, 3);
-
-  const sortedRecentMovies = [...watchedMovies]
-    .sort((a, b) => new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime())
-    .slice(0, 3);
 
   return (
     <div className="dashboard-view animate-fade-in" style={{ paddingBottom: '40px' }}>
@@ -137,7 +194,7 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
           marginBottom: '28px',
           display: 'grid',
           gap: '20px',
-          background: 'linear-gradient(135deg, rgba(124, 92, 255, 0.08) 0%, rgba(255, 122, 89, 0.05) 50%, var(--bg-surface) 100%)',
+          background: 'linear-gradient(135deg, rgba(124, 92, 255, 0.1) 0%, rgba(255, 122, 89, 0.06) 50%, var(--bg-surface) 100%)',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-lg)'
         }}
@@ -145,306 +202,181 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
         <div className="welcome-copy">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
             <Sparkles size={14} />
-            <span>Painel Principal</span>
+            <span>Painel Epsync</span>
           </div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '26px', marginBottom: '6px', letterSpacing: '-0.02em' }}>
-            Olá, Bem-vindo ao Epsync!
+            Olá, pronto para a próxima maratona?
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.4 }}>
-            Sua central para sincronizar e acompanhar tudo o que você assiste em um só lugar.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0, lineHeight: 1.5 }}>
+            Aqui estão os próximos episódios das séries e animes que você acompanha, além dos lançamentos mais recentes.
           </p>
-          {lastWatchedAt && (
-            <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '8px' }}>
-              Última atividade: {new Date(lastWatchedAt).toLocaleDateString('pt-BR')} {daysWithoutWatching > 0 ? `• ${daysWithoutWatching} dia(s) sem assistir` : '• tudo em dia 🔥'}
-            </p>
-          )}
         </div>
 
-        <div className="welcome-stats-grid">
-          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(124, 92, 255, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Clock size={20} style={{ color: 'var(--primary)' }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '19px', fontWeight: 700 }}>{totalHours}h</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Tempo Assistido</div>
-            </div>
+        <div className="hero-metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+          <div className="st-card" style={{ padding: '14px', textAlign: 'center' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'var(--font-display)' }}>{followedShows.length}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Séries Seguidas</div>
           </div>
-
-          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(255, 122, 89, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Tv size={20} style={{ color: 'var(--secondary)' }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '19px', fontWeight: 700 }}>{watchedEpisodes.length}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
-            </div>
+          <div className="st-card" style={{ padding: '14px', textAlign: 'center' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>{watchedEpisodes.length}</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Episódios Vistos</div>
           </div>
-
-          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(16, 185, 129, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Film size={20} style={{ color: 'var(--accent)' }} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '19px', fontWeight: 700 }}>{watchedMovies.length}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Filmes Vistos</div>
-            </div>
+          <div className="st-card" style={{ padding: '14px', textAlign: 'center' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--secondary)', fontFamily: 'var(--font-display)' }}>{totalHours}h</div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Tempo Assistido</div>
           </div>
-
-          <div className="stat-badge" style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', padding: '14px 16px', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: 'var(--radius-sm)', background: 'rgba(245, 158, 11, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Flame size={20} style={{ color: 'var(--warning)' }} />
+          <div className="st-card" style={{ padding: '14px', textAlign: 'center' }}>
+            <div style={{ fontSize: '22px', fontWeight: 800, color: streakDays > 0 ? 'var(--warning)' : 'var(--text-muted)', fontFamily: 'var(--font-display)' }}>
+              {streakDays} 🔥
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: '19px', fontWeight: 700 }}>{streakDays} dias</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Streak Atual</div>
-            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Dias Seguidos</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px' }} className="dashboard-grid">
-        
-        {/* Main Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          
-          {/* Continue Watching Section */}
-          <section>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '19px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Play size={18} style={{ color: 'var(--primary)' }} />
-                Continuar Assistindo
-              </h3>
-            </div>
-
-            {loading ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>Carregando episódios pendentes...</div>
-            ) : continueWatching.length === 0 ? (
-              <div className="st-panel" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                <p style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Nenhuma série em andamento.</p>
-                <p style={{ fontSize: '13px' }}>Descubra uma série e marque o primeiro episódio para acompanhar seu progresso aqui!</p>
-              </div>
-            ) : (
-              <div className="media-carousel">
-                {continueWatching.map(item => {
-                  const totalEps = item.fullEpisodeData?.seasonNumber ? (item.fullEpisodeData.episodeCount || 10) : 10;
-                  const progressPct = Math.min(100, Math.max(10, ((item.nextEpisodeNumber - 1) / totalEps) * 100));
-                  
-                  return (
-                    <div 
-                      key={item.showId} 
-                      className="carousel-item" 
-                      onClick={() => onViewMedia(item.showId, 'show')}
-                    >
-                      <img 
-                        src={getImageUrl(item.posterPath)} 
-                        alt={item.showTitle} 
-                        className="carousel-poster"
-                      />
-                      <div className="carousel-item-overlay">
-                        <span className="carousel-item-title">
-                          {item.showTitle}<br/>
-                          <span style={{ fontSize: '11px', color: 'var(--secondary)', fontWeight: 600 }}>
-                            S{item.nextSeasonNumber.toString().padStart(2, '0')} E{item.nextEpisodeNumber.toString().padStart(2, '0')}
-                          </span>
-                        </span>
-                      </div>
-                      
-                      {/* Play/Check button hovering over poster */}
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleQuickWatch(e, item); }}
-                        className="st-btn-primary"
-                        style={{ position: 'absolute', top: '8px', right: '8px', width: '32px', height: '32px', padding: 0, minWidth: '32px', borderRadius: 'var(--radius-full)' }}
-                        title="Marcar episódio como assistido"
-                      >
-                        <Check size={15} />
-                      </button>
-
-                      <div className="carousel-progress-bar-bg">
-                        <div className="carousel-progress-bar-fill" style={{ width: `${progressPct}%` }}></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          {/* Smart Timeline Section */}
-          <section className="st-panel" style={{ padding: '22px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px' }}>
-              Linha do Tempo Inteligente
+      {/* Section 1: Próximos Episódios para Você (Com base no que está seguindo) */}
+      <section style={{ marginBottom: '36px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Play size={18} style={{ color: 'var(--primary)' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', letterSpacing: '-0.02em', margin: 0 }}>
+              Próximos Episódios para Assistir ({nextEpisodes.length})
             </h3>
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Eventos de Watch</div>
-                <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: 'var(--primary)' }}>{totalWatchEvents}</div>
-              </div>
-              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Dias Sem Assistir</div>
-                <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px' }}>{daysWithoutWatching}</div>
-              </div>
-              <div style={{ background: 'var(--bg-dark)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Gêneros em Alta</div>
-                <div style={{ fontSize: '13px', fontWeight: 600, marginTop: '6px', color: 'var(--text-secondary)' }}>
-                  {favoriteGenres.length > 0 ? favoriteGenres.join(' • ') : 'Sem dados ainda'}
-                </div>
-              </div>
-            </div>
-          </section>
-
+          </div>
         </div>
 
-        {/* Sidebar Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '26px' }}>
-          
-          {/* Active Reminders Card */}
-          {reminders.length > 0 && (
-            <section className="st-panel" style={{ padding: '20px' }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Bell size={17} style={{ color: 'var(--secondary)' }} />
-                Lembretes Ativos ({reminders.length})
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {reminders.slice(0, 4).map(rem => (
-                  <div
-                    key={rem.id}
-                    onClick={() => onViewMedia(rem.showId, 'show', rem.seasonNumber, rem.episodeNumber)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '10px 12px',
-                      background: 'var(--bg-dark)',
-                      borderRadius: 'var(--radius-sm)',
-                      cursor: 'pointer',
-                      border: '1px solid var(--border-color)',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                    onMouseOver={e => {
-                      e.currentTarget.style.background = 'var(--bg-elevated)';
-                      e.currentTarget.style.borderColor = 'var(--primary)';
-                    }}
-                    onMouseOut={e => {
-                      e.currentTarget.style.background = 'var(--bg-dark)';
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {rem.showTitle}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                        T{rem.seasonNumber} E{rem.episodeNumber} {rem.airDate ? `• ${rem.airDate}` : ''}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary)', background: 'rgba(124, 92, 255, 0.12)', padding: '2px 8px', borderRadius: 'var(--radius-xs)', border: '1px solid rgba(124, 92, 255, 0.25)' }}>
-                      Ativo
+        {loading ? (
+          <div className="st-panel" style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+            Carregando seus próximos episódios...
+          </div>
+        ) : nextEpisodes.length === 0 ? (
+          <div className="st-panel" style={{ padding: '36px 20px', textAlign: 'center', color: 'var(--text-secondary)', borderRadius: 'var(--radius-lg)' }}>
+            <Tv size={36} style={{ color: 'var(--primary)', margin: '0 auto 10px' }} />
+            <h4 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+              Nenhuma série em andamento
+            </h4>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 16px' }}>
+              Siga séries e animes na aba <strong>Descobrir</strong> para acompanhar o progresso episódio a episódio!
+            </p>
+            <button onClick={() => window.location.hash = '#/descobrir'} className="st-btn-primary" style={{ padding: '8px 18px', fontSize: '13px' }}>
+              Explorar Catálogo <ArrowRight size={14} />
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {nextEpisodes.map((item) => (
+              <div
+                key={item.nextEpisodeId}
+                className="st-card next-ep-card"
+                onClick={() => onViewMedia(item.showId, 'show', item.nextSeasonNumber, item.nextEpisodeNumber)}
+                style={{
+                  display: 'flex',
+                  gap: '14px',
+                  padding: '12px',
+                  cursor: 'pointer',
+                  borderRadius: 'var(--radius-md)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'transform var(--transition-fast), border-color var(--transition-fast)'
+                }}
+              >
+                {/* Poster */}
+                <div style={{ width: '70px', height: '105px', flexShrink: 0, borderRadius: 'var(--radius-sm)', overflow: 'hidden', position: 'relative', background: 'var(--bg-dark)', border: '1px solid var(--border-color)' }}>
+                  <img
+                    src={getImageUrl(item.posterPath)}
+                    alt={item.showTitle}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    loading="lazy"
+                  />
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)', padding: '2px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 800, color: 'var(--primary)' }}>
+                      S{item.nextSeasonNumber} E{item.nextEpisodeNumber}
                     </span>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
+                </div>
 
-          {/* Recently Watched */}
-          <section className="st-panel" style={{ padding: '20px' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '17px', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Flame size={17} style={{ color: 'var(--secondary)' }} />
-              Atividades Recentes
-            </h3>
-
-            {sortedRecentEpisodes.length === 0 && sortedRecentMovies.length === 0 ? (
-              <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px 0', fontSize: '13px' }}>
-                Nenhuma atividade recente registrada.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {sortedRecentEpisodes.map((ev, i) => {
-                  const parts = ev.episodeId.split('_');
-                  const s = parts[2] || '1';
-                  const e = parts[3] || '1';
-                  return (
-                    <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentEpisodes.length - 1 || sortedRecentMovies.length > 0 ? '1px solid var(--border-color)' : 'none' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', marginTop: '6px', flexShrink: 0 }}></div>
-                      <div>
-                        <div>Assistiu o episódio <strong>T{s}E{e}</strong></div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                          {new Date(ev.watchedAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {sortedRecentMovies.map((ev, i) => (
-                  <div key={ev.id} style={{ display: 'flex', gap: '10px', fontSize: '13px', paddingBottom: '10px', borderBottom: i < sortedRecentMovies.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)', marginTop: '6px', flexShrink: 0 }}></div>
-                    <div>
-                      <div>Assistiu o filme <strong>{ev.movieTitle || 'Filme'}</strong></div>
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                        {new Date(ev.watchedAt).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
-                      </div>
-                    </div>
+                {/* Episode Details */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--text-primary)' }}>
+                      {item.showTitle}
+                    </h4>
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {item.nextEpisodeTitle}
+                    </p>
+                    {item.airDate && (
+                      <span style={{ fontSize: '10px', color: item.isReleased ? 'var(--text-muted)' : 'var(--warning)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Clock size={11} /> {item.isReleased ? `Lançado em ${new Date(item.airDate).toLocaleDateString('pt-BR')}` : `Estreia em ${new Date(item.airDate).toLocaleDateString('pt-BR')}`}
+                      </span>
+                    )}
                   </div>
-                ))}
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600 }}>
+                      Assistir Agora →
+                    </span>
+                    <button
+                      onClick={(e) => handleQuickWatch(e, item)}
+                      className="st-btn-secondary"
+                      style={{ padding: '4px 8px', fontSize: '11px', gap: '4px', borderRadius: 'var(--radius-xs)', background: 'var(--bg-elevated)' }}
+                      title="Marcar como assistido"
+                    >
+                      <Check size={12} /> Marcar
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </section>
+            ))}
+          </div>
+        )}
+      </section>
 
-        </div>
+      {/* Section 2: Próximos Lançamentos & Estreias Recentes */}
+      {upcomingReleases.length > 0 && (
+        <section style={{ marginBottom: '36px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <CalendarIcon size={18} style={{ color: 'var(--secondary)' }} />
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', letterSpacing: '-0.02em', margin: 0 }}>
+              Lançamentos Recentes & Próximas Estreias
+            </h3>
+          </div>
 
-      </div>
-
-      <style>{`
-        .welcome-banner {
-          grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-          align-items: center;
-        }
-
-        .welcome-copy {
-          min-width: 0;
-        }
-
-        .welcome-stats-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          width: 100%;
-          align-self: stretch;
-        }
-
-        @media (max-width: 800px) {
-          .welcome-banner {
-            grid-template-columns: 1fr;
-            padding: 20px !important;
-          }
-
-          .welcome-copy h2 {
-            font-size: 22px !important;
-          }
-
-          .welcome-stats-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-          }
-
-          .dashboard-grid {
-            grid-template-columns: 1fr !important;
-            gap: 20px !important;
-          }
-        }
-
-        @media (max-width: 420px) {
-          .welcome-stats-grid {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .stat-badge {
-            padding: 10px !important;
-            gap: 8px !important;
-          }
-        }
-      `}</style>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px' }}>
+            {upcomingReleases.map((rel, idx) => (
+              <div
+                key={idx}
+                className="st-card"
+                onClick={() => onViewMedia(rel.showId, 'show', rel.seasonNumber, rel.episodeNumber)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  cursor: 'pointer',
+                  borderRadius: 'var(--radius-md)'
+                }}
+              >
+                <div style={{ width: '44px', height: '64px', flexShrink: 0, borderRadius: 'var(--radius-xs)', overflow: 'hidden', background: 'var(--bg-dark)' }}>
+                  <img src={getImageUrl(rel.posterPath)} alt={rel.showTitle} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: 700, margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {rel.showTitle}
+                  </h4>
+                  <div style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, marginBottom: '2px' }}>
+                    T{rel.seasonNumber}:E{rel.episodeNumber} • {rel.episodeTitle}
+                  </div>
+                  <div style={{ fontSize: '10px', color: rel.isRecent ? 'var(--accent)' : 'var(--text-muted)' }}>
+                    {rel.isRecent ? '⚡ Recém Lançado (' : '📅 Estreia: '}
+                    {new Date(rel.airDate).toLocaleDateString('pt-BR')}
+                    {rel.isRecent ? ')' : ''}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

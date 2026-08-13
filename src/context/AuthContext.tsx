@@ -18,6 +18,7 @@ interface User {
   username: string;
   email: string;
   avatarUrl?: string;
+  bannerUrl?: string;
   profileVisibility?: 'public' | 'friends' | 'private';
 }
 
@@ -31,6 +32,7 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<boolean>;
   resetPassword: (email: string) => Promise<boolean>;
   updateAvatar: (avatarUrl: string) => Promise<boolean>;
+  updateBanner: (bannerUrl: string) => Promise<boolean>;
   updatePrivacy: (visibility: 'public' | 'friends' | 'private') => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
@@ -108,6 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const mappedUser = mapFirebaseUser(fbUser);
 
         let savedAvatarUrl: string | null = null;
+        let savedBannerUrl: string | null = null;
         let savedVisibility: 'public' | 'friends' | 'private' = 'public';
 
         if (db) {
@@ -116,6 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (pSnap.exists()) {
               const pData = pSnap.data();
               if (pData.avatarUrl) savedAvatarUrl = pData.avatarUrl;
+              if (pData.bannerUrl) savedBannerUrl = pData.bannerUrl;
               if (pData.profileVisibility) savedVisibility = pData.profileVisibility;
             }
           } catch (errP) {
@@ -123,18 +127,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        const cached = localStorage.getItem('showtime_user');
+        const cached = localStorage.getItem('epsync_user') || localStorage.getItem('showtime_user');
         const cachedParsed = cached ? JSON.parse(cached) : null;
         const cachedAvatar = cachedParsed?.id === fbUser.uid ? cachedParsed?.avatarUrl : null;
+        const cachedBanner = cachedParsed?.id === fbUser.uid ? cachedParsed?.bannerUrl : null;
 
         const finalAvatarUrl = savedAvatarUrl || cachedAvatar || fbUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${mappedUser.username}`;
+        const finalBannerUrl = savedBannerUrl || cachedBanner || undefined;
 
         const mergedUser: User = {
           ...mappedUser,
           avatarUrl: finalAvatarUrl,
+          bannerUrl: finalBannerUrl,
           profileVisibility: (savedVisibility || (cachedParsed?.id === fbUser.uid ? cachedParsed?.profileVisibility : null)) ?? 'public',
         };
 
+        localStorage.setItem('epsync_token', fbToken);
+        localStorage.setItem('epsync_user', JSON.stringify(mergedUser));
         localStorage.setItem('showtime_token', fbToken);
         localStorage.setItem('showtime_user', JSON.stringify(mergedUser));
         setToken(fbToken);
@@ -385,11 +394,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const updated = { ...user, avatarUrl };
       setUser(updated);
+      localStorage.setItem('epsync_user', JSON.stringify(updated));
       localStorage.setItem('showtime_user', JSON.stringify(updated));
       return true;
     } catch (err: any) {
       console.error('Firebase avatar update error:', err);
       setError('Erro ao atualizar foto de perfil.');
+      return false;
+    }
+  };
+
+  const updateBanner = async (bannerUrl: string): Promise<boolean> => {
+    setError(null);
+    if (!user) return false;
+    try {
+      if (isFirebaseEnabled && db) {
+        const profileRef = doc(db, 'profiles', user.id);
+        await setDoc(profileRef, { bannerUrl, updatedAt: new Date().toISOString() }, { merge: true });
+      }
+
+      const updated = { ...user, bannerUrl };
+      setUser(updated);
+      localStorage.setItem('epsync_user', JSON.stringify(updated));
+      localStorage.setItem('showtime_user', JSON.stringify(updated));
+      return true;
+    } catch (err: any) {
+      console.error('Firebase banner update error:', err);
+      setError('Erro ao atualizar banner do perfil.');
       return false;
     }
   };
@@ -404,6 +435,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       const updated = { ...user, profileVisibility: visibility };
       setUser(updated);
+      localStorage.setItem('epsync_user', JSON.stringify(updated));
       localStorage.setItem('showtime_user', JSON.stringify(updated));
       return true;
     } catch (e) {
@@ -413,7 +445,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, resetPassword, updateAvatar, updatePrivacy, logout, clearError }}>
+    <AuthContext.Provider value={{ user, token, loading, error, login, register, loginWithGoogle, resetPassword, updateAvatar, updateBanner, updatePrivacy, logout, clearError }}>
       {children}
     </AuthContext.Provider>
   );

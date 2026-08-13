@@ -34,6 +34,7 @@ export interface WatchMovieEvent {
   watchedAt: string;
   isFavorite: boolean;
   movieTitle?: string;
+  posterPath?: string;
   genres?: string[];
 }
 
@@ -499,13 +500,16 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (isWatched) {
       newMovs.splice(alreadyWatchedIndex, 1);
     } else {
+      const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
+      const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
       newMovs.push({
         id: 'wm_' + generateId(),
         userId: user.id,
         movieId,
         watchedAt: new Date().toISOString(),
         isFavorite: false,
-        movieTitle: movieMetadata?.title || 'Filme',
+        movieTitle: title,
+        posterPath: poster,
         genres: movieMetadata?.genres || movieMetadata?.genre || []
       });
     }
@@ -520,13 +524,16 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (isWatched) {
           await deleteDoc(docRef);
         } else {
+          const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
+          const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
           const newEvent: WatchMovieEvent = {
             id: 'wm_' + generateId(),
             userId: user.id,
             movieId,
             watchedAt: new Date().toISOString(),
             isFavorite: false,
-            movieTitle: movieMetadata?.title || 'Filme',
+            movieTitle: title,
+            posterPath: poster,
             genres: movieMetadata?.genres || movieMetadata?.genre || []
           };
           await setDoc(docRef, newEvent);
@@ -561,13 +568,16 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       newFavoriteStatus = !watchedMovies[movieIndex].isFavorite;
       newMovs[movieIndex] = { ...newMovs[movieIndex], isFavorite: newFavoriteStatus };
     } else {
+      const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
+      const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
       newMovs.push({
         id: 'wm_' + generateId(),
         userId: user.id,
         movieId,
         watchedAt: new Date().toISOString(),
         isFavorite: true,
-        movieTitle: movieMetadata?.title || 'Filme',
+        movieTitle: title,
+        posterPath: poster,
         genres: movieMetadata?.genres || movieMetadata?.genre || []
       });
     }
@@ -580,13 +590,16 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (isWatched) {
           await setDoc(docRef, { ...watchedMovies[movieIndex], isFavorite: newFavoriteStatus });
         } else {
+          const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
+          const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
           const newEvent: WatchMovieEvent = {
             id: 'wm_' + generateId(),
             userId: user.id,
             movieId,
             watchedAt: new Date().toISOString(),
             isFavorite: true,
-            movieTitle: movieMetadata?.title || 'Filme',
+            movieTitle: title,
+            posterPath: poster,
             genres: movieMetadata?.genres || movieMetadata?.genre || []
           };
           await setDoc(docRef, newEvent);
