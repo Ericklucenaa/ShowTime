@@ -525,7 +525,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleWatchMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const alreadyWatchedIndex = watchedMovies.findIndex(w => w.movieId === movieId);
+    const cleanId = (id: string) => id.replace(/^[sm]_/, '');
+    const cleanTargetId = cleanId(movieId);
+    const alreadyWatchedIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
     const isWatched = alreadyWatchedIndex > -1;
 
     // Optimistic Update
@@ -553,10 +555,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isFirebaseEnabled && db) {
       try {
-        const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
         if (isWatched) {
-          await deleteDoc(docRef);
+          const docId = watchedMovies[alreadyWatchedIndex].id || `${user.id}_${movieId}`;
+          await deleteDoc(doc(db, 'watch_movies', docId));
         } else {
+          const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
           const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
           const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
           const newEvent: WatchMovieEvent = {
@@ -591,7 +594,9 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const toggleFavoriteMovie = async (movieId: string, movieMetadata?: any): Promise<boolean> => {
     if (!user) return false;
 
-    const movieIndex = watchedMovies.findIndex(w => w.movieId === movieId);
+    const cleanId = (id: string) => id.replace(/^[sm]_/, '');
+    const cleanTargetId = cleanId(movieId);
+    const movieIndex = watchedMovies.findIndex(w => cleanId(w.movieId) === cleanTargetId);
     const isWatched = movieIndex > -1;
 
     // Optimistic Update
@@ -619,10 +624,11 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (isFirebaseEnabled && db) {
       try {
-        const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
         if (isWatched) {
-          await setDoc(docRef, { ...watchedMovies[movieIndex], isFavorite: newFavoriteStatus });
+          const docId = watchedMovies[movieIndex].id || `${user.id}_${movieId}`;
+          await setDoc(doc(db, 'watch_movies', docId), { isFavorite: newFavoriteStatus }, { merge: true });
         } else {
+          const docRef = doc(db, 'watch_movies', `${user.id}_${movieId}`);
           const poster = movieMetadata?.posterPath || movieMetadata?.poster_path || undefined;
           const title = movieMetadata?.title || movieMetadata?.name || 'Filme';
           const newEvent: WatchMovieEvent = {
@@ -642,7 +648,7 @@ export const TrackingProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         console.error('Error toggling Firestore favorite movie:', e);
         // Rollback
         setWatchedMovies(watchedMovies);
-        pushToast('error', 'Falha ao atualizar favorito.');
+        pushToast('error', 'Falha ao favoritar filme.');
         return false;
       }
     } else {

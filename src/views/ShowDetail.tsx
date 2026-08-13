@@ -294,9 +294,18 @@ export const ShowDetail: React.FC<ShowDetailProps> = ({
 
 
 
+  // Helper to normalize TMDB IDs (removes m_ or s_ prefix if present)
+  const cleanId = (id?: string) => id ? id.replace(/^[sm]_/, '') : '';
+
   // Check watch statuses
-  const isMovieWatched = (watchedMovies || []).some(m => m.movieId === media?.id || m.movieId === mediaId);
-  const isMovieFavorite = (watchedMovies || []).find(m => m.movieId === media?.id || m.movieId === mediaId)?.isFavorite || false;
+  const isMovieWatched = (watchedMovies || []).some(m => {
+    const cleanWatchedId = cleanId(m.movieId);
+    return cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId);
+  });
+  const isMovieFavorite = (watchedMovies || []).find(m => {
+    const cleanWatchedId = cleanId(m.movieId);
+    return cleanWatchedId === cleanId(media?.id) || cleanWatchedId === cleanId(mediaId);
+  })?.isFavorite || false;
 
   const isEpisodeWatched = (epId: string) => (watchedEpisodes || []).some(e => e && e.episodeId === epId);
   const safeFollowedShows = followedShows || [];

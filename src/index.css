@@ -594,6 +594,21 @@ button, input, select, textarea {
   scrollbar-width: thin !important;
   cursor: grab;
 }
+.horizontal-scroll-container::-webkit-scrollbar {
+  height: 5px !important;
+  display: block !important;
+}
+.horizontal-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-radius: 4px !important;
+}
+.horizontal-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.35) !important;
+  border-radius: 4px !important;
+}
+.horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 92, 255, 0.6) !important;
+}
 .horizontal-scroll-container:active {
   cursor: grabbing;
 }
@@ -654,10 +669,11 @@ button, input, select, textarea {
 
   .horizontal-scroll-container {
     gap: 10px !important;
-    scrollbar-width: none !important;
+    scrollbar-width: thin !important;
   }
   .horizontal-scroll-container::-webkit-scrollbar {
-    display: none !important;
+    display: block !important;
+    height: 4px !important;
   }
   .horizontal-scroll-item {
     flex: 0 0 100px !important;
