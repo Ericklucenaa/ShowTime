@@ -206,7 +206,6 @@ export const Dashboard: React.FC<{ onViewMedia: (id: string, type: 'show' | 'mov
             style={{
               width: '60px',
               height: '60px',
-              borderRadius: '16px',
               objectFit: 'contain',
               flexShrink: 0,
               filter: 'drop-shadow(0 6px 16px rgba(124, 92, 255, 0.45))'

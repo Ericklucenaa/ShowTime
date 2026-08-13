@@ -23,7 +23,6 @@ export const EpsyncLogo: React.FC<EpsyncLogoProps> = ({
         width: `${size}px`,
         height: `${size}px`,
         objectFit: 'contain',
-        borderRadius: `${Math.max(6, Math.round(size * 0.22))}px`,
         flexShrink: 0,
         filter: 'drop-shadow(0 2px 8px rgba(124, 92, 255, 0.45))',
         display: 'block'

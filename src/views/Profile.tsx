@@ -318,7 +318,7 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
             @{user?.username}
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-            <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', borderRadius: '4px', objectFit: 'contain' }} />
+            <img src="/logo.png" alt="Epsync" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
             <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
           </div>
         </div>
