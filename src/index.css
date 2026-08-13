@@ -505,10 +505,74 @@ button, input, select, textarea {
 }
 
 /* Profile Layout & Responsiveness */
+.profile-header-block {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 14px;
+  margin-bottom: 24px;
+  padding: 0 4px;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.profile-user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.profile-username {
+  font-size: 24px;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.profile-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.profile-badge-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.profile-badge-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 .profile-header-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.profile-action-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.logout-btn {
+  color: var(--error) !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
 }
 
 .profile-stats-grid {
@@ -545,40 +609,49 @@ button, input, select, textarea {
   transform: translateY(-3px);
 }
 
-@media (max-width: 640px) {
-  .profile-header-info {
-    padding-left: 0 !important;
-    margin-top: 48px !important;
+@media (max-width: 768px) {
+  .profile-header-block {
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 12px !important;
-  }
-  .profile-header-info > div:first-child {
+    margin-top: 48px !important;
+    gap: 14px !important;
+    padding: 0 !important;
     width: 100% !important;
   }
+
+  .profile-user-details {
+    width: 100% !important;
+  }
+
   .profile-header-actions {
     width: 100% !important;
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
     gap: 8px !important;
+    box-sizing: border-box !important;
   }
+
+  .profile-header-actions .profile-action-btn,
   .profile-header-actions button {
     width: 100% !important;
     min-height: 42px !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    padding: 8px 6px !important;
+    padding: 8px 4px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
     white-space: nowrap !important;
+    box-sizing: border-box !important;
   }
+
   .profile-stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
     margin-bottom: 24px !important;
   }
+
   .horizontal-scroll-container {
     gap: 10px !important;
     scrollbar-width: none !important;

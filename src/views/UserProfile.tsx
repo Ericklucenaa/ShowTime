@@ -179,11 +179,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
       </div>
 
-      {/* Username + actions row */}
-      <div className="profile-header-info" style={{ paddingLeft: '125px', paddingRight: '16px', minHeight: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
-        <div>
+      {/* Profile Header Info Block */}
+      <div className="profile-header-block">
+        <div className="profile-user-details">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
-            <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
+            <h2 className="profile-username">
               @{profile.username}
             </h2>
             {isMutual && !isOwnProfile && (
@@ -203,13 +203,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             )}
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-            <img src="/logo.png" alt="Epsync" style={{ width: '16px', height: '16px', objectFit: 'contain' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+          <div className="profile-badge-row">
+            <img src="/logo.png" alt="Epsync" className="profile-badge-icon" />
+            <span className="profile-badge-text">Membro Epsync</span>
           </div>
 
           {!isBlocked && (
-            <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)', flexWrap: 'wrap', marginTop: '6px' }}>
               <span><strong style={{ color: 'var(--text-primary)' }}>{watchedShows.length}</strong> séries assistidas</span>
               <span><strong style={{ color: 'var(--text-primary)' }}>{followedShowsList.length}</strong> séries seguindo</span>
             </div>
@@ -217,11 +217,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         </div>
 
         {!isOwnProfile && (
-          <div className="profile-header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="profile-header-actions">
             {onOpenChat && isMutual && !isBlockedByMe && (
               <button
-                className="st-btn-primary"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: 600 }}
+                className="st-btn-primary profile-action-btn"
                 onClick={() => onOpenChat({
                   id: targetUserId,
                   username: profile.username || targetUsername,

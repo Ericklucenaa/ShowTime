@@ -355,27 +355,27 @@ export const Profile: React.FC<ProfileProps> = ({ onViewMedia }) => {
         </div>
       </div>
 
-      {/* Username + actions row */}
-      <div className="profile-header-info" style={{ paddingLeft: '125px', paddingRight: '16px', minHeight: '50px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontFamily: 'var(--font-display)', letterSpacing: '-0.02em', margin: 0 }}>
+      {/* Profile Header Info Block */}
+      <div className="profile-header-block">
+        <div className="profile-user-details">
+          <h2 className="profile-username">
             @{user?.username}
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-            <img src="/logo.png" alt="Epsync" style={{ width: '18px', height: '18px', objectFit: 'contain' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Membro Epsync</span>
+          <div className="profile-badge-row">
+            <img src="/logo.png" alt="Epsync" className="profile-badge-icon" />
+            <span className="profile-badge-text">Membro Epsync</span>
           </div>
         </div>
         
-        {/* Responsive 3-Button Row */}
+        {/* Responsive 3-Button Action Row */}
         <div className="profile-header-actions">
-          <button onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary" disabled={avatarLoading}>
+          <button type="button" onClick={() => setShowAvatarPicker(true)} className="st-btn-secondary profile-action-btn" disabled={avatarLoading}>
             <Camera size={14} /> Foto
           </button>
-          <button onClick={() => setShowBannerPicker(true)} className="st-btn-secondary" disabled={bannerLoading}>
+          <button type="button" onClick={() => setShowBannerPicker(true)} className="st-btn-secondary profile-action-btn" disabled={bannerLoading}>
             <ImageIcon size={14} /> Capa
           </button>
-          <button onClick={logout} className="st-btn-secondary" style={{ color: 'var(--error)', borderColor: 'rgba(239,68,110,0.25)' }}>
+          <button type="button" onClick={logout} className="st-btn-secondary profile-action-btn logout-btn">
             <LogOut size={14} /> Sair
           </button>
         </div>
